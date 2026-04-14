@@ -1,13 +1,5 @@
 # thingo-app
 
-This is a [React Native](https://reactnative.dev/) project built with [Expo](https://expo.dev/) and [React Native Reusables](https://reactnativereusables.com).
-
-It was initialized using the following command, then the `Minimal (Nativewind)` template was selected when prompted:
-
-```bash
-npx @react-native-reusables/cli@latest init
-```
-
 ## Getting Started
 
 노드 v20.20.2 버전 셋업 (터미널 종료 시 초기화 되므로 작업 전에 매번 실행):
@@ -21,7 +13,7 @@ nvm use
 패키지 설치:
 
 ```bash
-pnpm install
+pnpm i
 ```
 
 <br />
@@ -56,11 +48,13 @@ You can also scan the QR code using the [Expo Go](https://expo.dev/go) app on yo
 | chore/{제목}        | 기타 작업 브랜치  |
 | fix/{제목}          | 핫픽스 브랜치    |
 
-브랜치 제목은 `케밥-케이스` 사용
+- 브랜치 제목은 `케밥-케이스` 사용
 
-- feat/campaign-apply  
-- fix/payment-error  
-- chore/git-action-setup
+```
+feat/campaign-apply  
+fix/payment-error  
+chore/git-action-setup
+```
 
 <br />
 
@@ -76,23 +70,27 @@ You can also scan the QR code using the [Expo Go](https://expo.dev/go) app on yo
 | style. {내용}    | 코드 포맷 변경                   |
 | test. {내용}     | 테스트 추가/수정                 |
 
-커밋 메시지는 `자유 서식` 사용
+- 커밋 메시지는 `자유 서식`
 
-- feat. 켐페인 지원 기능 추가
-- fix. 결제 페이지 오류 수정
-- chore. 패키지 의존성 업데이트
-
-## Adding components
-
-You can add more reusable components using the CLI:
-
-```bash
-npx react-native-reusables/cli@latest add [...components]
+```
+feat. 켐페인 지원 기능 추가
+fix. 결제 페이지 오류 수정
+chore. 패키지 의존성 업데이트
 ```
 
-> e.g. `npx react-native-reusables/cli@latest add input textarea`
+<br />
 
-If you don't specify any component names, you'll be prompted to select which components to add interactively. Use the `--all` flag to install all available components at once.
+### 파일 네이밍
+
+| 구분 | 규칙 | 예시 |
+|------|------|------|
+| 화면·라우트 (`app/`) | Expo Router 규칙 준수 | `_layout.tsx`, `index.tsx`, `+not-found.tsx`, `+html.tsx`, `(group)/page.tsx` |
+| 컴포넌트 (`components/`) | 케밥-케이스 사용 | `campaign-card.tsx` |
+| 훅 (`hooks/`) | 카멜 케이스 사용 | `useAuth.ts`, `useCampaignForm.ts` |
+| 유틸·헬퍼 (`lib/`) | 카멜 케이스 또는 단일 단어 소문자 | `utils.ts`, `theme.ts` |
+| 설정·루트 스크립트 | 도구 관례 따름 | `babel.config.js`, `metro.config.js`, `tailwind.config.js` |
+
+- 파일명에는 **공백·한글**을 쓰지 않는다.
 
 ## Project Features
 
