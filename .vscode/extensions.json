@@ -1,0 +1,11 @@
+{
+  "recommendations": [
+    "bradlc.vscode-tailwindcss",
+    "csstools.postcss",
+    "vscjava.vscode-gradle",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "expo.vscode-expo-tools",
+    "ms-vscode.vscode-typescript-next"
+  ]
+}

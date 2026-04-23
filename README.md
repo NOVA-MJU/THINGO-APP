@@ -1,6 +1,6 @@
 # thingo-app
 
-## Getting Started
+## 시작하기
 
 노드 v20.20.2 버전 셋업 (터미널 종료 시 초기화 되므로 작업 전에 매번 실행):
 
@@ -22,21 +22,31 @@ pnpm i
 
 <br />
 
-개발 서버 실행:
+개발 버전 빌드 및 에뮬레이터 실행 (최초 빌드 또는 네이티브 코드 수정 시에만 수행):
 
 ```bash
-pnpm dev
+# android
+pnpm expo run:android
+
+# ios
+pnpm expo run:ios
 ```
 
-This will start the Expo Dev Server. Open the app in:
+참고: `/ios`, `/android` 는 깃에 올리지 않음. 깃 추적 여부는 추후 결정.
 
-- **iOS**: press `i` to launch in the iOS simulator _(Mac only)_
-- **Android**: press `a` to launch in the Android emulator
-- **Web**: press `w` to run in a browser
+<br />
 
-You can also scan the QR code using the [Expo Go](https://expo.dev/go) app on your device. This project fully supports running in Expo Go for quick testing on physical devices.
+개발 버전 실행:
 
-## Git Strategy
+```bash
+# android
+pnpm android
+
+# ios
+pnpm ios
+```
+
+## 깃 전략
 
 ### 브랜치 분류
 
@@ -91,33 +101,3 @@ chore. 패키지 의존성 업데이트
 | 설정·루트 스크립트 | 도구 관례 따름 | `babel.config.js`, `metro.config.js`, `tailwind.config.js` |
 
 - 파일명에는 **공백·한글**을 쓰지 않는다.
-
-## Project Features
-
-- ⚛️ Built with [Expo Router](https://expo.dev/router)
-- 🎨 Styled with [Tailwind CSS](https://tailwindcss.com/) via [Nativewind](https://www.nativewind.dev/)
-- 📦 UI powered by [React Native Reusables](https://github.com/founded-labs/react-native-reusables)
-- 🚀 New Architecture enabled
-- 🔥 Edge to Edge enabled
-- 📱 Runs on iOS, Android, and Web
-
-## Learn More
-
-To dive deeper into the technologies used:
-
-- [React Native Docs](https://reactnative.dev/docs/getting-started)
-- [Expo Docs](https://docs.expo.dev/)
-- [Nativewind Docs](https://www.nativewind.dev/)
-- [React Native Reusables](https://reactnativereusables.com)
-
-## Deploy with EAS
-
-The easiest way to deploy your app is with [Expo Application Services (EAS)](https://expo.dev/eas).
-
-- [EAS Build](https://docs.expo.dev/build/introduction/)
-- [EAS Updates](https://docs.expo.dev/eas-update/introduction/)
-- [EAS Submit](https://docs.expo.dev/submit/introduction/)
-
----
-
-If you enjoy using React Native Reusables, please consider giving it a ⭐ on [GitHub](https://github.com/founded-labs/react-native-reusables). Your support means a lot!
