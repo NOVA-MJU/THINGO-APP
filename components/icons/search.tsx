@@ -1,0 +1,25 @@
+import { cssInterop } from 'nativewind';
+import Svg, { Path } from 'react-native-svg';
+
+const StyledSvg = cssInterop(Svg, {
+  className: { target: 'style', nativeStyleToProp: { color: true } },
+});
+
+interface SearchIconProps {
+  width?: number;
+  height?: number;
+  className?: string;
+}
+
+export default function SearchIcon({ width = 24, height = 24, className = 'text-[#17171B]' }: SearchIconProps) {
+  return (
+    <StyledSvg width={width} height={height} viewBox="0 0 24 24" fill="none" className={className}>
+      <Path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M17.0415 14.57L20.6977 18.2343C21.1007 18.6381 21.1008 19.292 20.698 19.6959C20.2938 20.1013 19.6375 20.1014 19.2332 19.6962L15.5845 16.0395C14.1238 17.142 12.3007 17.6491 10.4819 17.4588C8.66321 17.2685 6.9839 16.3949 5.78197 15.0137C4.58003 13.6326 3.94468 11.8464 4.00378 10.0147C4.06288 8.18305 4.81203 6.44178 6.10049 5.14133C7.38894 3.84089 9.12105 3.0778 10.9483 3.00563C12.7755 2.93346 14.5621 3.55756 15.9487 4.75235C17.3353 5.94714 18.2188 7.62392 18.4216 9.44527C18.6244 11.2666 18.1312 13.0973 17.0415 14.569V14.57ZM16.3988 10.2496C16.3988 8.87636 15.8544 7.55935 14.8855 6.58831C13.9166 5.61728 12.6025 5.07175 11.2323 5.07175C9.86203 5.07175 8.54792 5.61728 7.57901 6.58831C6.6101 7.55935 6.06578 8.87636 6.06578 10.2496C6.06578 11.6229 6.6101 12.9399 7.57901 13.9109C8.54792 14.882 9.86203 15.4275 11.2323 15.4275C12.6025 15.4275 13.9166 14.882 14.8855 13.9109C15.8544 12.9399 16.3988 11.6229 16.3988 10.2496Z"
+        fill="currentColor"
+      />
+    </StyledSvg>
+  );
+}
