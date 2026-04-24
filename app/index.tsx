@@ -1,21 +1,17 @@
+import { ArrowBackIcon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
-import { Link, Stack } from 'expo-router';
-import { MoonStarIcon, StarIcon, SunIcon } from 'lucide-react-native';
+import { Link } from 'expo-router';
+import { StarIcon } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import * as React from 'react';
 import { Image, type ImageStyle, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const LOGO = {
   light: require('@/assets/images/react-native-reusables-light.png'),
   dark: require('@/assets/images/react-native-reusables-dark.png'),
-};
-
-const SCREEN_OPTIONS = {
-  title: 'React Native Reusables',
-  headerTransparent: true,
-  headerRight: () => <ThemeToggle />,
 };
 
 const IMAGE_STYLE: ImageStyle = {
@@ -25,10 +21,21 @@ const IMAGE_STYLE: ImageStyle = {
 
 export default function Screen() {
   const { colorScheme } = useColorScheme();
+  const insets = useSafeAreaInsets();
 
   return (
     <>
-      <Stack.Screen options={SCREEN_OPTIONS} />
+      {/* 앱 헤더 */}
+      <View
+        style={{ paddingTop: insets.top }}
+        className="border-b border-border bg-background px-4 pb-3">
+        <View className="h-15 flex-row items-center">
+          <ArrowBackIcon />
+          <Text className="text-heading02 text-mju-primary">Thingo</Text>
+        </View>
+      </View>
+
+      {/* 앱 페이지 */}
       <View className="flex-1 items-center justify-center gap-8 p-4">
         <Image source={LOGO[colorScheme ?? 'light']} style={IMAGE_STYLE} resizeMode="contain" />
         <View className="gap-2 p-4">
@@ -39,6 +46,7 @@ export default function Screen() {
             2. Save to see your changes instantly.
           </Text>
         </View>
+
         <View className="flex-row gap-2">
           <Link href="https://reactnativereusables.com" asChild>
             <Button>
@@ -52,26 +60,13 @@ export default function Screen() {
             </Button>
           </Link>
         </View>
+
+        <Link href="/boards/1" asChild>
+          <Button className="bg-mju-primary">
+            <Text className="text-white">Board</Text>
+          </Button>
+        </Link>
       </View>
     </>
-  );
-}
-
-const THEME_ICONS = {
-  light: SunIcon,
-  dark: MoonStarIcon,
-};
-
-function ThemeToggle() {
-  const { colorScheme, toggleColorScheme } = useColorScheme();
-
-  return (
-    <Button
-      onPressIn={toggleColorScheme}
-      size="icon"
-      variant="ghost"
-      className="ios:size-9 rounded-full web:mx-4">
-      <Icon as={THEME_ICONS[colorScheme ?? 'light']} className="size-5" />
-    </Button>
   );
 }

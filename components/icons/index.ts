@@ -1,0 +1,10 @@
+export { default as ArrowBackIcon } from './arrow-back';
+export { default as ChatBubbleIcon } from './chat-bubble';
+export { default as ChevronDownIcon } from './chevron-down';
+export { default as CloseIcon } from './close';
+export { default as HeartIcon } from './heart';
+export { default as InfoCircleIcon } from './info-circle';
+export { default as InfoOutlineIcon } from './info-outline';
+export { default as InstagramIcon } from './instagram';
+export { default as ThingoLogoLarge } from './thingo-logo-large';
+export { default as ThingoLogoSmall } from './thingo-logo-small';
