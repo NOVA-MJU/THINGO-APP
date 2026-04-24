@@ -1,7 +1,7 @@
 import { HamburgerIcon, SearchIcon, ThingoLogoSmall } from '@/components/icons';
 import { Text } from '@/components/ui/text';
 import * as React from 'react';
-import { Dimensions, ScrollView, View } from 'react-native';
+import { Dimensions, Keyboard, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Page1 } from './_components/Page1';
 import { Page2 } from './_components/Page2';
@@ -30,6 +30,7 @@ export default function Screen() {
   }, []);
 
   const handleTabPress = (index: number) => {
+    Keyboard.dismiss();
     setCurrentTab(TABS[index]);
     scrollRef.current?.scrollTo({ x: width * index, animated: true });
   };
@@ -93,6 +94,7 @@ export default function Screen() {
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         onMomentumScrollEnd={handleScroll}
+        onScrollBeginDrag={Keyboard.dismiss}
         style={{ flex: 1 }}>
         <Page1 />
         <Page2 />
