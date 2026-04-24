@@ -1,22 +1,27 @@
+import { cssInterop } from 'nativewind';
 import Svg, { G, Path } from 'react-native-svg';
+
+const StyledSvg = cssInterop(Svg, {
+  className: { target: 'style', nativeStyleToProp: { color: true } },
+});
 
 interface InfoCircleIconProps {
   width?: number;
   height?: number;
-  color?: string;
+  className?: string;
 }
 
-export default function InfoCircleIcon({ width = 24, height = 24, color = '#000' }: InfoCircleIconProps) {
+export default function InfoCircleIcon({ width = 24, height = 24, className = 'text-[#000]' }: InfoCircleIconProps) {
   return (
-    <Svg width={width} height={height} viewBox="0 0 24 24" fill="none">
+    <StyledSvg width={width} height={height} viewBox="0 0 24 24" fill="none" className={className}>
       <G opacity={0.8}>
         <Path
           fillRule="evenodd"
           clipRule="evenodd"
           d="M19 12C19 15.8661 15.8661 19 12 19C8.1339 19 5 15.8661 5 12C5 8.1339 8.1339 5 12 5C15.8661 5 19 8.1339 19 12ZM11.3 9.2C11.3 9.38565 11.3737 9.5637 11.505 9.69497C11.6363 9.82625 11.8143 9.9 12 9.9H12.0056C12.1913 9.9 12.3693 9.82625 12.5006 9.69497C12.6319 9.5637 12.7056 9.38565 12.7056 9.2C12.7056 9.01435 12.6319 8.8363 12.5006 8.70503C12.3693 8.57375 12.1913 8.5 12.0056 8.5H12C11.8143 8.5 11.6363 8.57375 11.505 8.70503C11.3737 8.8363 11.3 9.01435 11.3 9.2ZM12 15.5C12.1857 15.5 12.3637 15.4263 12.495 15.295C12.6262 15.1637 12.7 14.9857 12.7 14.8V11.3C12.7 11.1143 12.6262 10.9363 12.495 10.805C12.3637 10.6737 12.1857 10.6 12 10.6C11.8143 10.6 11.6363 10.6737 11.505 10.805C11.3737 10.9363 11.3 11.1143 11.3 11.3V14.8C11.3 14.9857 11.3737 15.1637 11.505 15.295C11.6363 15.4263 11.8143 15.5 12 15.5Z"
-          fill={color}
+          fill="currentColor"
         />
       </G>
-    </Svg>
+    </StyledSvg>
   );
 }
