@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Page1 } from './_components/Page1';
 import { Page2 } from './_components/Page2';
 import { Page3 } from './_components/Page3';
+import MealSection from './_components/meal';
 
 const { width } = Dimensions.get('window');
 const INITIAL_PAGE = 1; // 0-indexed, Page2
@@ -40,6 +41,9 @@ export default function Screen() {
         <Page1 />
         <Page2 />
         <Page3 />
+        <View className="w-screen flex-1 bg-white">
+          <MealSection />
+        </View>
       </ScrollView>
     </>
   );
