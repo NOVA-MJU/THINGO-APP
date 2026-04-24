@@ -6,11 +6,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Page1 } from './_components/Page1';
 import { Page2 } from './_components/Page2';
 import { Page3 } from './_components/Page3';
+import MealSection from './_components/meal';
 import { Page4 } from './_components/Page4';
 import { Page5 } from './_components/Page5';
 import { Page6 } from './_components/Page6';
 import { Page7 } from './_components/Page7';
-import { Page8 } from './_components/Page8';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import clsx from 'clsx';
@@ -103,7 +103,9 @@ export default function Screen() {
         <Page5 />
         <Page6 />
         <Page7 />
-        <Page8 />
+        <View className="w-screen flex-1 bg-white">
+          <MealSection />
+        </View>
       </ScrollView>
     </>
   );
