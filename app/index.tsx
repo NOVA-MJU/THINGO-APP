@@ -8,7 +8,7 @@ import { Page2 } from './_components/Page2';
 import { Page3 } from './_components/Page3';
 import MealSection from './_components/meal';
 import { Page4 } from './_components/Page4';
-import { Page5 } from './_components/Page5';
+import { NoticePage } from './_components/notice-page';
 import { Page6 } from './_components/Page6';
 import { Page7 } from './_components/Page7';
 import { Input } from '@/components/ui/input';
@@ -100,7 +100,7 @@ export default function Screen() {
         <MealSection />
         <Page1 />
         <Page4 />
-        <Page5 />
+        <NoticePage />
         <Page6 />
         <Page7 />
         <Page3 />
