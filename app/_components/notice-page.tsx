@@ -6,7 +6,7 @@ import { Linking, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Footer } from '../../components/footer';
 
-export function NoticePage() {
+export function NoticeScreen() {
   const categories = ['전체', '일반', '학사', '장학', '진로', '학생활동', '학칙개정'];
   const [selectedCategory, setSelectedCategory] = React.useState('전체');
   const [currentPage, setCurrentPage] = React.useState(1);

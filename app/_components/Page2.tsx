@@ -44,7 +44,7 @@ export function Page2() {
           </Button>
         </Link>
       </View>
-      <Link href="/boards/1" asChild>
+      <Link href="/posts/1" asChild>
         <Button className="bg-mju-primary">
           <Text className="text-white">Board</Text>
         </Button>
