@@ -8,7 +8,7 @@ import { Page2 } from './_components/Page2';
 import { Page3 } from './_components/Page3';
 import MealSection from './_components/meal';
 import { Page4 } from './_components/Page4';
-import { Page5 } from './_components/Page5';
+import { NoticePage } from './_components/notice-page';
 import { Page6 } from './_components/Page6';
 import { Page7 } from './_components/Page7';
 import { Input } from '@/components/ui/input';
@@ -17,7 +17,7 @@ import clsx from 'clsx';
 
 const { width } = Dimensions.get('window');
 const TABS = ['ALL', '학식', '게시판', '명지도', '공지사항', '학사일정', '명대신문', '명대뉴스'];
-const INITIAL_PAGE = 1; // 0-indexed, Page2
+const INITIAL_PAGE = 0;
 
 export default function Screen() {
   const insets = useSafeAreaInsets();
@@ -96,16 +96,14 @@ export default function Screen() {
         onMomentumScrollEnd={handleScroll}
         onScrollBeginDrag={Keyboard.dismiss}
         style={{ flex: 1 }}>
-        <Page1 />
         <Page2 />
-        <Page3 />
+        <MealSection />
+        <Page1 />
         <Page4 />
-        <Page5 />
+        <NoticePage />
         <Page6 />
         <Page7 />
-        <View className="w-screen flex-1 bg-white">
-          <MealSection />
-        </View>
+        <Page3 />
       </ScrollView>
     </>
   );
