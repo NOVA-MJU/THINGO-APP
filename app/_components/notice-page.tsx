@@ -4,7 +4,7 @@ import clsx from 'clsx';
 import * as React from 'react';
 import { Linking, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Footer } from './footer';
+import { Footer } from '../../components/footer';
 
 export function NoticePage() {
   const categories = ['전체', '일반', '학사', '장학', '진로', '학생활동', '학칙개정'];
