@@ -1,12 +1,12 @@
+import { CategoryFilter } from '@/components/ui/category-filter';
 import { Pagination } from '@/components/ui/pagination';
 import { Text } from '@/components/ui/text';
-import clsx from 'clsx';
 import * as React from 'react';
 import { Linking, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Footer } from './footer';
 
-export function NoticeScreen() {
+export default function NoticeScreen() {
   const categories = ['전체', '일반', '학사', '장학', '진로', '학생활동', '학칙개정'];
   const [selectedCategory, setSelectedCategory] = React.useState('전체');
   const [currentPage, setCurrentPage] = React.useState(1);
@@ -14,41 +14,22 @@ export function NoticeScreen() {
 
   return (
     <ScrollView className="w-screen flex-1" contentContainerStyle={{ paddingBottom: bottom }}>
-      {/* 카테고리 필터 */}
       <View className="mt-4">
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 12 }}>
-          {categories.map((label) => (
-            <Pressable key={label} onPress={() => setSelectedCategory(label)} className="p-1">
-              <View
-                className={clsx(
-                  'rounded-full px-3 py-1.5',
-                  selectedCategory === label ? 'bg-mju-primary' : 'border-grey-10 border bg-white'
-                )}>
-                <Text
-                  className={clsx(
-                    selectedCategory === label
-                      ? 'text-body04 text-white'
-                      : 'text-body05 text-grey-40'
-                  )}>
-                  {label}
-                </Text>
-              </View>
-            </Pressable>
-          ))}
-        </ScrollView>
+        <CategoryFilter
+          categories={categories}
+          selected={selectedCategory}
+          onSelect={setSelectedCategory}
+        />
       </View>
 
       {/* 본문 */}
-      <View className="border-grey-02 mt-2.5 flex-1 border-t">
+      <View className="mt-2.5 flex-1 border-t border-grey-02">
         {NOTICES.map((notice) => (
           <Pressable key={notice.id} onPress={() => Linking.openURL(notice.url)}>
-            <View className="border-grey-02 flex w-full flex-col gap-1 border-b px-4 py-2.5">
-              <Text className="text-blue-15 text-caption01">{notice.category}</Text>
+            <View className="flex w-full flex-col gap-1 border-b border-grey-02 px-4 py-2.5">
+              <Text className="text-caption01 text-blue-15">{notice.category}</Text>
               <Text className="text-body05 text-black">{notice.title}</Text>
-              <Text className="text-grey-30 text-caption04">{notice.date}</Text>
+              <Text className="text-caption04 text-grey-30">{notice.date}</Text>
             </View>
           </Pressable>
         ))}

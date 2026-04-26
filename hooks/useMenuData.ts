@@ -1,6 +1,6 @@
-import { useEffect, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { getMenus, type MenuItem } from "@/api/menu";
+import { useEffect, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { getMenus, type MenuItem } from '@/api/menu';
 
 /**
  * 식단 데이터 캐시 유지 시간입니다.
@@ -13,11 +13,7 @@ const MENU_STALE_TIME_MS = 1000 * 60 * 5;
  * 식단 카테고리 정렬 순서입니다.
  * API 응답 순서와 무관하게 화면에서는 아침 → 점심 → 저녁 순으로 보여주기 위함입니다.
  */
-const ORDER: Array<MenuItem["menuCategory"]> = [
-  "BREAKFAST",
-  "LUNCH",
-  "DINNER",
-];
+const ORDER: Array<MenuItem['menuCategory']> = ['BREAKFAST', 'LUNCH', 'DINNER'];
 
 /**
  * 날짜 문자열에서 요일 표기를 제거합니다.
@@ -26,7 +22,7 @@ const ORDER: Array<MenuItem["menuCategory"]> = [
  * "04.24(금)" -> "04.24"
  * "04.24 (금)" -> "04.24"
  */
-const stripDow = (s: string) => s.replace(/\s*\([^)]*\)\s*/g, "").trim();
+const stripDow = (s: string) => s.replace(/\s*\([^)]*\)\s*/g, '').trim();
 
 /**
  * 식단 데이터를 조회하고, 화면에서 사용하기 좋은 형태로 가공하는 Hook입니다.
@@ -54,7 +50,7 @@ export function useMenuData() {
     isError,
     status,
   } = useQuery<MenuItem[]>({
-    queryKey: ["menus"],
+    queryKey: ['menus'],
     queryFn: getMenus,
     staleTime: MENU_STALE_TIME_MS,
     retry: 1,
@@ -63,14 +59,14 @@ export function useMenuData() {
   useEffect(() => {
     if (!__DEV__) return;
 
-    console.log("[menus/hook] React Query 상태", {
-      status,
-      isLoading,
-      isFetching,
-      isError,
-      dataCount: data.length,
-      error,
-    });
+    // console.log("[menus/hook] React Query 상태", {
+    //   status,
+    //   isLoading,
+    //   isFetching,
+    //   isError,
+    //   dataCount: data.length,
+    //   error,
+    // });
   }, [data.length, error, isError, isFetching, isLoading, status]);
 
   /**
@@ -99,9 +95,7 @@ export function useMenuData() {
 
     // 2. 각 날짜 내부에서 아침 → 점심 → 저녁 순으로 정렬
     for (const [, menus] of map) {
-      menus.sort(
-        (a, b) => ORDER.indexOf(a.menuCategory) - ORDER.indexOf(b.menuCategory),
-      );
+      menus.sort((a, b) => ORDER.indexOf(a.menuCategory) - ORDER.indexOf(b.menuCategory));
     }
 
     // 3. 날짜 자체도 오름차순 정렬
@@ -127,11 +121,11 @@ export function useMenuData() {
    */
   const todayKey = useMemo(() => {
     const now = new Date();
-    const mm = String(now.getMonth() + 1).padStart(2, "0");
-    const dd = String(now.getDate()).padStart(2, "0");
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
     const canonical = `${mm}.${dd}`;
 
-    return keys.find((key) => stripDow(key) === canonical) ?? keys[0] ?? "";
+    return keys.find((key) => stripDow(key) === canonical) ?? keys[0] ?? '';
   }, [keys]);
 
   /**
@@ -148,12 +142,12 @@ export function useMenuData() {
   useEffect(() => {
     if (!__DEV__) return;
 
-    console.log("[menus/hook] 가공 데이터", {
-      keys,
-      todayKey,
-      groupedByDateCount: groupedByDate.length,
-      groupedByDate,
-    });
+    // console.log('[menus/hook] 가공 데이터', {
+    //   keys,
+    //   todayKey,
+    //   groupedByDateCount: groupedByDate.length,
+    //   groupedByDate,
+    // });
   }, [groupedByDate, keys, todayKey]);
 
   return {
@@ -168,10 +162,10 @@ export function useMenuData() {
 
     // API 호출 실패 여부
     isError,
-    
+
     // API 호출 실패 정보
     error,
-    
+
     // 식단 API 수동 재요청 함수
     refetch,
 
@@ -183,7 +177,7 @@ export function useMenuData() {
 
     // 오늘 날짜에 해당하는 key
     todayKey,
-    
+
     // 특정 날짜의 식단 조회 함수
     getByDate,
   };
