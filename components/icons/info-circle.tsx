@@ -6,14 +6,13 @@ const StyledSvg = cssInterop(Svg, {
 });
 
 interface InfoCircleIconProps {
-  width?: number;
-  height?: number;
+  size?: number;
   className?: string;
 }
 
-export default function InfoCircleIcon({ width = 24, height = 24, className = 'text-[#000]' }: InfoCircleIconProps) {
+export default function InfoCircleIcon({ size = 24, className = 'text-[#000]' }: InfoCircleIconProps) {
   return (
-    <StyledSvg width={width} height={height} viewBox="0 0 24 24" fill="none" className={className}>
+    <StyledSvg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
       <G opacity={0.8}>
         <Path
           fillRule="evenodd"

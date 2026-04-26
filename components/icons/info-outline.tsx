@@ -6,14 +6,13 @@ const StyledSvg = cssInterop(Svg, {
 });
 
 interface InfoOutlineIconProps {
-  width?: number;
-  height?: number;
+  size?: number;
   className?: string;
 }
 
-export default function InfoOutlineIcon({ width = 24, height = 24, className = 'text-[#000]' }: InfoOutlineIconProps) {
+export default function InfoOutlineIcon({ size = 24, className = 'text-[#000]' }: InfoOutlineIconProps) {
   return (
-    <StyledSvg width={width} height={height} viewBox="0 0 24 24" fill="none" className={className}>
+    <StyledSvg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
       <Path d="M13.0737 18.2871H10.9482V16.1411H13.0737V18.2871Z" fill="currentColor" />
       <Path d="M12.898 8.55615L12.6636 14.6206H11.3584L11.124 8.55615L11.0464 4.5H12.9756L12.898 8.55615Z" fill="currentColor" />
       <Path
