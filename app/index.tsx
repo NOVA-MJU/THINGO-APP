@@ -4,11 +4,11 @@ import * as React from 'react';
 import { Dimensions, Keyboard, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Page1 } from './_components/Page1';
-import { Page2 } from './_components/Page2';
+import AllScreen from './_components/all-screen';
 import { Page3 } from './_components/Page3';
 import MealSection from './_components/meal';
 import { Page4 } from './_components/Page4';
-import { NoticeScreen } from './_components/notice-page';
+import NoticeScreen from './_components/notice-screen';
 import { Page6 } from './_components/Page6';
 import { Page7 } from './_components/Page7';
 import { Input } from '@/components/ui/input';
@@ -47,13 +47,13 @@ export default function Screen() {
         <View className="h-15 w-screen flex-row items-center px-3 pb-1 pt-2">
           <ThingoLogoSmall />
           <View className="flex-1 p-1.5">
-            <View className="bg-grey-02 flex-1 flex-row items-center rounded-full px-3 py-1.5">
+            <View className="flex-1 flex-row items-center rounded-full bg-grey-02 px-3 py-1.5">
               <SearchIcon className="text-grey-30" />
               <Input
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 placeholder="검색어를 입력하세요"
-                className="text-grey-80 text-body06 flex-1 border-0 bg-transparent p-0 shadow-none"
+                className="flex-1 border-0 bg-transparent p-0 text-body06 text-grey-80 shadow-none"
               />
             </View>
           </View>
@@ -64,7 +64,7 @@ export default function Screen() {
       </View>
 
       {/* 탭 네비게이션 */}
-      <View className="border-grey-20 border-b">
+      <View className="border-b border-grey-20">
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -75,7 +75,7 @@ export default function Screen() {
               variant="ghost"
               className={clsx(
                 'rounded-none px-5 pb-2 pt-2.5',
-                currentTab === label && 'border-mju-primary border-b-2'
+                currentTab === label && 'border-b-2 border-mju-primary'
               )}
               onPress={() => handleTabPress(index)}>
               <Text
@@ -96,7 +96,7 @@ export default function Screen() {
         onMomentumScrollEnd={handleScroll}
         onScrollBeginDrag={Keyboard.dismiss}
         style={{ flex: 1 }}>
-        <Page2 />
+        <AllScreen onNavigate={handleTabPress} />
         <MealSection />
         <Page1 />
         <Page4 />
