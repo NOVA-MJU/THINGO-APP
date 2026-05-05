@@ -6,14 +6,13 @@ const StyledSvg = cssInterop(Svg, {
 });
 
 interface SearchIconProps {
-  width?: number;
-  height?: number;
+  size?: number;
   className?: string;
 }
 
-export default function SearchIcon({ width = 24, height = 24, className = 'text-[#17171B]' }: SearchIconProps) {
+export default function SearchIcon({ size = 24, className = 'text-[#17171B]' }: SearchIconProps) {
   return (
-    <StyledSvg width={width} height={height} viewBox="0 0 24 24" fill="none" className={className}>
+    <StyledSvg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
       <Path
         fillRule="evenodd"
         clipRule="evenodd"

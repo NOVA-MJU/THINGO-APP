@@ -93,12 +93,12 @@ function BoardCard({ item, onPress }: BoardCardProps) {
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center gap-2">
             <View className="flex-row items-center gap-1">
-              <HeartIcon width={24} height={24} color="#8BC7FF" filled={Boolean(item.isPressed)} />
+              <HeartIcon size={24} className="text-blue-10" filled={Boolean(item.isPressed)} />
               <Text className="text-body05 text-grey-40">{item.likeCount}</Text>
             </View>
 
             <View className="flex-row items-center gap-1">
-              <ChatBubbleIcon width={24} height={24} color="#8BC7FF" />
+              <ChatBubbleIcon size={24} className="text-blue-10" />
               <Text className="text-body05 text-grey-40">{item.commentCount}</Text>
             </View>
           </View>
