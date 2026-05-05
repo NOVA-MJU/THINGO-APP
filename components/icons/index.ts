@@ -12,3 +12,5 @@ export { default as SearchIcon } from './search';
 export { default as DiningIcon } from './dining';
 export { default as ThingoLogoLarge } from './thingo-logo-large';
 export { default as ThingoLogoSmall } from './thingo-logo-small';
+export { default as XIcon } from './x';
+export { default as LinkIcon } from './link';

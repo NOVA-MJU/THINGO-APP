@@ -1,7 +1,8 @@
 import { HamburgerIcon, SearchIcon, ThingoLogoSmall } from '@/components/icons';
 import { Text } from '@/components/ui/text';
+import { Link } from 'expo-router';
 import * as React from 'react';
-import { Dimensions, Keyboard, ScrollView, View } from 'react-native';
+import { Dimensions, Keyboard, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Page1 } from './_components/Page1';
 import AllScreen from './_components/all-screen';
@@ -11,9 +12,8 @@ import { Page4 } from './_components/Page4';
 import NoticeScreen from './_components/notice-screen';
 import { Page6 } from './_components/Page6';
 import { Page7 } from './_components/Page7';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import clsx from 'clsx';
+import { TabBar } from '@/components/ui/tab-bar';
 
 const { width } = Dimensions.get('window');
 const TABS = ['ALL', '학식', '게시판', '명지도', '공지사항', '학사일정', '명대신문', '명대뉴스'];
@@ -23,7 +23,6 @@ export default function Screen() {
   const insets = useSafeAreaInsets();
   const scrollRef = React.useRef<ScrollView>(null);
   const [currentTab, setCurrentTab] = React.useState(TABS[INITIAL_PAGE]);
-  const [searchQuery, setSearchQuery] = React.useState('');
 
   React.useEffect(() => {
     scrollRef.current?.scrollTo({ x: width * INITIAL_PAGE, animated: false });
@@ -47,15 +46,12 @@ export default function Screen() {
         <View className="h-15 w-screen flex-row items-center px-3 pb-1 pt-2">
           <ThingoLogoSmall />
           <View className="flex-1 p-1.5">
-            <View className="flex-1 flex-row items-center rounded-full bg-grey-02 px-3 py-1.5">
-              <SearchIcon className="text-grey-30" />
-              <Input
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                placeholder="검색어를 입력하세요"
-                className="flex-1 border-0 bg-transparent p-0 text-body06 text-grey-80 shadow-none"
-              />
-            </View>
+            <Link href="/search" asChild>
+              <TouchableOpacity className="flex-1 flex-row items-center gap-2 rounded-full bg-grey-02 px-3 py-1.5">
+                <SearchIcon className="text-grey-30" />
+                <Text className="text-body06 text-grey-40">검색어를 입력하세요</Text>
+              </TouchableOpacity>
+            </Link>
           </View>
           <Button className="h-fit p-1" variant="ghost">
             <HamburgerIcon />
@@ -64,28 +60,7 @@ export default function Screen() {
       </View>
 
       {/* 탭 네비게이션 */}
-      <View className="border-b border-grey-20">
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 16 }}>
-          {TABS.map((label, index) => (
-            <Button
-              key={label}
-              variant="ghost"
-              className={clsx(
-                'rounded-none px-5 pb-2 pt-2.5',
-                currentTab === label && 'border-b-2 border-mju-primary'
-              )}
-              onPress={() => handleTabPress(index)}>
-              <Text
-                className={`${currentTab === label ? 'text-body04 text-mju-primary' : 'text-body06 text-grey-40'}`}>
-                {label}
-              </Text>
-            </Button>
-          ))}
-        </ScrollView>
-      </View>
+      <TabBar tabs={TABS} currentTab={currentTab} onTabPress={handleTabPress} />
 
       {/* 스와이프 페이지 */}
       <ScrollView
