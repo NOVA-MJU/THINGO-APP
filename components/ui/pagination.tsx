@@ -16,15 +16,16 @@ interface PaginationProps {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  className?: string;
 }
 
-export function Pagination({ currentPage, totalPages, onPageChange }: PaginationProps) {
+export function Pagination({ currentPage, totalPages, onPageChange, className }: PaginationProps) {
   const pages = getPageWindow(currentPage, totalPages);
   const hasPrev = currentPage > 1;
   const hasNext = currentPage < totalPages;
 
   return (
-    <View className="flex-row items-center gap-3">
+    <View className={clsx('flex-row items-center justify-center gap-3', className)}>
       <Pressable
         className="flex-row items-center"
         onPress={() => hasPrev && onPageChange(currentPage - 1)}

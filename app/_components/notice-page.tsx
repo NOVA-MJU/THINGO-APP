@@ -4,8 +4,9 @@ import clsx from 'clsx';
 import * as React from 'react';
 import { Linking, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Footer } from '../../components/footer';
 
-export function Page5() {
+export function NoticePage() {
   const categories = ['전체', '일반', '학사', '장학', '진로', '학생활동', '학칙개정'];
   const [selectedCategory, setSelectedCategory] = React.useState('전체');
   const [currentPage, setCurrentPage] = React.useState(1);
@@ -53,23 +54,19 @@ export function Page5() {
         ))}
       </View>
 
-      {/* 페이지네이션 */}
-      <View className="mt-6 w-full items-center">
-        <Pagination
-          currentPage={currentPage}
-          totalPages={TOTAL_PAGES}
-          onPageChange={setCurrentPage}
-        />
-      </View>
-
-      {/* footer 작성 전 */}
-      <View className="bg-blue-05 mt-9 h-20 w-full"></View>
+      <Pagination
+        currentPage={currentPage}
+        totalPages={TOTAL_PAGES}
+        onPageChange={setCurrentPage}
+        className="mt-6"
+      />
+      <Footer className="mt-9" />
     </ScrollView>
   );
 }
 
+// dummy
 const TOTAL_PAGES = 8;
-
 const NOTICES = [
   {
     id: 1,
