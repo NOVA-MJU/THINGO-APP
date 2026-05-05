@@ -53,6 +53,7 @@ export default function AllScreen({ onNavigate }: Props) {
               selected={selectedNoticeCategory}
               onSelect={setSelectedNoticeCategory}
               paddingHorizontal={16}
+              nestedScrollEnabled
             />
           </View>
           <View className="mt-2">

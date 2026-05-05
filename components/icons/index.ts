@@ -14,3 +14,8 @@ export { default as ThingoLogoLarge } from './thingo-logo-large';
 export { default as ThingoLogoSmall } from './thingo-logo-small';
 export { default as XIcon } from './x';
 export { default as LinkIcon } from './link';
+export { default as UndoIcon } from './undo';
+export { default as BreakfastMealIcon } from './breakfast-meal';
+export { default as LunchMealIcon } from './lunch-meal';
+export { default as DinnerMealIcon } from './dinner-meal';
+export { default as LocationIcon } from './location';

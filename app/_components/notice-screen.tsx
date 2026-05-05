@@ -19,6 +19,7 @@ export default function NoticeScreen() {
           categories={categories}
           selected={selectedCategory}
           onSelect={setSelectedCategory}
+          nestedScrollEnabled
         />
       </View>
 
