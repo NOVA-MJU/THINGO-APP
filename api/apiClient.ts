@@ -1,8 +1,4 @@
-import axios, {
-  AxiosError,
-  type AxiosInstance,
-  type InternalAxiosRequestConfig,
-} from 'axios';
+import axios, { AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
 import {
   clearTokens,
   getAccessToken,
@@ -96,11 +92,11 @@ apiClient.interceptors.request.use(async (config) => {
   }
 
   if (__DEV__) {
-    console.log('[api/request]', {
-      method: config.method,
-      url: config.url,
-      hasAuthorization: !!config.headers.Authorization,
-    });
+    // console.log('[api/request]', {
+    //   method: config.method,
+    //   url: config.url,
+    //   hasAuthorization: !!config.headers.Authorization,
+    // });
   }
 
   return config;
@@ -131,7 +127,7 @@ const reissueAccessToken = async (): Promise<string> => {
         Authorization: `Bearer ${refreshToken}`,
         'X-Client-Type': MOBILE_CLIENT_TYPE,
       },
-    },
+    }
   );
 
   const newAccessToken = data?.data?.accessToken ?? data?.accessToken;
@@ -220,7 +216,7 @@ apiClient.interceptors.response.use(
     } finally {
       isRefreshing = false;
     }
-  },
+  }
 );
 
 export default apiClient;
