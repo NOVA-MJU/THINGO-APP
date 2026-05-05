@@ -1,4 +1,4 @@
-import { Footer } from '@/app/_components/footer';
+import { Footer } from '@/components/footer';
 import { HeartIcon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
@@ -22,7 +22,7 @@ export default function BoardDetailScreen() {
   return (
     <ScrollView contentContainerStyle={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
       {/* header */}
-      <View className="border-grey-02 border-b px-4 pb-4 pt-5">
+      <View className="border-b border-grey-02 px-4 pb-4 pt-5">
         <TouchableOpacity
           onPress={() => router.back()}
           className="flex-row items-center gap-1 self-start">
@@ -36,11 +36,11 @@ export default function BoardDetailScreen() {
           <Text className="text-body02 text-black">{POST.title}</Text>
           <View className="flex-row items-center justify-between">
             <View className="flex-row items-center gap-3">
-              <Text className="text-grey-40 text-body05">{POST.createdAt}</Text>
+              <Text className="text-body05 text-grey-40">{POST.createdAt}</Text>
               <Svg width="1" height="16" viewBox="0 0 1 16" fill="none">
                 <Line x1="0.5" x2="0.5" y2="16" stroke="#AEB2B6" />
               </Svg>
-              <Text className="text-grey-40 text-body05">{POST.author}</Text>
+              <Text className="text-body05 text-grey-40">{POST.author}</Text>
             </View>
             <View className="flex-row items-center">
               <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -77,14 +77,14 @@ export default function BoardDetailScreen() {
             <HeartIcon filled={POST.isLiked} className="text-grey-20" />
           </TouchableOpacity>
         </View>
-        <View className="border-grey-02 border-b" />
+        <View className="border-b border-grey-02" />
 
         {/* comments section */}
         {false ? (
           <View className="flex-col gap-5 px-4">
             <Text className="text-body02 text-black">댓글</Text>
-            <View className="border-grey-10 rounded-sm border p-10">
-              <Text className="text-body05 text-grey-30 text-center">
+            <View className="rounded-sm border border-grey-10 p-10">
+              <Text className="text-center text-body05 text-grey-30">
                 로그인 후 이용 가능합니다
               </Text>
             </View>
@@ -96,11 +96,11 @@ export default function BoardDetailScreen() {
           <View className="flex-col gap-5 px-4">
             <View className="flex-col gap-2">
               <Text className="text-body02 text-black">댓글</Text>
-              <View className="bg-grey-02 relative rounded-lg px-3">
+              <View className="relative rounded-lg bg-grey-02 px-3">
                 <TextInput
                   multiline
                   textAlignVertical="top"
-                  className="text-body05 text-grey-40 pr-8"
+                  className="pr-8 text-body05 text-grey-40"
                   value={commentText}
                   onChangeText={setCommentText}
                   placeholder="댓글을 입력하세요"
@@ -118,7 +118,7 @@ export default function BoardDetailScreen() {
                   </Svg>
                 </TouchableOpacity>
               </View>
-              <Text className="text-caption02 text-grey-40 text-right">
+              <Text className="text-right text-caption02 text-grey-40">
                 {commentText.length}/300
               </Text>
             </View>
@@ -127,7 +127,7 @@ export default function BoardDetailScreen() {
             {COMMENTS.map((comment) => (
               <View key={comment.id} className="flex-col gap-2.5">
                 <View className="flex-row items-center gap-3">
-                  <View className="bg-grey-30 h-10 w-10 rounded-full" />
+                  <View className="h-10 w-10 rounded-full bg-grey-30" />
                   <View className="flex-1 flex-col gap-0.5">
                     <Text className="text-body04 text-black">{comment.author}</Text>
                     <Text className="text-caption02 text-grey-40">{comment.createdAt}</Text>
@@ -146,7 +146,7 @@ export default function BoardDetailScreen() {
                     </TouchableOpacity>
                   )}
                 </View>
-                <Text className="text-body05 w-full text-black">{comment.content}</Text>
+                <Text className="w-full text-body05 text-black">{comment.content}</Text>
                 <View className="flex-row items-center">
                   <Svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                     <Path

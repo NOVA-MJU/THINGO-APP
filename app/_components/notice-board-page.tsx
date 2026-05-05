@@ -1,3 +1,4 @@
+import { Footer } from '@/components/footer';
 import { ChatBubbleIcon, HeartIcon } from '@/components/icons';
 import { Pagination } from '@/components/ui/pagination';
 import { Text } from '@/components/ui/text';
@@ -7,7 +8,6 @@ import { ClipboardPen } from 'lucide-react-native';
 import * as React from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Footer } from './footer';
 
 type BoardCategory = 'info' | 'free';
 
@@ -23,7 +23,7 @@ type BoardItem = {
   isPressed?: boolean;
 };
 
-const BOARD_TABS: Array<{ key: BoardCategory; label: string }> = [
+const BOARD_TABS: { key: BoardCategory; label: string }[] = [
   { key: 'info', label: '정보 게시판' },
   { key: 'free', label: '자유 게시판' },
 ];
@@ -105,17 +105,12 @@ function BoardCard({ item, onPress }: BoardCardProps) {
         <View className="mt-0.5 flex-row items-center justify-between">
           <View className="flex-row items-center gap-2">
             <View className="flex-row items-center gap-0.5">
-              <HeartIcon
-                width={24}
-                height={24}
-                className="text-[#8BC7FF]"
-                filled={Boolean(item.isPressed)}
-              />
+              <HeartIcon size={24} className="text-[#8BC7FF]" filled={Boolean(item.isPressed)} />
               <Text className="text-caption02 text-grey-40">{item.likeCount}</Text>
             </View>
 
             <View className="flex-row items-center gap-0.5">
-              <ChatBubbleIcon width={24} height={24} className="text-[#8BC7FF]" />
+              <ChatBubbleIcon size={24} className="text-[#8BC7FF]" />
               <Text className="text-caption02 text-grey-40">{item.commentCount}</Text>
             </View>
           </View>

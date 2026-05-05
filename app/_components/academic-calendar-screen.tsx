@@ -3,7 +3,7 @@ import clsx from 'clsx';
 import * as React from 'react';
 import { Pressable, View } from 'react-native';
 
-export function Page6() {
+export function AcademicCalendarScreen() {
   const TABS = ['캘린더', '학사공지'];
   const [currentTab, setCurrentTab] = React.useState('캘린더');
 
@@ -19,8 +19,8 @@ export function Page6() {
               className={clsx(
                 'flex-1 py-2',
                 currentTab === label
-                  ? 'border-grey-10 rounded-t-sm border-e border-s border-t bg-white'
-                  : 'border-grey-10 border-b'
+                  ? 'rounded-t-sm border-e border-s border-t border-grey-10 bg-white'
+                  : 'border-b border-grey-10'
               )}>
               <Text
                 className={clsx(

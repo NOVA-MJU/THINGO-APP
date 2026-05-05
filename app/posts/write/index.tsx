@@ -1,5 +1,5 @@
-import { Footer } from '@/app/_components/footer';
-import { ArrowBackIcon, InfoOutlineIcon } from '@/components/icons';
+import { Footer } from '@/components/footer';
+import { ArrowLeftIcon, InfoOutlineIcon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -113,7 +113,7 @@ export default function BoardWriteScreen() {
           className="flex-row items-center gap-1 self-start"
           accessibilityRole="button"
           accessibilityLabel="이전">
-          <ArrowBackIcon className="text-black" />
+          <ArrowLeftIcon className="text-black" />
           <Text className="text-body03 text-black">이전</Text>
         </Pressable>
       </View>
@@ -261,7 +261,7 @@ function LoggedOutView({ bottomInset, onLoginPress }: LoggedOutViewProps) {
   return (
     <View className="flex-1 justify-between bg-white">
       <View className="flex-1 items-center justify-center px-4 pb-16">
-        <InfoOutlineIcon width={24} height={24} className="text-grey-20" />
+        <InfoOutlineIcon size={24} className="text-grey-20" />
         <Text className="mt-3 text-body03 text-grey-30">로그인 후 이용 가능합니다.</Text>
 
         <Button onPress={onLoginPress} className="mt-10 h-[40px] w-full rounded-xl bg-blue-35">
