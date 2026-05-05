@@ -70,7 +70,8 @@ export default function Screen() {
         showsHorizontalScrollIndicator={false}
         onMomentumScrollEnd={handleScroll}
         onScrollBeginDrag={Keyboard.dismiss}
-        style={{ flex: 1 }}>
+        style={{ flex: 1 }}
+      >
         {/* ALL */}
         <AllScreen onNavigate={handleTabPress} />
 

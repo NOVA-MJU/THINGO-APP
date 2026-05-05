@@ -25,7 +25,8 @@ export default function BoardDetailScreen() {
       <View className="border-b border-grey-02 px-4 pb-4 pt-5">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="flex-row items-center gap-1 self-start">
+          className="flex-row items-center gap-1 self-start"
+        >
           <ChevronLeft className="text-black" />
           <Text className="text-body03 text-black">이전</Text>
         </TouchableOpacity>
@@ -72,7 +73,8 @@ export default function BoardDetailScreen() {
         <View className="px-5">
           <TouchableOpacity
             onPress={() => onPostLikeClick()}
-            className="flex-row items-center self-start">
+            className="flex-row items-center self-start"
+          >
             <Text className="text-body04 text-grey-40">좋아요</Text>
             <HeartIcon filled={POST.isLiked} className="text-grey-20" />
           </TouchableOpacity>
@@ -108,7 +110,8 @@ export default function BoardDetailScreen() {
                 />
                 <TouchableOpacity
                   onPress={() => onCommentSubmitClick()}
-                  className="absolute bottom-2 right-2">
+                  className="absolute bottom-2 right-2"
+                >
                   <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                     <Circle cx="12" cy="12" r="12" fill="#CDD0D4" />
                     <Path

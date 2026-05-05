@@ -91,7 +91,8 @@ export default function SearchScreen() {
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}>
+                contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
+              >
                 {recentSearches.map((keyword) => (
                   <View key={keyword} className="flex-row rounded-full border border-grey-10">
                     <TouchableOpacity onPress={() => onRecentSearchPress(keyword)}>
@@ -113,7 +114,8 @@ export default function SearchScreen() {
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}>
+                contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
+              >
                 {SUGGESTED_SEARCHES.map((keyword) => (
                   <TouchableOpacity key={keyword} onPress={() => onSuggestedSearchPress(keyword)}>
                     <View className="rounded-full bg-blue-05 px-3 py-1.5">
@@ -166,7 +168,8 @@ export default function SearchScreen() {
                 {AI_SOURCES.map((source) => (
                   <View
                     key={source.id}
-                    className="flex-row items-center gap-1 border-b border-grey-02 py-1">
+                    className="flex-row items-center gap-1 border-b border-grey-02 py-1"
+                  >
                     <Text className="flex-1 text-body05 text-grey-30">{source.title}</Text>
                     <Link href={source.url as `https://${string}`} asChild>
                       <TouchableOpacity>

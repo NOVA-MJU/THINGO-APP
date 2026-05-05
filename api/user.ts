@@ -140,7 +140,7 @@ export const trySession = async (): Promise<UserInfo | null> => {
           Authorization: `Bearer ${refreshToken}`,
           'X-Client-Type': 'mobile',
         },
-      },
+      }
     );
 
     const payload = 'data' in data && data.data ? data.data : data;
@@ -193,7 +193,7 @@ export const checkNicknameValidation = async (nickname: string): Promise<ApiResp
 
 /** 학번 중복 검증 */
 export const checkStuCodeValidation = async (
-  studentCode: string,
+  studentCode: string
 ): Promise<ApiResponse<boolean>> => {
   const response = await apiClient.get<ApiResponse<boolean>>('/members/validation/student-number', {
     params: { studentNumber: studentCode },

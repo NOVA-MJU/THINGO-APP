@@ -10,7 +10,10 @@ interface HamburgerIconProps {
   className?: string;
 }
 
-export default function HamburgerIcon({ size = 24, className = 'text-[#17171B]' }: HamburgerIconProps) {
+export default function HamburgerIcon({
+  size = 24,
+  className = 'text-[#17171B]',
+}: HamburgerIconProps) {
   return (
     <StyledSvg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
       <Path

@@ -20,7 +20,7 @@ const buttonVariants = cva(
         destructive: cn(
           'bg-error',
           Platform.select({
-            web: 'focus-visible:ring-error/40 hover:opacity-80',
+            web: 'hover:opacity-80 focus-visible:ring-error/40',
           })
         ),
         outline: cn(

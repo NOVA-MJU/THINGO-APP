@@ -20,7 +20,7 @@ async function openContactMail() {
 
 export function Footer({ className }: { className?: string }) {
   return (
-    <View className={clsx('bg-blue-05 w-full px-10 py-5', className)}>
+    <View className={clsx('w-full bg-blue-05 px-10 py-5', className)}>
       <View className="flex-col">
         <View className="flex-row gap-3">
           <Pressable onPress={() => Linking.openURL(GITHUB_URL)}>

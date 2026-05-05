@@ -15,7 +15,8 @@ export function TabBar({ tabs, currentTab, onTabPress }: Props) {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16 }}>
+        contentContainerStyle={{ paddingHorizontal: 16 }}
+      >
         {tabs.map((label, index) => (
           <Button
             key={label}
@@ -24,9 +25,11 @@ export function TabBar({ tabs, currentTab, onTabPress }: Props) {
               'rounded-none px-5 pb-2 pt-2.5',
               currentTab === label && 'border-b-2 border-mju-primary'
             )}
-            onPress={() => onTabPress(index)}>
+            onPress={() => onTabPress(index)}
+          >
             <Text
-              className={`${currentTab === label ? 'text-body04 text-mju-primary' : 'text-body06 text-grey-40'}`}>
+              className={`${currentTab === label ? 'text-body04 text-mju-primary' : 'text-body06 text-grey-40'}`}
+            >
               {label}
             </Text>
           </Button>
