@@ -4,7 +4,7 @@ import { Link } from 'expo-router';
 import * as React from 'react';
 import { Dimensions, Keyboard, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Page1 } from './_components/Page1';
+import { NoticeBoardScreen } from './_components/notice-board-page';
 import AllScreen from './_components/all-screen';
 import { Page3 } from './_components/Page3';
 import MealSection from './_components/meal';
@@ -73,7 +73,7 @@ export default function Screen() {
         style={{ flex: 1 }}>
         <AllScreen onNavigate={handleTabPress} />
         <MealSection />
-        <Page1 />
+        <NoticeBoardScreen />
         <Page4 />
         <NoticeScreen />
         <Page6 />
