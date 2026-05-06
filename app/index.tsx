@@ -17,19 +17,13 @@ import { TabBar } from '@/components/ui/tab-bar';
 
 const { width } = Dimensions.get('window');
 const TABS = ['ALL', '학식', '게시판', '명지도', '공지사항', '학사일정', '명대신문', '명대뉴스'];
-const INITIAL_PAGE = 0;
 
 export default function Screen() {
   const insets = useSafeAreaInsets();
   const scrollRef = React.useRef<ScrollView>(null);
-  const [currentTab, setCurrentTab] = React.useState(TABS[INITIAL_PAGE]);
-
-  React.useEffect(() => {
-    scrollRef.current?.scrollTo({ x: width * INITIAL_PAGE, animated: false });
-  }, []);
+  const [currentTab, setCurrentTab] = React.useState(TABS[0]);
 
   const handleTabPress = (index: number) => {
-    Keyboard.dismiss();
     setCurrentTab(TABS[index]);
     scrollRef.current?.scrollTo({ x: width * index, animated: true });
   };
