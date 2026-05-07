@@ -10,7 +10,10 @@ interface ChatBubbleIconProps {
   className?: string;
 }
 
-export default function ChatBubbleIcon({ size = 24, className = 'text-[#000]' }: ChatBubbleIconProps) {
+export default function ChatBubbleIcon({
+  size = 24,
+  className = 'text-[#000]',
+}: ChatBubbleIconProps) {
   return (
     <StyledSvg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
       <Path

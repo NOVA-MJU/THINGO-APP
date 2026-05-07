@@ -1,17 +1,17 @@
-const { defineConfig } = require("eslint/config");
-const expoConfig = require("eslint-config-expo/flat");
+const { defineConfig } = require('eslint/config');
+const expoConfig = require('eslint-config-expo/flat');
 
 module.exports = defineConfig([
   ...expoConfig,
   {
     settings: {
-      react: { version: "19" },
+      react: { version: '19' },
     },
     rules: {
-      "no-console": "warn",
+      'no-console': 'warn',
     },
   },
   {
-    ignores: ["node_modules/", ".expo/", "dist/"],
+    ignores: ['node_modules/', '.expo/', 'dist/'],
   },
 ]);

@@ -10,7 +10,10 @@ interface InfoCircleIconProps {
   className?: string;
 }
 
-export default function InfoCircleIcon({ size = 24, className = 'text-[#000]' }: InfoCircleIconProps) {
+export default function InfoCircleIcon({
+  size = 24,
+  className = 'text-[#000]',
+}: InfoCircleIconProps) {
   return (
     <StyledSvg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
       <G opacity={0.8}>

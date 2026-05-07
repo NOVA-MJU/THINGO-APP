@@ -23,7 +23,8 @@ export default function AllScreen({ onNavigate }: Props) {
   return (
     <ScrollView
       className="w-screen flex-1"
-      contentContainerStyle={{ paddingBottom: insets.bottom }}>
+      contentContainerStyle={{ paddingBottom: insets.bottom }}
+    >
       <View className="min-h-screen gap-2 bg-grey-02">
         {/* 식단 */}
         <View className="bg-white p-5">
@@ -180,7 +181,8 @@ export default function AllScreen({ onNavigate }: Props) {
                 </View>
                 <Link
                   href={`https://www.youtube.com/watch?v=${item.videoId}` as `https://${string}`}
-                  asChild>
+                  asChild
+                >
                   <TouchableOpacity>
                     <View className="flex-2 gap-0.5 px-4 py-2">
                       <Text className="text-body02 text-black" numberOfLines={2}>

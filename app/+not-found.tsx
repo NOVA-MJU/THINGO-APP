@@ -13,7 +13,8 @@ export default function NotFoundScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <View
         className="flex-1 items-center justify-center gap-8 bg-white px-8"
-        style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
+        style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
+      >
         <ThingoLogoLarge width={100} height={38} />
         <Text className="text-[96px] font-bold leading-none tracking-tighter text-mju-primary">
           404

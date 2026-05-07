@@ -139,7 +139,8 @@ export default function MealScreen({ all = false }: MealSectionProps) {
                       {meals.map((meal, index) => (
                         <Text
                           key={`${category}-${index}`}
-                          className="text-center text-body05 text-grey-80">
+                          className="text-center text-body05 text-grey-80"
+                        >
                           {meal}
                         </Text>
                       ))}

@@ -21,12 +21,14 @@ export function AcademicCalendarScreen() {
                 currentTab === label
                   ? 'rounded-t-sm border-e border-s border-t border-grey-10 bg-white'
                   : 'border-b border-grey-10'
-              )}>
+              )}
+            >
               <Text
                 className={clsx(
                   'text-center',
                   currentTab === label ? 'text-body04 text-black' : 'text-body05 text-grey-40'
-                )}>
+                )}
+              >
                 {label}
               </Text>
             </Pressable>
