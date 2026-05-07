@@ -7,14 +7,22 @@ type Props = {
   selected: string;
   onSelect: (category: string) => void;
   paddingHorizontal?: number;
+  nestedScrollEnabled?: boolean;
 };
 
-export function CategoryFilter({ categories, selected, onSelect, paddingHorizontal = 12 }: Props) {
+export function CategoryFilter({
+  categories,
+  selected,
+  onSelect,
+  paddingHorizontal = 12,
+  nestedScrollEnabled,
+}: Props) {
   return (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={{ paddingHorizontal }}
+      nestedScrollEnabled={nestedScrollEnabled}
     >
       {categories.map((label) => (
         <Pressable key={label} onPress={() => onSelect(label)} className="p-1">

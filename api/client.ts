@@ -1,6 +1,12 @@
 import axios, { AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
 import { Platform } from 'react-native';
-import { clearTokens, getAccessToken, getRefreshToken, setAccessToken, setRefreshToken } from './token';
+import {
+  clearTokens,
+  getAccessToken,
+  getRefreshToken,
+  setAccessToken,
+  setRefreshToken,
+} from './token';
 
 const BASE_URL = 'https://api.thingo.kr/api/v1';
 const isWeb = Platform.OS === 'web';
@@ -54,9 +60,13 @@ const reissue = async (): Promise<string> => {
     const refreshToken = await getRefreshToken();
     if (!refreshToken) throw new Error('no refresh token');
 
-    const { data } = await client.post('/auth/reissue/mobile', {}, {
-      headers: { Authorization: `Bearer ${refreshToken}` },
-    });
+    const { data } = await client.post(
+      '/auth/reissue/mobile',
+      {},
+      {
+        headers: { Authorization: `Bearer ${refreshToken}` },
+      }
+    );
 
     const newAccessToken = data?.data?.accessToken ?? data?.accessToken;
     const newRefreshToken = data?.data?.refreshToken ?? data?.refreshToken;
@@ -80,7 +90,9 @@ const reissue = async (): Promise<string> => {
 client.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    const original = error.config as InternalAxiosRequestConfig & { _retry?: boolean } | undefined;
+    const original = error.config as
+      | (InternalAxiosRequestConfig & { _retry?: boolean })
+      | undefined;
     const status = error.response?.status;
     const url = original?.url ?? '';
 

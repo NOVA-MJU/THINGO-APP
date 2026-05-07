@@ -20,6 +20,7 @@ module.exports = {
         15: '#5dabff',
         10: '#8bc7ff',
         '05': '#e8f1ff',
+        '02': '#edf6ff',
       },
       error: '#f45353',
       grey: {
@@ -29,7 +30,7 @@ module.exports = {
         30: '#aeb2b6',
         20: '#cdd0d4',
         10: '#e3e6e6',
-        '02': '#f0f2f5',
+        '02': '#f5f7f9',
       },
       border: 'hsl(var(--border))',
       input: 'hsl(var(--input))',
