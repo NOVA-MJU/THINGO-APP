@@ -4,9 +4,9 @@ import { Link } from 'expo-router';
 import { Image, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { YoutubeEmbed } from '@/components/youtube-embed';
-import { Footer } from './footer';
 import { ArrowRightIcon, ChatBubbleIcon, DiningIcon, HeartIcon } from '@/components/icons';
 import { CategoryFilter } from '@/components/ui/category-filter';
+import { Footer } from '@/components/footer';
 
 type Props = {
   onNavigate: (tabIndex: number) => void;

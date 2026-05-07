@@ -2,10 +2,10 @@ import { Text } from '@/components/ui/text';
 import * as React from 'react';
 import { View } from 'react-native';
 
-export function Page8() {
+export function NewspaperScreen() {
   return (
     <View className="w-screen flex-1 items-center justify-center">
-      <Text className="text-2xl font-bold">명대뉴스 페이지가 들어갑니다</Text>
+      <Text className="text-2xl font-bold">명대신문 페이지가 들어갑니다</Text>
     </View>
   );
 }

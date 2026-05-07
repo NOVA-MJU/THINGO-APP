@@ -14,13 +14,13 @@ const EMPTY_MEAL_MARKERS = ['등록된 식단 내용이 없습니다.', '등록�
 
 const normalizeMealText = (s: string) => s.replace(/\s+/g, '').trim();
 
-const CATEGORY_ORDER: Array<{ category: MenuCategory; label: string }> = [
+const CATEGORY_ORDER: { category: MenuCategory; label: string }[] = [
   { category: 'BREAKFAST', label: '아침' },
   { category: 'LUNCH', label: '점심' },
   { category: 'DINNER', label: '저녁' },
 ];
 
-export default function MealSection({ all = false }: MealSectionProps) {
+export default function MealScreen({ all = false }: MealSectionProps) {
   const { isLoading, isFetching, isError, error, keys, todayKey, getByDate } = useMenuData();
   const [idx, setIdx] = React.useState<number | null>(null);
 
@@ -88,8 +88,8 @@ export default function MealSection({ all = false }: MealSectionProps) {
     <View className="w-screen flex-1 bg-white">
       <View className="flex w-full flex-col gap-3 p-4">
         {isError && (
-          <View className="border-error mb-2 rounded-2xl border p-4">
-            <Text className="text-body05 text-error text-center">
+          <View className="mb-2 rounded-2xl border border-error p-4">
+            <Text className="text-center text-body05 text-error">
               식단 데이터를 불러오지 못했습니다.
             </Text>
           </View>
@@ -122,15 +122,15 @@ export default function MealSection({ all = false }: MealSectionProps) {
             const meals = mealsByCategory.get(category) ?? [];
 
             return (
-              <View key={category} className="border-grey-10 flex flex-col rounded-2xl border p-4">
-                <Text className="text-body02 text-blue-20 text-center font-semibold">{label}</Text>
+              <View key={category} className="flex flex-col rounded-2xl border border-grey-10 p-4">
+                <Text className="text-center text-body02 font-semibold text-blue-20">{label}</Text>
 
-                <View className="bg-grey-10 mb-3 mt-2 h-px w-full" />
+                <View className="mb-3 mt-2 h-px w-full bg-grey-10" />
 
                 <View className="flex flex-col">
                   {meals.length === 0 ? (
                     <View className="flex h-full min-h-[72px] items-center justify-center">
-                      <Text className="text-body05 text-grey-30 text-center">
+                      <Text className="text-center text-body05 text-grey-30">
                         등록된 식단 내용이 없습니다.
                       </Text>
                     </View>
@@ -139,7 +139,7 @@ export default function MealSection({ all = false }: MealSectionProps) {
                       {meals.map((meal, index) => (
                         <Text
                           key={`${category}-${index}`}
-                          className="text-body05 text-grey-80 text-center">
+                          className="text-center text-body05 text-grey-80">
                           {meal}
                         </Text>
                       ))}

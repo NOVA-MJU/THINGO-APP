@@ -13,7 +13,7 @@ const MENU_STALE_TIME_MS = 1000 * 60 * 5;
  * 식단 카테고리 정렬 순서입니다.
  * API 응답 순서와 무관하게 화면에서는 아침 → 점심 → 저녁 순으로 보여주기 위함입니다.
  */
-const ORDER: Array<MenuItem['menuCategory']> = ['BREAKFAST', 'LUNCH', 'DINNER'];
+const ORDER: MenuItem['menuCategory'][] = ['BREAKFAST', 'LUNCH', 'DINNER'];
 
 /**
  * 날짜 문자열에서 요일 표기를 제거합니다.

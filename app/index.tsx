@@ -6,12 +6,12 @@ import { Dimensions, Keyboard, ScrollView, TouchableOpacity, View } from 'react-
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NoticeBoardScreen } from './_components/notice-board-page';
 import AllScreen from './_components/all-screen';
-import { Page3 } from './_components/Page3';
-import MealSection from './_components/meal';
-import { Page4 } from './_components/Page4';
+import { NewsScreen } from './_components/news-screen';
+import MealScreen from './_components/meal-screen';
+import { MapScreen } from './_components/map-screen';
 import NoticeScreen from './_components/notice-screen';
-import { Page6 } from './_components/Page6';
-import { Page7 } from './_components/Page7';
+import { AcademicCalendarScreen } from './_components/academic-calendar-screen';
+import { NewspaperScreen } from './_components/newspaper-screen';
 import { Button } from '@/components/ui/button';
 import { TabBar } from '@/components/ui/tab-bar';
 
@@ -71,14 +71,29 @@ export default function Screen() {
         onMomentumScrollEnd={handleScroll}
         onScrollBeginDrag={Keyboard.dismiss}
         style={{ flex: 1 }}>
+        {/* ALL */}
         <AllScreen onNavigate={handleTabPress} />
-        <MealSection />
+
+        {/* 학식 */}
+        <MealScreen />
+
+        {/* 게시판 */}
         <NoticeBoardScreen />
-        <Page4 />
+
+        {/* 명지도 */}
+        <MapScreen />
+
+        {/* 공지사항 */}
         <NoticeScreen />
-        <Page6 />
-        <Page7 />
-        <Page3 />
+
+        {/* 학사일정 */}
+        <AcademicCalendarScreen />
+
+        {/* 명대신문 */}
+        <NewspaperScreen />
+
+        {/* 명대뉴스 */}
+        <NewsScreen />
       </ScrollView>
     </>
   );
