@@ -6,12 +6,12 @@ import { Dimensions, Keyboard, ScrollView, TouchableOpacity, View } from 'react-
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NoticeBoardScreen } from './_components/notice-board-page';
 import AllScreen from './_components/all-screen';
-import { NewsScreen } from './_components/news-screen';
+import NewsScreen from './_components/news-screen';
 import MealScreen from './_components/meal-screen';
-import { MapScreen } from './_components/map-screen';
+import MapScreen from './_components/map-screen';
 import NoticeScreen from './_components/notice-screen';
-import { AcademicCalendarScreen } from './_components/academic-calendar-screen';
-import { NewspaperScreen } from './_components/newspaper-screen';
+import AcademicCalendarScreen from './_components/academic-calendar-screen';
+import NewspaperScreen from './_components/newspaper-screen';
 import { Button } from '@/components/ui/button';
 import { TabBar } from '@/components/ui/tab-bar';
 
@@ -47,9 +47,11 @@ export default function Screen() {
               </TouchableOpacity>
             </Link>
           </View>
-          <Button className="h-fit p-1" variant="ghost">
-            <HamburgerIcon />
-          </Button>
+          <Link href="/login" asChild>
+            <Button className="h-fit p-1" variant="ghost">
+              <HamburgerIcon />
+            </Button>
+          </Link>
         </View>
       </View>
 

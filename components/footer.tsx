@@ -1,7 +1,8 @@
 import { Text } from '@/components/ui/text';
-import clsx from 'clsx';
+import { clsx } from 'clsx';
 import * as React from 'react';
 import { Linking, Pressable, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 const GITHUB_URL = 'https://github.com/NOVA-MJU';
@@ -15,12 +16,22 @@ const CONTACT_MAIL = `mailto:mjsearch2025@gmail.com?subject=${encodeURIComponent
 async function openContactMail() {
   const supported = await Linking.canOpenURL(CONTACT_MAIL);
   if (supported) Linking.openURL(CONTACT_MAIL);
-  else console.log('mail 앱이 설치되어있지 않음');
+  else alert('mail 앱이 설치되어있지 않습니다.');
 }
 
-export function Footer({ className }: { className?: string }) {
+export function Footer({
+  className,
+  withBottomInset,
+}: {
+  className?: string;
+  withBottomInset?: boolean;
+}) {
+  const insets = useSafeAreaInsets();
   return (
-    <View className={clsx('w-full bg-blue-05 px-10 py-5', className)}>
+    <View
+      style={withBottomInset ? { paddingBottom: insets.bottom } : undefined}
+      className={clsx('w-full bg-blue-05 px-10 py-5', className)}
+    >
       <View className="flex-col">
         <View className="flex-row gap-3">
           <Pressable onPress={() => Linking.openURL(GITHUB_URL)}>
