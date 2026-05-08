@@ -2,122 +2,99 @@ import { CategoryFilter } from '@/components/ui/category-filter';
 import { Pagination } from '@/components/ui/pagination';
 import { Text } from '@/components/ui/text';
 import * as React from 'react';
-import { Linking, Pressable, ScrollView, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ActivityIndicator, Linking, ScrollView, TouchableOpacity, View } from 'react-native';
 import { Footer } from '@/components/footer';
+import { getNotices, type Notice, type NoticeCategory } from '@/api/notices';
+
+const CATEGORIES: { label: string; value: NoticeCategory }[] = [
+  { label: '전체', value: 'all' },
+  { label: '일반', value: 'general' },
+  { label: '학사', value: 'academic' },
+  { label: '장학', value: 'scholarship' },
+  { label: '진로', value: 'career' },
+  { label: '학생활동', value: 'activity' },
+  { label: '학칙개정', value: 'rule' },
+];
+
+function formatDate(dateStr: string): string {
+  const date = new Date(dateStr + 'Z');
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}.${month}.${day}`;
+}
 
 export default function NoticeScreen() {
-  const categories = ['전체', '일반', '학사', '장학', '진로', '학생활동', '학칙개정'];
+  const scrollRef = React.useRef<ScrollView>(null);
   const [selectedCategory, setSelectedCategory] = React.useState('전체');
   const [currentPage, setCurrentPage] = React.useState(1);
-  const { bottom } = useSafeAreaInsets();
+  const [notices, setNotices] = React.useState<Notice[]>([]);
+  const [totalPages, setTotalPages] = React.useState(1);
+  const [loading, setLoading] = React.useState(false);
+
+  // 페이지 변경 시 상단으로 스크롤
+  React.useEffect(() => {
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
+  }, [currentPage]);
+
+  // 데이터 조회
+  React.useEffect(() => {
+    setLoading(true);
+    getNotices({
+      category: CATEGORIES.find((c) => c.label === selectedCategory)?.value ?? 'all',
+      page: currentPage - 1,
+      size: 10,
+    })
+      .then((res) => {
+        setNotices(res.content);
+        setTotalPages(res.totalPages);
+      })
+      .catch(() => setNotices([]))
+      .finally(() => setLoading(false));
+  }, [selectedCategory, currentPage]);
+
+  const handleCategorySelect = (category: string) => {
+    setSelectedCategory(category);
+    setCurrentPage(1);
+  };
 
   return (
-    <ScrollView className="w-screen flex-1" contentContainerStyle={{ paddingBottom: bottom }}>
+    <ScrollView ref={scrollRef} className="w-screen flex-1">
       <View className="mt-4">
         <CategoryFilter
-          categories={categories}
+          categories={CATEGORIES.map((c) => c.label)}
           selected={selectedCategory}
-          onSelect={setSelectedCategory}
+          onSelect={handleCategorySelect}
           nestedScrollEnabled
         />
       </View>
 
-      {/* 본문 */}
-      <View className="mt-2.5 flex-1 border-t border-grey-02">
-        {NOTICES.map((notice) => (
-          <Pressable key={notice.id} onPress={() => Linking.openURL(notice.url)}>
+      <View className="relative mt-2.5 flex-1 border-t border-grey-02">
+        {notices.map((notice, index) => (
+          <TouchableOpacity key={index} onPress={() => Linking.openURL(notice.link)}>
             <View className="flex w-full flex-col gap-1 border-b border-grey-02 px-4 py-2.5">
-              <Text className="text-caption01 text-blue-15">{notice.category}</Text>
+              <Text className="text-caption01 text-blue-15">
+                {CATEGORIES.find((c) => c.value === notice.category)?.label ?? notice.category}
+              </Text>
               <Text className="text-body05 text-black">{notice.title}</Text>
-              <Text className="text-caption04 text-grey-30">{notice.date}</Text>
+              <Text className="text-caption04 text-grey-30">{formatDate(notice.date)}</Text>
             </View>
-          </Pressable>
+          </TouchableOpacity>
         ))}
+        {loading && (
+          <View className="absolute inset-0 items-center justify-center">
+            <ActivityIndicator />
+          </View>
+        )}
       </View>
 
       <Pagination
         currentPage={currentPage}
-        totalPages={TOTAL_PAGES}
+        totalPages={totalPages}
         onPageChange={setCurrentPage}
         className="mt-6"
       />
-      <Footer className="mt-9" />
+      <Footer className="mt-9" withBottomInset />
     </ScrollView>
   );
 }
-
-// dummy
-const TOTAL_PAGES = 8;
-const NOTICES = [
-  {
-    id: 1,
-    category: '장학',
-    title: '경기공사 관광-2025 컬처패스(경기도 문화소비쿠폰) 에이스 사업 안내',
-    date: '2025.08.25',
-    url: 'https://www.mju.ac.kr/mjukr/285/subview.do?enc=Zm5jdDF8QEB8JTJGYmJzJTJGbWp1a3IlMkYxNiUyRjQ5OTMyJTJGYXJ0Y2xWaWV3LmRvJTNG',
-  },
-  {
-    id: 2,
-    category: '일반',
-    title: '2025학년도 2학기 수강신청 안내',
-    date: '2025.08.20',
-    url: 'https://www.mju.ac.kr/mjukr/285/subview.do',
-  },
-  {
-    id: 3,
-    category: '학사',
-    title: '2025학년도 2학기 학사일정 안내',
-    date: '2025.08.18',
-    url: 'https://www.mju.ac.kr/mjukr/285/subview.do',
-  },
-  {
-    id: 4,
-    category: '진로',
-    title: '2025 하반기 취업박람회 참가 안내',
-    date: '2025.08.15',
-    url: 'https://www.mju.ac.kr/mjukr/285/subview.do',
-  },
-  {
-    id: 5,
-    category: '학생활동',
-    title: '2025학년도 2학기 동아리 등록 안내',
-    date: '2025.08.12',
-    url: 'https://www.mju.ac.kr/mjukr/285/subview.do',
-  },
-  {
-    id: 6,
-    category: '학칙개정',
-    title: '학칙 일부 개정 안내 (제2025-3호)',
-    date: '2025.08.10',
-    url: 'https://www.mju.ac.kr/mjukr/285/subview.do',
-  },
-  {
-    id: 7,
-    category: '장학',
-    title: '국가장학금 2차 신청 안내 (2025년 2학기)',
-    date: '2025.08.07',
-    url: 'https://www.mju.ac.kr/mjukr/285/subview.do',
-  },
-  {
-    id: 8,
-    category: '일반',
-    title: '2025학년도 2학기 기숙사 입사 안내',
-    date: '2025.08.05',
-    url: 'https://www.mju.ac.kr/mjukr/285/subview.do',
-  },
-  {
-    id: 9,
-    category: '학사',
-    title: '졸업예정자 졸업요건 확인 안내',
-    date: '2025.08.02',
-    url: 'https://www.mju.ac.kr/mjukr/285/subview.do',
-  },
-  {
-    id: 10,
-    category: '진로',
-    title: '산학협력 인턴십 프로그램 참가자 모집',
-    date: '2025.07.30',
-    url: 'https://www.mju.ac.kr/mjukr/285/subview.do',
-  },
-];
