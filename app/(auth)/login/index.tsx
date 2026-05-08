@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { login } from '@/api/auth';
+import { getMemberInfo } from '@/api/members';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -16,7 +17,7 @@ export default function LoginScreen() {
   const [isPending, setIsPending] = useState(false);
   const passwordRef = useRef<TextInput>(null);
 
-  // 로그인 여부 체크
+  // 이미 로그인된 경우
   useEffect(() => {
     if (user) {
       if (router.canGoBack()) {
@@ -31,8 +32,14 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     setIsPending(true);
     try {
-      const data = await login({ email, password });
-      setUser({ accessToken: data.accessToken });
+      await login({ email, password });
+      const member = await getMemberInfo();
+      setUser(member);
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/');
+      }
     } catch {
       setPassword('');
       Alert.alert('로그인 실패', '이메일 또는 비밀번호를 확인해주세요.');

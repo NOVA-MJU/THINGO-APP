@@ -95,13 +95,17 @@ export default function Sidebar({ visible, onClose }: SidebarProps) {
           {user && (
             <>
               <View className="flex-row items-center gap-3 px-5">
-                <Image
-                  source={{ uri: 'https://placehold.co/40x40' }}
-                  className="aspect-square w-10 rounded-full bg-grey-10"
-                />
+                {user.profileImageUrl ? (
+                  <Image
+                    source={{ uri: user.profileImageUrl }}
+                    className="aspect-square w-10 rounded-full bg-grey-10"
+                  />
+                ) : (
+                  <View className="aspect-square w-10 rounded-full bg-grey-10" />
+                )}
                 <View className="flex-1">
-                  <Text className="text-body02 text-black">닉네임</Text>
-                  <Text className="text-body05 text-grey-30">@id_example</Text>
+                  <Text className="text-body02 text-black">{user.nickname}</Text>
+                  <Text className="text-body05 text-grey-30">{user.studentNumber}</Text>
                 </View>
               </View>
               <View className="h-[1px] w-full bg-grey-02" />

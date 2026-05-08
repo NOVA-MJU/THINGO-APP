@@ -75,6 +75,7 @@ function Input({ className, ref, clearable, onChangeText, value, ...props }: Inp
           }}
           className="absolute right-3 top-0 h-10 items-center justify-center"
           hitSlop={8}
+          tabIndex={-1}
         >
           <CloseIcon size={20} />
         </Pressable>
