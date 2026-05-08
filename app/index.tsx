@@ -1,4 +1,5 @@
 import { HamburgerIcon, SearchIcon, ThingoLogoSmall } from '@/components/icons';
+import Sidebar from '@/components/sidebar';
 import { Text } from '@/components/ui/text';
 import { Link } from 'expo-router';
 import * as React from 'react';
@@ -22,6 +23,7 @@ export default function Screen() {
   const insets = useSafeAreaInsets();
   const scrollRef = React.useRef<ScrollView>(null);
   const [currentTab, setCurrentTab] = React.useState(TABS[0]);
+  const [sidebarVisible, setSidebarVisible] = React.useState(false);
 
   const handleTabPress = (index: number) => {
     setCurrentTab(TABS[index]);
@@ -35,6 +37,7 @@ export default function Screen() {
 
   return (
     <>
+      <Sidebar visible={sidebarVisible} onClose={() => setSidebarVisible(false)} />
       {/* 앱 헤더 */}
       <View style={{ paddingTop: insets.top }}>
         <View className="h-15 w-screen flex-row items-center px-3 pb-1 pt-2">
@@ -47,11 +50,9 @@ export default function Screen() {
               </TouchableOpacity>
             </Link>
           </View>
-          <Link href="/login" asChild>
-            <Button className="h-fit p-1" variant="ghost">
-              <HamburgerIcon />
-            </Button>
-          </Link>
+          <Button className="h-fit p-1" variant="ghost" onPress={() => setSidebarVisible(true)}>
+            <HamburgerIcon />
+          </Button>
         </View>
       </View>
 
