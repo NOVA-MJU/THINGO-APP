@@ -10,7 +10,10 @@ interface ExternalLinkIconProps {
   className?: string;
 }
 
-export default function ExternalLinkIcon({ size = 24, className = 'text-black' }: ExternalLinkIconProps) {
+export default function ExternalLinkIcon({
+  size = 24,
+  className = 'text-black',
+}: ExternalLinkIconProps) {
   return (
     <StyledSvg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
       <Path

@@ -1,5 +1,5 @@
 import { Text } from '@/components/ui/text';
-import clsx from 'clsx';
+import { clsx } from 'clsx';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import * as React from 'react';
 import { Pressable, View } from 'react-native';
