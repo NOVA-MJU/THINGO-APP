@@ -41,7 +41,9 @@ export default function Screen() {
       {/* 앱 헤더 */}
       <View style={{ paddingTop: insets.top }}>
         <View className="h-15 w-screen flex-row items-center px-3 pb-1 pt-2">
-          <ThingoLogoSmall />
+          <TouchableOpacity onPress={() => handleTabPress(0)}>
+            <ThingoLogoSmall />
+          </TouchableOpacity>
           <View className="flex-1 p-1.5">
             <Link href="/search" asChild>
               <TouchableOpacity className="flex-1 flex-row items-center gap-2 rounded-full bg-grey-02 px-3 py-1.5">
