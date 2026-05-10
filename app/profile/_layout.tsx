@@ -1,27 +1,18 @@
 import { HamburgerIcon, ThingoLogoLarge } from '@/components/icons';
 import { useAuth } from '@/context/auth-context';
-import { Stack, useRouter } from 'expo-router';
-import { useEffect } from 'react';
-import { Platform, TouchableOpacity, View } from 'react-native';
+import { Redirect, Stack, useRouter } from 'expo-router';
+import { TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-export default function AuthLayout() {
+export default function ProfileLayout() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, isInitializing } = useAuth();
 
-  // 이미 로그인 된 경우 홈으로 리디렉션
-  useEffect(() => {
-    if (isInitializing) return;
-    if (user) {
-      if (Platform.OS === 'web') {
-        router.replace('/');
-      } else {
-        router.dismissAll();
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isInitializing]);
+  // 로그인 되지 않은 경우 로그인 페이지로 리디렉션
+  if (!isInitializing && !user) {
+    return <Redirect href="/login" />;
+  }
 
   return (
     <View className="flex-1">

@@ -15,7 +15,7 @@ type Props = {
   onClose: () => void;
 };
 
-export function DepartmentSelectModal({
+export default function DepartmentSelectModal({
   visible,
   title,
   options,

@@ -23,6 +23,45 @@ type MemberInfoResponse = {
   data: MemberInfo;
 };
 
+export type ProfileStats = {
+  nickname: string;
+  postCount: number;
+  commentCount: number;
+  likedPostCount: number;
+};
+
+type ProfileStatsResponse = {
+  data: ProfileStats;
+};
+
+export type SignupRequest = {
+  name: string;
+  email: string;
+  password: string;
+  nickname: string;
+  gender: 'MALE' | 'FEMALE' | 'OTHER';
+  college: string;
+  departmentName: string;
+  studentNumber: string;
+  profileImageUrl?: string;
+};
+
+export type UpdateMemberRequest = {
+  name: string;
+  gender: 'MALE' | 'FEMALE' | 'OTHER';
+  nickname: string;
+  college: string;
+  departmentName: string;
+  studentNumber: string;
+  profileImageUrl?: string;
+};
+
+// 마이페이지 통계 조회
+export async function getProfileStats(): Promise<ProfileStats> {
+  const { data } = await client.get<ProfileStatsResponse>('/profile');
+  return data.data;
+}
+
 // 회원 정보 조회
 export async function getMemberInfo(): Promise<MemberInfo> {
   const { data } = await client.get<MemberInfoResponse>('/members/info');
@@ -58,17 +97,21 @@ export async function checkEmailVerificationCode(email: string, code: string): P
   return data.data.matched;
 }
 
-export type SignupRequest = {
-  name: string;
-  email: string;
-  password: string;
-  nickname: string;
-  gender: 'MALE' | 'FEMALE' | 'OTHER';
-  college: string;
-  departmentName: string;
-  studentNumber: string;
-  profileImageUrl?: string;
-};
+// 회원 정보 수정
+export async function updateMemberInfo(body: UpdateMemberRequest): Promise<MemberInfo> {
+  const { data } = await client.patch<MemberInfoResponse>('/members/info', body);
+  return data.data;
+}
+
+// 비밀번호 변경
+export async function changePassword(password: string, newPassword: string): Promise<void> {
+  await client.patch('/members/info/password', { password, newPassword });
+}
+
+// 회원 탈퇴
+export async function deleteAccount(password: string): Promise<void> {
+  await client.delete('/members/info', { data: { password } });
+}
 
 // 회원가입 후 로그인 처리
 export async function signup(body: SignupRequest): Promise<void> {

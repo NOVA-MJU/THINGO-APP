@@ -1,10 +1,24 @@
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
-import { Image, Modal, Pressable, ScrollView, TouchableOpacity, View } from 'react-native';
+import {
+  Animated,
+  Easing,
+  Image,
+  Linking,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ExternalLinkIcon, LoginIcon, XThinIcon } from '@/components/icons';
 import { Text } from '@/components/ui/text';
+import { cn } from '@/lib/utils';
+
+const SIDEBAR_WIDTH = 249;
 
 interface SidebarProps {
   visible: boolean;
@@ -35,8 +49,8 @@ const NAV_SECTIONS = [
   {
     title: 'My',
     items: [
-      { label: '마이페이지', href: null },
-      { label: 'SSO', href: 'external', isExternal: true },
+      { label: '마이페이지', href: '/profile' },
+      { label: 'SSO', href: 'https://portal.mju.ac.kr', isExternal: true },
     ],
   },
 ] as const;
@@ -46,35 +60,88 @@ export default function Sidebar({ visible, onClose }: SidebarProps) {
   const { user, logout } = useAuth();
   const router = useRouter();
 
+  const slideAnim = React.useRef(new Animated.Value(SIDEBAR_WIDTH)).current;
+  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const [modalVisible, setModalVisible] = React.useState(visible);
+
+  // 열림 애니메이션
+  React.useEffect(() => {
+    if (visible) {
+      setModalVisible(true);
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 280,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 280,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [visible, slideAnim, fadeAnim]);
+
+  // 닫기 애니메이션
+  function handleClose() {
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: SIDEBAR_WIDTH,
+        duration: 220,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 220,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setModalVisible(false);
+      onClose();
+    });
+  }
+
+  // 로그인 버튼 클릭
   function handleLogin() {
-    onClose();
+    handleClose();
     router.push('/(auth)/login');
   }
 
+  // 로그아웃 버튼 클릭
   async function handleLogout() {
-    onClose();
+    handleClose();
     await logout();
   }
 
   return (
-    <Modal transparent visible={visible} animationType="none" onRequestClose={onClose}>
+    <Modal transparent visible={modalVisible} animationType="none" onRequestClose={handleClose}>
       {/* background 오버레이 */}
-      <Pressable className="flex-1 bg-bg" onPress={onClose} />
+      <Animated.View
+        style={{ flex: 1, opacity: fadeAnim, paddingTop: Platform.OS === 'ios' ? insets.top : 0 }}
+      >
+        <Pressable className="flex-1 bg-bg" onPress={handleClose} />
+      </Animated.View>
 
       {/* 사이드바 패널 */}
-      <View
+      <Animated.View
         style={{
           position: 'absolute',
           right: 0,
+          transform: [{ translateX: slideAnim }],
         }}
       >
         <View
-          style={{ paddingTop: insets.top + 16, gap: 8 }}
+          style={{ paddingTop: Platform.OS === 'ios' ? insets.top + 16 : 16, gap: 8 }}
           className="h-screen w-[249px] bg-white"
         >
           {/* 닫기 버튼 */}
           <View className="items-end px-4">
-            <TouchableOpacity onPress={onClose} hitSlop={8}>
+            <TouchableOpacity onPress={handleClose} hitSlop={8}>
               <XThinIcon className="text-grey-30" />
             </TouchableOpacity>
           </View>
@@ -127,8 +194,25 @@ export default function Sidebar({ visible, onClose }: SidebarProps) {
                   </View>
                   <View>
                     {section.items.map((item) => (
-                      <TouchableOpacity key={item.label}>
-                        <View className="flex-row items-center px-5 py-2.5 transition hover:bg-blue-05 hover:transition-none">
+                      <TouchableOpacity
+                        key={item.label}
+                        onPress={() => {
+                          if (!item.href) return;
+                          if ('isExternal' in item && item.isExternal) {
+                            Linking.openURL(item.href);
+                          } else {
+                            handleClose();
+                            router.push(item.href as never);
+                          }
+                        }}
+                      >
+                        <View
+                          className={cn(
+                            'flex-row items-center px-5 py-2.5',
+                            Platform.OS === 'web' &&
+                              'transition hover:bg-blue-05 hover:transition-none'
+                          )}
+                        >
                           <Text className="text-body05 text-black">{item.label}</Text>
                           {'isExternal' in item && item.isExternal && (
                             <ExternalLinkIcon size={24} className="text-mju-primary" />
@@ -155,7 +239,7 @@ export default function Sidebar({ visible, onClose }: SidebarProps) {
             )}
           </ScrollView>
         </View>
-      </View>
+      </Animated.View>
     </Modal>
   );
 }

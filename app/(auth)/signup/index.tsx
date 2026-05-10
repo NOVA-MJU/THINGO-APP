@@ -8,6 +8,7 @@ import {
   validateStudentNumber,
 } from '@/api/members';
 import { Footer } from '@/components/footer';
+import { PASSWORD_MESSAGE, PASSWORD_REGEX } from '@/lib/validation';
 import { ArrowDownIcon, InfoCircleIcon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,7 +19,7 @@ import { isAxiosError } from 'axios';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
-import { DepartmentSelectModal } from './_components/department-select-modal';
+import DepartmentSelectModal from './_components/department-select-modal';
 
 export default function SignupScreen() {
   const router = useRouter();
@@ -45,6 +46,17 @@ export default function SignupScreen() {
   const [collegeModalOpen, setCollegeModalOpen] = useState(false);
   const [departmentModalOpen, setDepartmentModalOpen] = useState(false);
   const [signupLoading, setSignupLoading] = useState(false);
+
+  const isFormComplete =
+    emailVerified &&
+    !!password &&
+    !!confirmPassword &&
+    !!name.trim() &&
+    nicknameVerified &&
+    !!gender &&
+    !!selectedCollege &&
+    !!selectedDepartment &&
+    studentNumberVerified;
 
   const collegeLabel = COLLEGE_OPTIONS.find((c) => c.value === selectedCollege)?.label ?? null;
   const departmentOptions =
@@ -119,6 +131,7 @@ export default function SignupScreen() {
   const handleSignup = async () => {
     if (!emailVerified) return Alert.alert('이메일 인증을 완료해주세요.');
     if (!password) return Alert.alert('비밀번호를 입력해주세요.');
+    if (!PASSWORD_REGEX.test(password)) return Alert.alert(PASSWORD_MESSAGE);
     if (password !== confirmPassword) return Alert.alert('비밀번호가 일치하지 않습니다.');
     if (!name.trim()) return Alert.alert('이름을 입력해주세요.');
     if (!nicknameVerified) return Alert.alert('닉네임 중복 확인을 해주세요.');
@@ -250,15 +263,9 @@ export default function SignupScreen() {
             />
             <View className="mt-2 flex-row items-center gap-1">
               <InfoCircleIcon size={16} className="text-grey-30" />
-              <Text className="text-caption02 text-grey-30">8~16자의 영문 대소문자</Text>
-            </View>
-            <View className="mt-1 flex-row items-center gap-1">
-              <InfoCircleIcon size={16} className="text-grey-30" />
-              <Text className="text-caption02 text-grey-30">숫자 1개 이상 포함</Text>
-            </View>
-            <View className="mt-1 flex-row items-center gap-1">
-              <InfoCircleIcon size={16} className="text-grey-30" />
-              <Text className="text-caption02 text-grey-30">특수문자 1개 이상 포함</Text>
+              <Text className="text-caption02 text-grey-30">
+                영문, 숫자, 특수문자 포함 8자 이상
+              </Text>
             </View>
             <Text className="mt-6 text-body04 text-grey-80">비밀번호 확인</Text>
             <Input
@@ -412,7 +419,7 @@ export default function SignupScreen() {
 
           {/* 회원가입 버튼 */}
           <Button
-            variant="secondary"
+            variant={isFormComplete ? 'default' : 'secondary'}
             className="mt-5"
             onPress={handleSignup}
             disabled={signupLoading}
@@ -423,7 +430,7 @@ export default function SignupScreen() {
         <Footer className="mt-6" withBottomInset />
       </ScrollView>
 
-      {/* 학과 선택 모달 */}
+      {/* 학과 선택 모달 - ai로 작성했습니다 */}
       <DepartmentSelectModal
         visible={collegeModalOpen}
         title="단과대 선택"
