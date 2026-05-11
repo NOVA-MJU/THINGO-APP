@@ -138,20 +138,39 @@ export type MyPost = {
   liked: boolean;
 };
 
+type PageData<T> = {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+  first: boolean;
+  last: boolean;
+  empty: boolean;
+};
+
 type MyPostsResponse = {
-  data: MyPost[];
+  data: PageData<MyPost>;
+};
+
+export type MyPostsPage = {
+  posts: MyPost[];
+  totalElements: number;
+  totalPages: number;
 };
 
 // 내가 작성한 게시물 목록 조회
-export async function getMyPosts(): Promise<MyPost[]> {
-  const { data } = await client.get<MyPostsResponse>('/members/posts');
-  return data.data;
+export async function getMyPosts(page = 0): Promise<MyPostsPage> {
+  const { data } = await client.get<MyPostsResponse>('/members/posts', { params: { page } });
+  const { content, totalElements, totalPages } = data.data;
+  return { posts: content, totalElements, totalPages };
 }
 
 // 내가 좋아요 누른 게시글 목록 조회
-export async function getMyLikedPosts(): Promise<MyPost[]> {
-  const { data } = await client.get<MyPostsResponse>('/profile/liked_posts');
-  return data.data;
+export async function getMyLikedPosts(page = 0): Promise<MyPostsPage> {
+  const { data } = await client.get<MyPostsResponse>('/profile/liked_posts', { params: { page } });
+  const { content, totalElements, totalPages } = data.data;
+  return { posts: content, totalElements, totalPages };
 }
 
 export type MyCommentedPost = {
@@ -163,13 +182,22 @@ export type MyCommentedPost = {
 };
 
 type MyCommentedPostsResponse = {
-  data: MyCommentedPost[];
+  data: PageData<MyCommentedPost>;
+};
+
+export type MyCommentedPostsPage = {
+  items: MyCommentedPost[];
+  totalElements: number;
+  totalPages: number;
 };
 
 // 내가 댓글 단 게시글 목록 조회
-export async function getMyCommentedPosts(): Promise<MyCommentedPost[]> {
-  const { data } = await client.get<MyCommentedPostsResponse>('/profile/comments');
-  return data.data;
+export async function getMyCommentedPosts(page = 0): Promise<MyCommentedPostsPage> {
+  const { data } = await client.get<MyCommentedPostsResponse>('/profile/comments', {
+    params: { page },
+  });
+  const { content, totalElements, totalPages } = data.data;
+  return { items: content, totalElements, totalPages };
 }
 
 // 회원 탈퇴

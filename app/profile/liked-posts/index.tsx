@@ -7,8 +7,6 @@ import { router } from 'expo-router';
 import * as React from 'react';
 import { ActivityIndicator, ScrollView, TouchableOpacity, View } from 'react-native';
 
-const ITEMS_PER_PAGE = 10;
-
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
   return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
@@ -19,32 +17,31 @@ export default function LikedPostsScreen() {
   const [posts, setPosts] = React.useState<MyPost[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [currentPage, setCurrentPage] = React.useState(1);
+  const [totalPages, setTotalPages] = React.useState(1);
+  const [totalElements, setTotalElements] = React.useState(0);
 
   React.useEffect(() => {
-    getMyLikedPosts()
-      .then(setPosts)
+    setLoading(true);
+    getMyLikedPosts(currentPage - 1)
+      .then(({ posts, totalPages, totalElements }) => {
+        setPosts(posts);
+        setTotalPages(Math.max(1, totalPages));
+        setTotalElements(totalElements);
+      })
       .catch(() => setPosts([]))
       .finally(() => setLoading(false));
-  }, []);
+  }, [currentPage]);
 
-  // 상단으로 스크롤
   React.useEffect(() => {
     scrollRef.current?.scrollTo({ y: 0, animated: false });
   }, [currentPage]);
-
-  // 서버에서 페이지네이션 응답을 안줘서 직접 구현
-  const totalPages = Math.max(1, Math.ceil(posts.length / ITEMS_PER_PAGE));
-  const pagedPosts = React.useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return posts.slice(start, start + ITEMS_PER_PAGE);
-  }, [posts, currentPage]);
 
   return (
     <ScrollView ref={scrollRef} className="flex-1 bg-grey-02" contentContainerClassName="flex-grow">
       <View className="flex-1">
         <View className="px-4 py-5">
           <Text className="text-title01 text-black">찜한 글</Text>
-          <Text className="mt-1 text-body05 text-grey-40">총 {posts.length}개</Text>
+          <Text className="mt-1 text-body05 text-grey-40">총 {totalElements}개</Text>
         </View>
 
         <View className="relative flex-1">
@@ -52,14 +49,14 @@ export default function LikedPostsScreen() {
             <View className="flex-1 items-center justify-center py-20">
               <ActivityIndicator />
             </View>
-          ) : pagedPosts.length === 0 ? (
+          ) : posts.length === 0 ? (
             <View className="flex-1 items-center justify-center py-20">
               <Text className="text-body05 text-black">찜한 글이 없습니다.</Text>
             </View>
           ) : (
             <>
               <View className="gap-2 px-4">
-                {pagedPosts.map((item) => (
+                {posts.map((item) => (
                   <TouchableOpacity
                     key={item.uuid}
                     className="gap-2 rounded-xl bg-white px-4 pb-2 pt-3"
