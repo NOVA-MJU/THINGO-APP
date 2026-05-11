@@ -37,7 +37,11 @@ export default function Screen() {
 
   return (
     <>
-      <Sidebar visible={sidebarVisible} onClose={() => setSidebarVisible(false)} />
+      <Sidebar
+        visible={sidebarVisible}
+        onClose={() => setSidebarVisible(false)}
+        onNavigate={handleTabPress}
+      />
       {/* 앱 헤더 */}
       <View style={{ paddingTop: insets.top }}>
         <View className="h-15 w-screen flex-row items-center px-3 pb-1 pt-2">
