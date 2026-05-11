@@ -18,8 +18,9 @@ import { COLLEGE_OPTIONS, DEPARTMENT_OPTIONS } from '@/lib/departments';
 import { isAxiosError } from 'axios';
 import { useRouter } from 'expo-router';
 import { showAlert } from '@/lib/alert';
+import { useImageUpload } from '@/hooks/useImageUpload';
 import { useState } from 'react';
-import { Platform, ScrollView, TouchableOpacity, View } from 'react-native';
+import { Image, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
 import DepartmentSelectModal from './_components/department-select-modal';
 
 export default function SignupScreen() {
@@ -47,6 +48,8 @@ export default function SignupScreen() {
   const [collegeModalOpen, setCollegeModalOpen] = useState(false);
   const [departmentModalOpen, setDepartmentModalOpen] = useState(false);
   const [signupLoading, setSignupLoading] = useState(false);
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
+  const { isLoading: isUploadingImage, pickAndUpload } = useImageUpload('PROFILE_IMAGE');
 
   const isFormComplete =
     emailVerified &&
@@ -64,6 +67,12 @@ export default function SignupScreen() {
     DEPARTMENT_OPTIONS.find((d) => d.college.value === selectedCollege)?.departments ?? [];
   const departmentLabel =
     departmentOptions.find((d) => d.value === selectedDepartment)?.label ?? null;
+
+  // 프로필 이미지 업로드
+  const handlePickProfileImage = async () => {
+    const url = await pickAndUpload();
+    if (url) setProfileImageUrl(url);
+  };
 
   // 학번 중복 확인
   const handleStudentNumberCheck = async () => {
@@ -152,6 +161,7 @@ export default function SignupScreen() {
         college: selectedCollege,
         departmentName: selectedDepartment,
         studentNumber,
+        profileImageUrl: profileImageUrl ?? undefined,
       });
       const member = await getMemberInfo();
       setUser(member);
@@ -413,9 +423,23 @@ export default function SignupScreen() {
           <Text className="mt-10 text-title01 text-black">프로필 사진 (선택)</Text>
           <View className="mt-3 rounded-xl bg-white p-6">
             <Text className="text-body04 text-grey-80">프로필</Text>
-            <TouchableOpacity className="mt-2 self-start">
-              <View className="aspect-square w-[88px] items-center justify-center rounded-xl border border-grey-10">
-                <Text className="text-caption02 text-grey-20">이미지 업로드</Text>
+            <TouchableOpacity
+              className="mt-2 self-start"
+              onPress={handlePickProfileImage}
+              disabled={isUploadingImage}
+            >
+              <View className="aspect-square w-[88px] items-center justify-center overflow-hidden rounded-xl border border-grey-10">
+                {profileImageUrl ? (
+                  <Image
+                    source={{ uri: profileImageUrl }}
+                    className="h-full w-full"
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <Text className="text-caption02 text-grey-20">
+                    {isUploadingImage ? '업로드 중...' : '이미지 업로드'}
+                  </Text>
+                )}
               </View>
             </TouchableOpacity>
           </View>
