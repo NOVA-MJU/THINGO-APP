@@ -9,6 +9,7 @@ import { Footer } from '@/components/footer';
 import { getNotices, type Notice, type NoticeCategory } from '@/api/notices';
 import { getNews, type NewsItem, type NewsCategory } from '@/api/news';
 import { getBroadcasts, type BroadcastItem } from '@/api/broadcast';
+import { getMenus, type DailyMenu } from '@/api/menus';
 
 const CATEGORY_MAP: Record<string, NoticeCategory> = {
   전체: 'all',
@@ -52,6 +53,7 @@ export default function AllScreen({ onNavigate }: Props) {
   const [newspaperLoading, setNewspaperLoading] = React.useState(false);
   const [broadcasts, setBroadcasts] = React.useState<BroadcastItem[]>([]);
   const [broadcastsLoading, setBroadcastsLoading] = React.useState(false);
+  const [menus, setMenus] = React.useState<DailyMenu[]>([]);
 
   React.useEffect(() => {
     setNoticesLoading(true);
@@ -77,6 +79,50 @@ export default function AllScreen({ onNavigate }: Props) {
       .finally(() => setBroadcastsLoading(false));
   }, []);
 
+  React.useEffect(() => {
+    getMenus()
+      .then((res) => setMenus(res.data))
+      .catch(() => {});
+  }, []);
+
+  // 현재 시각 기준으로 조식(~09:00) / 중식(~14:00) / 석식(14:00~) 결정 및 오늘 날짜 레이블 생성
+  const { currentMealLabel, currentMealCategory, todayLabel } = React.useMemo(() => {
+    const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
+    const now = new Date();
+    const hour = now.getHours() * 60 + now.getMinutes();
+    let label: string;
+    let category: 'BREAKFAST' | 'LUNCH' | 'DINNER';
+    if (hour < 9 * 60) {
+      label = '조식';
+      category = 'BREAKFAST';
+    } else if (hour < 14 * 60) {
+      label = '중식';
+      category = 'LUNCH';
+    } else {
+      label = '석식';
+      category = 'DINNER';
+    }
+    const m = now.getMonth() + 1;
+    const d = now.getDate();
+    const day = DAY_NAMES[now.getDay()];
+    return {
+      currentMealLabel: label,
+      currentMealCategory: category,
+      todayLabel: `${m}월 ${d}일 (${day})`,
+    };
+  }, []);
+
+  // menus 배열에서 오늘 날짜 + 현재 식사 카테고리에 해당하는 메뉴 항목 추출
+  const todayMeals = React.useMemo(() => {
+    const mm = String(new Date().getMonth() + 1).padStart(2, '0');
+    const dd = String(new Date().getDate()).padStart(2, '0');
+    const dotDate = `${mm}.${dd}`;
+    return (
+      menus.find((m) => m.date.startsWith(dotDate) && m.menuCategory === currentMealCategory)
+        ?.meals ?? []
+    );
+  }, [menus, currentMealCategory]);
+
   return (
     <ScrollView className="w-screen flex-1">
       <View className="min-h-screen gap-2 bg-grey-02">
@@ -86,9 +132,13 @@ export default function AllScreen({ onNavigate }: Props) {
             <View className="gap-2 rounded-lg border border-grey-10 p-4">
               <View className="flex-row items-center gap-1">
                 <DiningIcon className="text-grey-30" />
-                <Text className="text-body02 text-black">1월 21일 (화) 점심</Text>
+                <Text className="text-body02 text-black">
+                  {todayLabel} {currentMealLabel}
+                </Text>
               </View>
-              <Text className="text-body05 text-grey-80">등록된 식단 내용이 없습니다.</Text>
+              <Text className="text-body05 text-grey-80">
+                {todayMeals.length > 0 ? todayMeals.join(', ') : '등록된 식단 내용이 없습니다.'}
+              </Text>
             </View>
           </TouchableOpacity>
         </View>

@@ -1,3 +1,4 @@
+import { getMenus, type DailyMenu } from '@/api/menus';
 import { Footer } from '@/components/footer';
 import {
   BreakfastMealIcon,
@@ -13,8 +14,10 @@ import { ScrollView, TouchableOpacity, View } from 'react-native';
 
 export default function MealScreen() {
   const [selectedDate, setSelectedDate] = React.useState<string | null>(null);
+  const [menus, setMenus] = React.useState<DailyMenu[]>([]);
   const dateScrollRef = React.useRef<ScrollView>(null);
 
+  // 오늘 날짜(today)와 이번 주 평일 목록(dates) 계산 — 마운트 시 1회만 실행
   const { today, dates } = React.useMemo(() => {
     const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
     const now = new Date();
@@ -22,48 +25,46 @@ export default function MealScreen() {
     const dd = String(now.getDate()).padStart(2, '0');
     const todayObj = { date: `${mm}/${dd}`, day: DAY_NAMES[now.getDay()] };
 
-    // 이번 주 월요일 구하기 (일요일=0이면 -6, 그 외 -(요일-1))
     const dayOfWeek = now.getDay();
     const diffToMonday = dayOfWeek === 0 ? -6 : -(dayOfWeek - 1);
     const monday = new Date(now);
     monday.setDate(now.getDate() + diffToMonday);
     monday.setHours(0, 0, 0, 0);
 
-    // 3주 전 월요일부터 이번 주 금요일까지 평일만
     const result: { day: string; date: string }[] = [];
-    for (let week = -3; week <= 0; week++) {
-      for (let weekday = 0; weekday < 5; weekday++) {
-        const d = new Date(monday);
-        d.setDate(monday.getDate() + week * 7 + weekday);
-        const m = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        result.push({ date: `${m}/${day}`, day: DAY_NAMES[d.getDay()] });
-      }
+    for (let weekday = 0; weekday < 5; weekday++) {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + weekday);
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      result.push({ date: `${m}/${day}`, day: DAY_NAMES[d.getDay()] });
     }
-
     return { today: todayObj, dates: result };
   }, []);
 
-  const handleScrollDatePicker = React.useCallback(
-    (animated = true) => {
-      const todayIndex = dates.findIndex((d) => d.date === today.date);
-      if (todayIndex !== -1) {
-        const x = 20 + todayIndex * (60 + 8);
-        dateScrollRef.current?.scrollTo({ x, animated });
-      }
-    },
-    [dates, today.date]
-  );
-
   React.useEffect(() => {
     setSelectedDate(today.date);
-    handleScrollDatePicker(false);
-  }, [today.date, handleScrollDatePicker]);
+    getMenus()
+      .then((res) => setMenus(res.data))
+      .catch(() => {});
+  }, [today.date]);
 
   function handleSetToday(): void {
     setSelectedDate(today.date);
-    handleScrollDatePicker();
   }
+
+  // "MM/DD" → "MM.DD" 로 변환해 API 응답 date 필드("05.12 (화)")와 비교
+  function getMeals(category: 'BREAKFAST' | 'LUNCH' | 'DINNER'): string[] {
+    if (!selectedDate) return [];
+    const dotDate = selectedDate.replace('/', '.');
+    return (
+      menus.find((m) => m.date.startsWith(dotDate) && m.menuCategory === category)?.meals ?? []
+    );
+  }
+
+  const breakfast = getMeals('BREAKFAST');
+  const lunch = getMeals('LUNCH');
+  const dinner = getMeals('DINNER');
 
   return (
     <ScrollView className="w-screen" contentContainerClassName="flex-grow">
@@ -73,7 +74,6 @@ export default function MealScreen() {
             {today.date}({today.day})
           </Text>
 
-          {/* 오늘 날짜로 이동 */}
           {selectedDate !== today.date && (
             <TouchableOpacity onPress={handleSetToday}>
               <View className="flex-row items-center gap-0.5 rounded-full bg-blue-02 px-2 py-[3px]">
@@ -122,13 +122,16 @@ export default function MealScreen() {
             <Text className="ms-1 text-body02 text-black">조식</Text>
             <Text className="ms-2 text-caption02 text-grey-60">(08:00 - 09:00)</Text>
           </View>
-
           <View className="flex-row flex-wrap gap-2">
-            {DUMMY_MENU.breakfast.map((meal) => (
-              <View key={meal} className="rounded-sm bg-grey-02 px-1 py-0.5">
-                <Text className="text-body05 text-grey-80">{meal}</Text>
-              </View>
-            ))}
+            {breakfast.length > 0 ? (
+              breakfast.map((meal) => (
+                <View key={meal} className="rounded-sm bg-grey-02 px-1 py-0.5">
+                  <Text className="text-body05 text-grey-80">{meal}</Text>
+                </View>
+              ))
+            ) : (
+              <Text className="text-body05 text-grey-40">식단 정보가 없습니다.</Text>
+            )}
           </View>
         </View>
 
@@ -140,11 +143,15 @@ export default function MealScreen() {
             <Text className="ms-2 text-caption02 text-grey-60">(11:30 - 14:00)</Text>
           </View>
           <View className="flex-row flex-wrap gap-2">
-            {DUMMY_MENU.lunch.map((meal) => (
-              <View key={meal} className="rounded-sm bg-grey-02 px-1 py-0.5">
-                <Text className="text-body05 text-grey-80">{meal}</Text>
-              </View>
-            ))}
+            {lunch.length > 0 ? (
+              lunch.map((meal) => (
+                <View key={meal} className="rounded-sm bg-grey-02 px-1 py-0.5">
+                  <Text className="text-body05 text-grey-80">{meal}</Text>
+                </View>
+              ))
+            ) : (
+              <Text className="text-body05 text-grey-40">식단 정보가 없습니다.</Text>
+            )}
           </View>
         </View>
 
@@ -156,11 +163,15 @@ export default function MealScreen() {
             <Text className="ms-2 text-caption02 text-grey-60">(17:00 - 18:30)</Text>
           </View>
           <View className="flex-row flex-wrap gap-2">
-            {DUMMY_MENU.dinner.map((meal) => (
-              <View key={meal} className="rounded-sm bg-grey-02 px-1 py-0.5">
-                <Text className="text-body05 text-grey-80">{meal}</Text>
-              </View>
-            ))}
+            {dinner.length > 0 ? (
+              dinner.map((meal) => (
+                <View key={meal} className="rounded-sm bg-grey-02 px-1 py-0.5">
+                  <Text className="text-body05 text-grey-80">{meal}</Text>
+                </View>
+              ))
+            ) : (
+              <Text className="text-body05 text-grey-40">식단 정보가 없습니다.</Text>
+            )}
           </View>
         </View>
 
@@ -178,9 +189,3 @@ export default function MealScreen() {
     </ScrollView>
   );
 }
-
-const DUMMY_MENU = {
-  breakfast: ['현미밥', '된장찌개', '이름긴메뉴이름', '계란후라이', '깍두기'],
-  lunch: ['잡곡밥', '김치찌개', '제육볶음', '콩나물무침', '깍두기', '코다리무침'],
-  dinner: ['흰쌀밥', '미역국', '불고기', '나물무침', '배추김치', '콰트로치즈와퍼주니어'],
-};
