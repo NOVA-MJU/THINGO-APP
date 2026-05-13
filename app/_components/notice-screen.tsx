@@ -1,6 +1,8 @@
 import { CategoryFilter } from '@/components/ui/category-filter';
 import { Pagination } from '@/components/ui/pagination';
 import { Text } from '@/components/ui/text';
+import { parseUTCDate } from '@/lib/utils';
+import { format } from 'date-fns';
 import * as React from 'react';
 import { ActivityIndicator, Linking, ScrollView, TouchableOpacity, View } from 'react-native';
 import { Footer } from '@/components/footer';
@@ -15,14 +17,6 @@ const CATEGORIES: { label: string; value: NoticeCategory }[] = [
   { label: '학생활동', value: 'activity' },
   { label: '학칙개정', value: 'rule' },
 ];
-
-function formatDate(dateStr: string): string {
-  const date = new Date(dateStr + 'Z');
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}.${month}.${day}`;
-}
 
 export default function NoticeScreen() {
   const scrollRef = React.useRef<ScrollView>(null);
@@ -77,7 +71,9 @@ export default function NoticeScreen() {
                 {CATEGORIES.find((c) => c.value === notice.category)?.label ?? notice.category}
               </Text>
               <Text className="text-body05 text-black">{notice.title}</Text>
-              <Text className="text-caption04 text-grey-30">{formatDate(notice.date)}</Text>
+              <Text className="text-caption04 text-grey-30">
+                {format(parseUTCDate(notice.date), 'yyyy.MM.dd')}
+              </Text>
             </View>
           </TouchableOpacity>
         ))}

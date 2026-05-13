@@ -10,7 +10,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Pagination } from '@/components/ui/pagination';
 import { Text } from '@/components/ui/text';
-import { cn } from '@/lib/utils';
+import { cn, parseUTCDate } from '@/lib/utils';
+import { format } from 'date-fns';
 import * as React from 'react';
 import {
   ActivityIndicator,
@@ -29,15 +30,6 @@ const CATEGORY_LABEL: Record<string, string> = {
   activity: '학생활동',
   rule: '학칙개정',
 };
-
-// ISO 날짜 문자열을 'YYYY.MM.DD' 형식으로 변환
-function formatDate(dateStr: string): string {
-  const date = new Date(dateStr + 'Z');
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}.${month}.${day}`;
-}
 
 // 선택된 날짜를 'MM.DD (요일)' 형식으로 변환
 function formatSelectedDate(dateStr: string): string {
@@ -428,7 +420,7 @@ export default function AcademicCalendarScreen() {
                     {item.title}
                   </Text>
                   <Text className="text-caption04 text-grey-30" numberOfLines={1}>
-                    {formatDate(item.date)}
+                    {format(parseUTCDate(item.date), 'yyyy.MM.dd')}
                   </Text>
                 </View>
               </TouchableOpacity>
