@@ -101,3 +101,9 @@ chore. 패키지 의존성 업데이트
 | 설정·루트 스크립트       | 도구 관례 따름                    | `babel.config.js`, `metro.config.js`, `tailwind.config.js`                    |
 
 - 파일명에는 **공백·한글**을 쓰지 않는다.
+
+## 제작지원
+
+<a href="https://github.com/NOVA-MJU/THINGO-APP/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=NOVA-MJU/THINGO-APP" />
+</a>
