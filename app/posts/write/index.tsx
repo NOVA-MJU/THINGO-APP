@@ -246,7 +246,7 @@ function WriteForm({
     }
 
     previousKeyboardStateRef.current = isKeyboardUp;
-  }, [isKeyboardUp]);
+  }, [editorRef, isKeyboardUp]);
 
   return (
     <View className="flex-1 bg-white">
