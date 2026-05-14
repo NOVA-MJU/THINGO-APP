@@ -46,7 +46,7 @@ function buildCalendarGrid(year: number, month: number): CalendarCell[][] {
   return weeks;
 }
 
-export function AcademicCalendarScreen() {
+export default function AcademicCalendarScreen() {
   const insets = useSafeAreaInsets();
   const [currentTab, setCurrentTab] = React.useState('캘린더');
 
