@@ -1,5 +1,5 @@
 import { Text } from '@/components/ui/text';
-import clsx from 'clsx';
+import { clsx } from 'clsx';
 import { Pressable, ScrollView, View } from 'react-native';
 
 type Props = {

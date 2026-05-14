@@ -19,7 +19,8 @@ function Input({ className, ref, clearable, onChangeText, value, ...props }: Inp
         value={value}
         onChangeText={onChangeText}
         className={cn(
-          'text-body05 text-black placeholder:text-grey-20',
+          'text-body05 text-black',
+          'placeholder:text-grey-20',
           'flex h-10 w-full min-w-0 flex-row items-center rounded-[8px] border border-grey-10 px-3 py-0',
           props.editable === false &&
             cn(
@@ -47,7 +48,8 @@ function Input({ className, ref, clearable, onChangeText, value, ...props }: Inp
         value={value}
         onChangeText={onChangeText}
         className={cn(
-          'text-body05 text-black placeholder:text-grey-20',
+          'text-body05 text-black',
+          'placeholder:text-grey-20',
           'flex h-10 w-full min-w-0 flex-row items-center rounded-[8px] border border-grey-10 py-0',
           showClear ? 'pl-3 pr-9' : 'px-3',
           props.editable === false &&

@@ -1,5 +1,5 @@
 import { HamburgerIcon, ThingoLogoLarge } from '@/components/icons';
-import { Slot, Stack, useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
