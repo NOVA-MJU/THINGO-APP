@@ -14,6 +14,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
+    "@10play/tentap-editor": "^1.0.1",
     "@react-navigation/native": "^7.0.0",
     "@rn-primitives/checkbox": "^1.4.0",
     "@rn-primitives/dialog": "^1.4.0",
