@@ -1,10 +1,6 @@
 import { Footer } from '@/components/footer';
 import { ArrowLeftIcon, InfoOutlineIcon } from '@/components/icons';
-import {
-  PostEditor,
-  type PostEditorHandle,
-  type PostEditorValue,
-} from '@/components/post-editor';
+import { PostEditor, type PostEditorHandle, type PostEditorValue } from '@/components/post-editor';
 import { useKeyboard } from '@10play/tentap-editor';
 import { Button } from '@/components/ui/button';
 import {
