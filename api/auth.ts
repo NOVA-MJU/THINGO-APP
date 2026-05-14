@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 import { client } from './client';
-import { setAccessToken, setRefreshToken } from './token';
+import { setAccessToken, setRefreshToken, setSessionFlag } from './token';
 
 const isWeb = Platform.OS === 'web';
 
@@ -11,19 +11,22 @@ export type LoginRequest = {
 
 export type LoginResponse = {
   accessToken: string;
+  refreshToken?: string; // mobile only; web receives this as HttpOnly Cookie
 };
 
 export async function login(body: LoginRequest): Promise<LoginResponse> {
   const { data } = await client.post<LoginResponse>('/auth/login', body);
 
   await setAccessToken(data.accessToken);
+  setSessionFlag();
 
-  // mobile: refreshToken은 응답 헤더나 별도 필드로 올 수 있음
-  // web: HttpOnly 쿠키로 자동 처리됨
-  if (!isWeb) {
-    const refreshToken = (data as unknown as Record<string, string>).refreshToken;
-    if (refreshToken) await setRefreshToken(refreshToken);
+  if (!isWeb && data.refreshToken) {
+    await setRefreshToken(data.refreshToken);
   }
 
   return data;
+}
+
+export async function logout(): Promise<void> {
+  await client.post('/auth/logout');
 }

@@ -3,6 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 
 const ACCESS_TOKEN_KEY = 'thingo.accessToken';
 const REFRESH_TOKEN_KEY = 'thingo.refreshToken';
+const HAS_SESSION_KEY = 'thingo.hasSession';
 
 const isWeb = Platform.OS === 'web';
 
@@ -32,9 +33,21 @@ export async function setRefreshToken(token: string): Promise<void> {
   if (!isWeb) await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, token);
 }
 
+export function setSessionFlag(): void {
+  if (isWeb) localStorage.setItem(HAS_SESSION_KEY, '1');
+}
+
+// 저장된 세션이 있는지 판단 - web은 localStorage에서 비트 플래그 확인, mobile은 SecureStore에서 refreshToken 존재 여부 확인
+export async function hasSessionFlag(): Promise<boolean> {
+  if (isWeb) return localStorage.getItem(HAS_SESSION_KEY) === '1';
+  return (await getRefreshToken()) !== null;
+}
+
 export async function clearTokens(): Promise<void> {
   memoryAccessToken = null;
-  if (!isWeb) {
+  if (isWeb) {
+    localStorage.removeItem(HAS_SESSION_KEY);
+  } else {
     await Promise.all([
       SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY),
       SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY),

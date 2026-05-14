@@ -1,12 +1,6 @@
 import axios, { AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
 import { Platform } from 'react-native';
-import {
-  clearTokens,
-  getAccessToken,
-  getRefreshToken,
-  setAccessToken,
-  setRefreshToken,
-} from './token';
+import { clearTokens, getAccessToken, getRefreshToken, setAccessToken } from './token';
 
 const BASE_URL = 'https://api.thingo.kr/api/v1';
 const isWeb = Platform.OS === 'web';
@@ -37,7 +31,7 @@ const flushQueue = (error: unknown, newToken?: string) => {
 export const client: AxiosInstance = axios.create({
   baseURL: BASE_URL,
   timeout: 10000,
-  withCredentials: true, // web 쿠키 자동 첨부
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
     'X-Client-Type': CLIENT_TYPE,
@@ -54,39 +48,27 @@ client.interceptors.request.use(async (config) => {
   return config;
 });
 
-// mobile: Authorization 헤더로 refreshToken 전송 / web: 쿠키 자동 첨부
+// access token 재발급
 const reissue = async (): Promise<string> => {
+  let body: Record<string, string> = {};
+
+  // mobile은 body에 refreshToken 첨부, web은 HttpOnly Cookie로 자동 처리
   if (!isWeb) {
     const refreshToken = await getRefreshToken();
-    if (!refreshToken) throw new Error('no refresh token');
-
-    const { data } = await client.post(
-      '/auth/reissue/mobile',
-      {},
-      {
-        headers: { Authorization: `Bearer ${refreshToken}` },
-      }
-    );
-
-    const newAccessToken = data?.data?.accessToken ?? data?.accessToken;
-    const newRefreshToken = data?.data?.refreshToken ?? data?.refreshToken;
-    if (!newAccessToken) throw new Error('no access token in reissue response');
-
-    await setAccessToken(newAccessToken);
-    if (newRefreshToken) await setRefreshToken(newRefreshToken);
-    return newAccessToken;
-  } else {
-    const { data } = await client.post('/auth/reissue/web', {});
-
-    const newAccessToken = data?.data?.accessToken ?? data?.accessToken;
-    if (!newAccessToken) throw new Error('no access token in reissue response');
-
-    await setAccessToken(newAccessToken);
-    return newAccessToken;
+    if (!refreshToken) throw new Error('no_refresh_token');
+    body = { refreshToken };
   }
+
+  const { data } = await client.post('/auth/reissue', body);
+
+  const newAccessToken = data?.data?.accessToken ?? data?.accessToken;
+  if (!newAccessToken) throw new Error('no access token in reissue response');
+
+  await setAccessToken(newAccessToken);
+  return newAccessToken;
 };
 
-// 401 응답 시 reissue 후 원래 요청 재시도, 재발급 중 요청은 큐에서 대기
+// 401/403 응답 시 reissue 후 원래 요청 재시도, 재발급 중 요청은 큐에서 대기
 client.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
@@ -113,7 +95,7 @@ client.interceptors.response.use(
       const newToken = await reissue();
       flushQueue(null, newToken);
       original.headers.Authorization = `Bearer ${newToken}`;
-      return client(original);
+      return await client(original);
     } catch (err) {
       await clearTokens();
       flushQueue(err);
