@@ -7,5 +7,7 @@ interface Props {
 }
 
 export function YoutubeEmbed({ videoId, height }: Props) {
-  return <YoutubePlayer height={height} videoId={videoId} />;
+  return (
+    <YoutubePlayer height={height} videoId={videoId} webViewProps={{ scrollEnabled: false }} />
+  );
 }
