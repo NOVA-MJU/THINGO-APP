@@ -2,11 +2,44 @@ import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
+import { login } from '@/api/auth';
+import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'expo-router';
-import { ScrollView, TouchableOpacity, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { user, setUser } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isPending, setIsPending] = useState(false);
+  const passwordRef = useRef<TextInput>(null);
+
+  // 로그인 여부 체크
+  useEffect(() => {
+    if (user) {
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/');
+      }
+    }
+  }, [user, router]);
+
+  // 로그인 실행
+  const handleLogin = async () => {
+    setIsPending(true);
+    try {
+      const data = await login({ email, password });
+      setUser({ accessToken: data.accessToken });
+    } catch {
+      setPassword('');
+      Alert.alert('로그인 실패', '이메일 또는 비밀번호를 확인해주세요.');
+    } finally {
+      setIsPending(false);
+    }
+  };
 
   return (
     <ScrollView className="bg-grey-02" contentContainerClassName="flex-grow">
@@ -15,11 +48,37 @@ export default function LoginScreen() {
         <Text className="text-title01 text-black">로그인</Text>
         <View className="rounded-xl bg-white p-6">
           <Text className="text-body04 text-black">이메일</Text>
-          <Input className="mt-2" placeholder="@mju.ac.kr" />
+          <Input
+            className="mt-2"
+            placeholder="@mju.ac.kr"
+            value={email}
+            onChangeText={setEmail}
+            clearable
+            keyboardType="email-address"
+            autoCapitalize="none"
+            returnKeyType="next"
+            onSubmitEditing={() => passwordRef.current?.focus()}
+            submitBehavior="submit"
+          />
           <Text className="mt-5 text-body04 text-black">비밀번호</Text>
-          <Input className="mt-2" placeholder="비밀번호를 입력하세요" />
-          <Button className="mt-7" variant="secondary">
-            <Text>로그인</Text>
+          <Input
+            ref={passwordRef}
+            className="mt-2"
+            placeholder="비밀번호를 입력하세요"
+            value={password}
+            onChangeText={setPassword}
+            clearable
+            secureTextEntry
+            returnKeyType="done"
+            onSubmitEditing={handleLogin}
+          />
+          <Button
+            className="mt-7"
+            variant={email && password ? 'default' : 'secondary'}
+            onPress={handleLogin}
+            disabled={isPending}
+          >
+            <Text>{isPending ? '로그인 중...' : '로그인'}</Text>
           </Button>
           <Button className="mt-2" variant="muted" onPress={() => router.push('/signup')}>
             <Text>회원가입</Text>
