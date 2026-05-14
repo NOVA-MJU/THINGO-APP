@@ -2,8 +2,6 @@ import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
 import {
-  Animated,
-  Easing,
   Image,
   Linking,
   Modal,
@@ -13,6 +11,13 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
+import { runOnJS } from 'react-native-worklets';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ExternalLinkIcon, LoginIcon, XThinIcon } from '@/components/icons';
 import { Text } from '@/components/ui/text';
@@ -20,17 +25,11 @@ import { cn } from '@/lib/utils';
 
 const SIDEBAR_WIDTH = 249;
 
-interface SidebarProps {
-  visible: boolean;
-  onClose: () => void;
-  onNavigate?: (tabIndex: number) => void;
-}
-
 const NAV_SECTIONS = [
   {
     title: 'Information',
     items: [
-      { label: '명지도', href: null, tabIndex: 3 },
+      { label: '명지도', href: '/maps' },
       { label: '공지사항', href: null, tabIndex: 4 },
       { label: '학사일정', href: null, tabIndex: 5 },
       { label: '학식', href: null, tabIndex: 1 },
@@ -54,54 +53,46 @@ const NAV_SECTIONS = [
   },
 ];
 
+interface SidebarProps {
+  visible: boolean;
+  onClose: () => void;
+  onNavigate?: (tabIndex: number) => void;
+}
+
 export default function Sidebar({ visible, onClose, onNavigate }: SidebarProps) {
   const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();
   const router = useRouter();
 
-  const slideAnim = React.useRef(new Animated.Value(SIDEBAR_WIDTH)).current;
-  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const slideAnim = useSharedValue(SIDEBAR_WIDTH);
+  const fadeAnim = useSharedValue(0);
   const [modalVisible, setModalVisible] = React.useState(visible);
 
-  // 열림 애니메이션
+  const slideStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: slideAnim.value }],
+  }));
+
+  const fadeStyle = useAnimatedStyle(() => ({
+    opacity: fadeAnim.value,
+  }));
+
   React.useEffect(() => {
     if (visible) {
       setModalVisible(true);
-      Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 280,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 280,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ]).start();
+      slideAnim.value = withTiming(0, { duration: 280, easing: Easing.out(Easing.cubic) });
+      fadeAnim.value = withTiming(1, { duration: 280, easing: Easing.out(Easing.cubic) });
     }
   }, [visible, slideAnim, fadeAnim]);
 
-  // 닫기 애니메이션
   function handleClose() {
-    Animated.parallel([
-      Animated.timing(slideAnim, {
-        toValue: SIDEBAR_WIDTH,
-        duration: 220,
-        easing: Easing.in(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 220,
-        easing: Easing.in(Easing.cubic),
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      setModalVisible(false);
-      onClose();
+    const config = { duration: 220, easing: Easing.in(Easing.cubic) };
+    slideAnim.value = withTiming(SIDEBAR_WIDTH, config);
+    fadeAnim.value = withTiming(0, config, (finished) => {
+      'worklet';
+      if (finished) {
+        runOnJS(setModalVisible)(false);
+        runOnJS(onClose)();
+      }
     });
   }
 
@@ -121,19 +112,13 @@ export default function Sidebar({ visible, onClose, onNavigate }: SidebarProps) 
     <Modal transparent visible={modalVisible} animationType="none" onRequestClose={handleClose}>
       {/* background 오버레이 */}
       <Animated.View
-        style={{ flex: 1, opacity: fadeAnim, paddingTop: Platform.OS === 'ios' ? insets.top : 0 }}
+        style={[{ flex: 1, paddingTop: Platform.OS === 'ios' ? insets.top : 0 }, fadeStyle]}
       >
         <Pressable className="flex-1 bg-bg" onPress={handleClose} />
       </Animated.View>
 
       {/* 사이드바 패널 */}
-      <Animated.View
-        style={{
-          position: 'absolute',
-          right: 0,
-          transform: [{ translateX: slideAnim }],
-        }}
-      >
+      <Animated.View style={[{ position: 'absolute', right: 0 }, slideStyle]}>
         <View
           style={{ paddingTop: Platform.OS === 'ios' ? insets.top + 16 : 16, gap: 8 }}
           className="h-screen w-[249px] bg-white"

@@ -7,6 +7,9 @@ settings:
 importers:
   .:
     dependencies:
+      '@mj-studio/react-native-naver-map':
+        specifier: ^2.8.0
+        version: 2.8.0(react-native@0.83.4(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.2.0))(react@19.2.0)
       '@react-navigation/native':
         specifier: ^7.0.0
         version: 7.2.2(react-native@0.83.4(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.2.0))(react@19.2.0)
@@ -46,6 +49,9 @@ importers:
       expo:
         specifier: ~55.0.9
         version: 55.0.15(@babel/core@7.29.0)(@expo/dom-webview@55.0.5)(@expo/metro-runtime@55.0.9)(expo-router@55.0.12)(react-dom@19.2.0(react@19.2.0))(react-native-webview@13.16.0(react-native@0.83.4(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.2.0))(react@19.2.0))(react-native-worklets@0.7.2(@babel/core@7.29.0)(react-native@0.83.4(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.2.0))(react@19.2.0))(react-native@0.83.4(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
+      expo-build-properties:
+        specifier: ^55.0.14
+        version: 55.0.14(expo@55.0.15)
       expo-constants:
         specifier: ~55.0.9
         version: 55.0.14(expo@55.0.15)(react-native@0.83.4(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.2.0))(typescript@5.9.3)
@@ -115,6 +121,9 @@ importers:
       react-native-youtube-iframe:
         specifier: ^2.4.1
         version: 2.4.1(react-native-webview@13.16.0(react-native@0.83.4(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.2.0))(react@19.2.0))(react-native@0.83.4(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.2.0))(react@19.2.0)
+      react-naver-maps:
+        specifier: ^0.2.0
+        version: 0.2.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       tailwind-merge:
         specifier: ^3.5.0
         version: 3.5.0
@@ -1267,6 +1276,12 @@ packages:
         integrity: sha512-l9KHVjTo6MvoeyvwNr6AjckGJm8NIcqZ3QSAh51cWozXW9v2AUjyCyqYtFtyntLWRZ0x/ByYJishpQo4ZQq45Q==,
       }
 
+  '@expo/schema-utils@55.0.4':
+    resolution:
+      {
+        integrity: sha512-65IdeeE8dAZR3n3J5Eq7LYiQ8BFGeEYCWPBCzycvafL7PkskbCyIclTQarRwf/HXFoRvezKCjaLwy/8v9Prk6g==,
+      }
+
   '@expo/sdk-runtime-versions@1.0.0':
     resolution:
       {
@@ -1470,6 +1485,15 @@ packages:
       {
         integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==,
       }
+
+  '@mj-studio/react-native-naver-map@2.8.0':
+    resolution:
+      {
+        integrity: sha512-f1EeQoGyZX2CChcZVMwYcH2jN6fevM58p+neBknhsfFqFtCGCfrC04Sqehi7Ri43pK00Z5/BmyNS1OosmIvvIQ==,
+      }
+    peerDependencies:
+      react: '*'
+      react-native: '*'
 
   '@napi-rs/wasm-runtime@0.2.12':
     resolution:
@@ -4001,6 +4025,14 @@ packages:
       expo: '*'
       react: '*'
       react-native: '*'
+
+  expo-build-properties@55.0.14:
+    resolution:
+      {
+        integrity: sha512-5wopuLXlzFpDnCfsIjgAcj4yKnVTYg3XYGnYV5Hqi7u6jJipLG4fwtUqxVIFqBj7vEHXjd4zYCyXjp39AtAD7w==,
+      }
+    peerDependencies:
+      expo: '*'
 
   expo-constants@55.0.14:
     resolution:
@@ -6689,6 +6721,15 @@ packages:
       '@types/react':
         optional: true
 
+  react-naver-maps@0.2.0:
+    resolution:
+      {
+        integrity: sha512-kESvpuycZ4StJU5u0XRfq3rSjJ8zxjStMz/3qw05ul+pGxI7JLPPiMQTGrG7/ea5YXUivXT9Y7una0EnVzz6OQ==,
+      }
+    peerDependencies:
+      react: ^19.0.0
+      react-dom: ^19.0.0
+
   react-refresh@0.14.2:
     resolution:
       {
@@ -8940,6 +8981,8 @@ snapshots:
 
   '@expo/schema-utils@55.0.3': {}
 
+  '@expo/schema-utils@55.0.4': {}
+
   '@expo/sdk-runtime-versions@1.0.0': {}
 
   '@expo/spawn-async@1.7.2':
@@ -9083,6 +9126,12 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  '@mj-studio/react-native-naver-map@2.8.0(react-native@0.83.4(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.2.0))(react@19.2.0)':
+    dependencies:
+      object-hash: 3.0.0
+      react: 19.2.0
+      react-native: 0.83.4(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.2.0)
 
   '@napi-rs/wasm-runtime@0.2.12':
     dependencies:
@@ -10946,6 +10995,13 @@ snapshots:
       - supports-color
       - typescript
 
+  expo-build-properties@55.0.14(expo@55.0.15):
+    dependencies:
+      '@expo/schema-utils': 55.0.4
+      expo: 55.0.15(@babel/core@7.29.0)(@expo/dom-webview@55.0.5)(@expo/metro-runtime@55.0.9)(expo-router@55.0.12)(react-dom@19.2.0(react@19.2.0))(react-native-webview@13.16.0(react-native@0.83.4(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.2.0))(react@19.2.0))(react-native-worklets@0.7.2(@babel/core@7.29.0)(react-native@0.83.4(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.2.0))(react@19.2.0))(react-native@0.83.4(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
+      resolve-from: 5.0.0
+      semver: 7.7.4
+
   expo-constants@55.0.14(expo@55.0.15)(react-native@0.83.4(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.2.0))(typescript@5.9.3):
     dependencies:
       '@expo/config': 55.0.15(typescript@5.9.3)
@@ -12799,6 +12855,11 @@ snapshots:
       - bufferutil
       - supports-color
       - utf-8-validate
+
+  react-naver-maps@0.2.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0):
+    dependencies:
+      react: 19.2.0
+      react-dom: 19.2.0(react@19.2.0)
 
   react-refresh@0.14.2: {}
 
