@@ -1,5 +1,5 @@
 import { Text } from '@/components/ui/text';
-import clsx from 'clsx';
+import { clsx } from 'clsx';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import * as React from 'react';
 import { Pressable, View } from 'react-native';
@@ -29,7 +29,8 @@ export function Pagination({ currentPage, totalPages, onPageChange, className }:
       <Pressable
         className="flex-row items-center"
         onPress={() => hasPrev && onPageChange(currentPage - 1)}
-        disabled={!hasPrev}>
+        disabled={!hasPrev}
+      >
         <ChevronLeft className={clsx(hasPrev ? 'text-grey-30' : 'text-grey-20')} />
         <Text className={clsx('text-caption02', hasPrev ? 'text-grey-30' : 'text-grey-20')}>
           이전
@@ -41,13 +42,14 @@ export function Pagination({ currentPage, totalPages, onPageChange, className }:
           <Pressable
             key={page}
             className="h-6 w-6 items-center justify-center"
-            onPress={() => onPageChange(page)}>
+            onPress={() => onPageChange(page)}
+          >
             {page === currentPage ? (
-              <View className="bg-mju-primary h-5 w-5 items-center justify-center rounded-full">
+              <View className="h-5 w-5 items-center justify-center rounded-full bg-mju-primary">
                 <Text className="text-caption01 text-white">{page}</Text>
               </View>
             ) : (
-              <View className="bg-grey-30 h-1.5 w-1.5 rounded-full" />
+              <View className="h-1.5 w-1.5 rounded-full bg-grey-30" />
             )}
           </Pressable>
         ))}
@@ -56,7 +58,8 @@ export function Pagination({ currentPage, totalPages, onPageChange, className }:
       <Pressable
         className="flex-row items-center"
         onPress={() => hasNext && onPageChange(currentPage + 1)}
-        disabled={!hasNext}>
+        disabled={!hasNext}
+      >
         <Text className={clsx('text-caption02', hasNext ? 'text-grey-30' : 'text-grey-20')}>
           다음
         </Text>

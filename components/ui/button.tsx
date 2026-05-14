@@ -17,10 +17,11 @@ const buttonVariants = cva(
         default: cn('bg-blue-35', Platform.select({ web: 'hover:opacity-80' })),
         secondary: cn('bg-grey-40', Platform.select({ web: 'hover:opacity-80' })),
         muted: cn('bg-grey-02', Platform.select({ web: 'hover:opacity-80' })),
+        subtle: cn('bg-grey-20', Platform.select({ web: 'hover:opacity-80' })),
         destructive: cn(
           'bg-error',
           Platform.select({
-            web: 'focus-visible:ring-error/40 hover:opacity-80',
+            web: 'hover:opacity-80 focus-visible:ring-error/40',
           })
         ),
         outline: cn(
@@ -44,6 +45,7 @@ const buttonTextVariants = cva(
         default: 'text-white',
         secondary: 'text-white',
         muted: 'text-grey-40',
+        subtle: 'text-white',
         destructive: 'text-white',
         outline: cn('', Platform.select({ web: 'group-hover:text-accent-foreground' })),
         ghost: '',

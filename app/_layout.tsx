@@ -1,5 +1,6 @@
 import '@/global.css';
 
+import { AuthProvider } from '@/context/auth-context';
 import { NAV_THEME } from '@/lib/theme';
 import { ThemeProvider } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -18,11 +19,13 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider value={NAV_THEME}>
-        <StatusBar style="dark" />
-        <Stack screenOptions={{ headerShown: false }} />
-        <PortalHost />
-      </ThemeProvider>
+      <AuthProvider>
+        <ThemeProvider value={NAV_THEME}>
+          <StatusBar style="dark" />
+          <Stack screenOptions={{ headerShown: false }} />
+          <PortalHost />
+        </ThemeProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

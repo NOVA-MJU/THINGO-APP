@@ -64,7 +64,8 @@ function BoardTabButton({ label, isActive, side, onPress }: BoardTabButtonProps)
         isActive ? 'border-t bg-white' : 'border-b bg-grey-02',
         side === 'left' && (isActive ? 'rounded-tr-sm' : 'border-r'),
         side === 'right' && (isActive ? 'rounded-tl-sm' : '')
-      )}>
+      )}
+    >
       <Text className={cn(isActive ? 'text-body04 text-black' : 'text-body05 text-grey-40')}>
         {label}
       </Text>
@@ -89,7 +90,8 @@ function BoardCard({ item, onPress }: BoardCardProps) {
   return (
     <Pressable
       onPress={onPress}
-      className={cn('border-b border-grey-10 px-4 pb-2 pt-2', item.isPressed && 'bg-blue-05')}>
+      className={cn('border-b border-grey-10 px-4 pb-2 pt-2', item.isPressed && 'bg-blue-05')}
+    >
       <View className="gap-2">
         <View className="gap-1.5">
           <View className="flex-row items-center gap-1.5">
@@ -134,7 +136,8 @@ function WriteButton({ bottomOffset, onPress }: { bottomOffset: number; onPress:
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.15,
         shadowRadius: 4,
-      }}>
+      }}
+    >
       <View className="items-center justify-center">
         <ClipboardPen size={24} color="#E8F1FF" strokeWidth={2} />
         <Text className="text-[12px] text-caption02 leading-[18px] text-[#E8F1FF]">글남기기</Text>
@@ -185,7 +188,8 @@ function NoticeBoardScreen() {
         className="flex-1 bg-white"
         nestedScrollEnabled
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: bottom + 20 }}>
+        contentContainerStyle={{ paddingBottom: bottom + 20 }}
+      >
         <View className="bg-white pt-5">
           <View className="bg-white">
             {pagedItems.map((item) => (

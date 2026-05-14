@@ -15,7 +15,14 @@ export default function InstagramIcon({ size = 24, className }: InstagramIconPro
   return (
     <StyledSvg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
       <Defs>
-        <LinearGradient id="paint0_linear_2067_970" x1="4.10526" y1="0" x2="26.5264" y2="24" gradientUnits="userSpaceOnUse">
+        <LinearGradient
+          id="paint0_linear_2067_970"
+          x1="4.10526"
+          y1="0"
+          x2="26.5264"
+          y2="24"
+          gradientUnits="userSpaceOnUse"
+        >
           <Stop stopColor="#FF7A00" />
           <Stop offset="0.427083" stopColor="#FA00FF" />
           <Stop offset="1" stopColor="#DBFF00" />
