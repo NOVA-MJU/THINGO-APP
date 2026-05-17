@@ -21,7 +21,7 @@ import { showAlert } from '@/lib/alert';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { useState } from 'react';
 import { Image, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
-import DepartmentSelectModal from './_components/department-select-modal';
+import * as DropdownMenu from 'zeego/dropdown-menu';
 
 export default function SignupScreen() {
   const router = useRouter();
@@ -45,8 +45,6 @@ export default function SignupScreen() {
   const [studentNumberLoading, setStudentNumberLoading] = useState(false);
   const [selectedCollege, setSelectedCollege] = useState<string | null>(null);
   const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null);
-  const [collegeModalOpen, setCollegeModalOpen] = useState(false);
-  const [departmentModalOpen, setDepartmentModalOpen] = useState(false);
   const [signupLoading, setSignupLoading] = useState(false);
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
   const { isLoading: isUploadingImage, pickAndUpload } = useImageUpload('PROFILE_IMAGE');
@@ -333,36 +331,60 @@ export default function SignupScreen() {
 
             {/* 단과대 */}
             <Text className="mt-6 text-body04 text-grey-80">단과대</Text>
-            <TouchableOpacity onPress={() => setCollegeModalOpen(true)}>
-              <View className="mt-2 flex-row items-center rounded-md border border-grey-10 px-3 py-[9.5px]">
-                <Text
-                  className={`flex-1 text-body06 ${collegeLabel ? 'text-grey-80' : 'text-grey-20'}`}
-                  numberOfLines={1}
-                >
-                  {collegeLabel ?? '단과대학을 선택해주세요'}
-                </Text>
-                <ArrowDownIcon size={24} className="text-grey-30" />
-              </View>
-            </TouchableOpacity>
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger>
+                <View className="mt-2 flex-row items-center rounded-md border border-grey-10 px-3 py-[9.5px]">
+                  <Text
+                    className={`flex-1 text-body06 ${collegeLabel ? 'text-grey-80' : 'text-grey-20'}`}
+                    numberOfLines={1}
+                  >
+                    {collegeLabel ?? '단과대학을 선택해주세요'}
+                  </Text>
+                  <ArrowDownIcon size={24} className="text-grey-30" />
+                </View>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Content>
+                {COLLEGE_OPTIONS.map((option) => (
+                  <DropdownMenu.Item
+                    key={option.value}
+                    onSelect={() => {
+                      setSelectedCollege(option.value);
+                      setSelectedDepartment(null);
+                    }}
+                  >
+                    <DropdownMenu.ItemTitle>{option.label}</DropdownMenu.ItemTitle>
+                  </DropdownMenu.Item>
+                ))}
+              </DropdownMenu.Content>
+            </DropdownMenu.Root>
 
             {/* 학과 */}
             <Text className="mt-6 text-body04 text-grey-80">학과</Text>
-            <TouchableOpacity
-              onPress={() => setDepartmentModalOpen(true)}
-              disabled={!selectedCollege}
-            >
-              <View
-                className={`mt-2 flex-row items-center rounded-md border border-grey-10 px-3 py-[9.5px] ${!selectedCollege ? 'opacity-40' : ''}`}
-              >
-                <Text
-                  className={`flex-1 text-body06 ${departmentLabel ? 'text-grey-80' : 'text-grey-20'}`}
-                  numberOfLines={1}
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger disabled={!selectedCollege}>
+                <View
+                  className={`mt-2 flex-row items-center rounded-md border border-grey-10 px-3 py-[9.5px] ${!selectedCollege ? 'opacity-40' : ''}`}
                 >
-                  {departmentLabel ?? '학과를 선택해주세요'}
-                </Text>
-                <ArrowDownIcon size={24} className="text-grey-30" />
-              </View>
-            </TouchableOpacity>
+                  <Text
+                    className={`flex-1 text-body06 ${departmentLabel ? 'text-grey-80' : 'text-grey-20'}`}
+                    numberOfLines={1}
+                  >
+                    {departmentLabel ?? '학과를 선택해주세요'}
+                  </Text>
+                  <ArrowDownIcon size={24} className="text-grey-30" />
+                </View>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Content>
+                {departmentOptions.map((option) => (
+                  <DropdownMenu.Item
+                    key={option.value}
+                    onSelect={() => setSelectedDepartment(option.value)}
+                  >
+                    <DropdownMenu.ItemTitle>{option.label}</DropdownMenu.ItemTitle>
+                  </DropdownMenu.Item>
+                ))}
+              </DropdownMenu.Content>
+            </DropdownMenu.Root>
 
             {/* 학번 */}
             <Text className="mt-6 text-body04 text-grey-80">학번</Text>
@@ -456,27 +478,6 @@ export default function SignupScreen() {
         </View>
         <Footer className="mt-6" withBottomInset />
       </ScrollView>
-
-      {/* 학과 선택 모달 - ai로 작성했습니다 */}
-      <DepartmentSelectModal
-        visible={collegeModalOpen}
-        title="단과대 선택"
-        options={COLLEGE_OPTIONS}
-        selectedValue={selectedCollege}
-        onSelect={(value) => {
-          setSelectedCollege(value);
-          setSelectedDepartment(null);
-        }}
-        onClose={() => setCollegeModalOpen(false)}
-      />
-      <DepartmentSelectModal
-        visible={departmentModalOpen}
-        title="학과 선택"
-        options={departmentOptions}
-        selectedValue={selectedDepartment}
-        onSelect={setSelectedDepartment}
-        onClose={() => setDepartmentModalOpen(false)}
-      />
     </>
   );
 }

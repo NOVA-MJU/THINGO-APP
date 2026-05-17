@@ -1,11 +1,11 @@
 import * as React from 'react';
 
-interface Props {
+export interface YoutubeEmbedProps {
   videoId: string;
   height: number;
 }
 
-export function YoutubeEmbed({ videoId, height }: Props) {
+export function YoutubeEmbed({ videoId, height }: YoutubeEmbedProps) {
   return (
     <iframe
       width="100%"
