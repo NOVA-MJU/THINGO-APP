@@ -6,30 +6,22 @@ import { login } from '@/api/auth';
 import { getMemberInfo } from '@/api/members';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
-import { Alert, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
+import { showAlert } from '@/lib/alert';
+import { useRef, useState } from 'react';
+import { ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { user, setUser } = useAuth();
+  const { setUser } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isPending, setIsPending] = useState(false);
   const passwordRef = useRef<TextInput>(null);
 
-  // 이미 로그인된 경우
-  useEffect(() => {
-    if (user) {
-      if (router.canGoBack()) {
-        router.back();
-      } else {
-        router.replace('/');
-      }
-    }
-  }, [user, router]);
-
   // 로그인 실행
-  const handleLogin = async () => {
+  async function handleLogin() {
+    if (!email) return showAlert('이메일을 입력해주세요.');
+    if (!password) return showAlert('비밀번호를 입력해주세요.');
     setIsPending(true);
     try {
       await login({ email, password });
@@ -42,11 +34,21 @@ export default function LoginScreen() {
       }
     } catch {
       setPassword('');
-      Alert.alert('로그인 실패', '이메일 또는 비밀번호를 확인해주세요.');
+      showAlert('로그인 실패', '이메일 또는 비밀번호를 확인해주세요.');
     } finally {
       setIsPending(false);
     }
-  };
+  }
+
+  // 아이디 찾기
+  function onFindIdPress() {
+    showAlert('아이디 찾기', '아이디는 학교 이메일(@mju.ac.kr)입니다.');
+  }
+
+  // 비밀번호 찾기
+  function onFindPasswordPress() {
+    router.push('/forgot-password');
+  }
 
   return (
     <ScrollView className="bg-grey-02" contentContainerClassName="flex-grow">
@@ -91,13 +93,13 @@ export default function LoginScreen() {
             <Text>회원가입</Text>
           </Button>
           <View className="mt-6 flex-row items-center">
-            <TouchableOpacity className="flex-1">
+            <TouchableOpacity className="flex-1" onPress={onFindIdPress}>
               <View className="h-10 items-center justify-center">
                 <Text className="text-caption02 text-grey-20">아이디 찾기</Text>
               </View>
             </TouchableOpacity>
             <View className="h-4 w-[1px] bg-grey-20" />
-            <TouchableOpacity className="flex-1" onPress={() => router.push('/forgot-password')}>
+            <TouchableOpacity className="flex-1" onPress={onFindPasswordPress}>
               <View className="h-10 items-center justify-center">
                 <Text className="text-caption02 text-grey-20">비밀번호 찾기</Text>
               </View>

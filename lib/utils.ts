@@ -27,9 +27,25 @@ const twMerge = extendTailwindMerge({
         'text-black',
         'text-white',
         { 'text-mju': ['primary', 'secondary'] },
-        { 'text-blue': ['35', '20', '15', '10', '05'] },
+        { 'text-blue': ['35', '20', '15', '10', '05', '02'] },
         'text-error',
         { 'text-grey': ['80', '60', '40', '30', '20', '10', '02'] },
+      ],
+      'bg-color': [
+        'bg-black',
+        'bg-white',
+        { 'bg-mju': ['primary', 'secondary'] },
+        { 'bg-blue': ['35', '20', '15', '10', '05', '02'] },
+        'bg-error',
+        { 'bg-grey': ['80', '60', '40', '30', '20', '10', '02'] },
+      ],
+      'border-color': [
+        'border-black',
+        'border-white',
+        { 'border-mju': ['primary', 'secondary'] },
+        { 'border-blue': ['35', '20', '15', '10', '05', '02'] },
+        'border-error',
+        { 'border-grey': ['80', '60', '40', '30', '20', '10', '02'] },
       ],
     },
   },
@@ -37,4 +53,21 @@ const twMerge = extendTailwindMerge({
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+export function parseUTCDate(dateStr: string): Date {
+  return new Date(dateStr + 'Z');
+}
+
+export function formatTimeAgo(dateStr: string): string {
+  const date = parseUTCDate(dateStr);
+  const diffMs = Date.now() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 60) return `${diffMin}분 전`;
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour}시간 전`;
+  const diffDay = Math.floor(diffHour / 24);
+  if (diffDay === 1) return '어제';
+  if (diffDay < 7) return `${diffDay}일 전`;
+  return `${date.getMonth() + 1}.${date.getDate()}`;
 }

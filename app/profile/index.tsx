@@ -1,0 +1,113 @@
+import { getProfileStats, type ProfileStats } from '@/api/members';
+import { useAuth } from '@/context/auth-context';
+import { DEPARTMENT_OPTIONS } from '@/lib/departments';
+import { Footer } from '@/components/footer';
+import { ArrowRightIcon } from '@/components/icons';
+import { Button } from '@/components/ui/button';
+import { Text } from '@/components/ui/text';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Image, Linking, ScrollView, TouchableOpacity, View } from 'react-native';
+
+const TERMS_URL =
+  'https://verbena-ixia-597.notion.site/Thingo-33e22ef5d21e80b08328edd8519b0b4e?source=copy_link';
+const PRIVACY_URL =
+  'https://verbena-ixia-597.notion.site/Thingo-33e22ef5d21e807d9738dc14def5de24?source=copy_link';
+
+export default function ProfileScreen() {
+  const router = useRouter();
+  const { user } = useAuth();
+  const [stats, setStats] = useState<ProfileStats | null>(null);
+  const departmentLabel = DEPARTMENT_OPTIONS.flatMap((c) => c.departments).find(
+    (d) => d.value === user?.departmentName
+  )?.label;
+
+  // 프로필 통계 조회
+  useEffect(() => {
+    getProfileStats()
+      .then(setStats)
+      .catch(() => {});
+  }, []);
+
+  return (
+    <ScrollView contentContainerClassName="flex-grow">
+      <View className="flex-1 bg-grey-02">
+        <View className="px-4 pb-6 pt-5">
+          <Text className="text-title01 text-black">마이페이지</Text>
+          <Text className="mt-5 text-title03 text-grey-80">프로필</Text>
+          <View className="mt-3 gap-5 rounded-xl bg-white p-6">
+            <View className="flex-row gap-4">
+              <Image
+                source={user?.profileImageUrl ? { uri: user.profileImageUrl } : undefined}
+                className="aspect-square w-[88px] rounded-xl border border-grey-10"
+              />
+              <View className="gap-0.5">
+                <Text className="text-caption01 text-black">{user?.nickname}</Text>
+                <Text className="text-caption01 text-black">{departmentLabel}</Text>
+                <Text className="text-caption02 text-black">{user?.studentNumber}</Text>
+                <Text className="text-caption02 text-grey-60">{user?.email}</Text>
+              </View>
+            </View>
+            <Button onPress={() => router.push('/profile/edit')}>
+              <Text>프로필 수정</Text>
+            </Button>
+          </View>
+          <Text className="mt-10 text-title03 text-grey-80">나의 활동</Text>
+          <TouchableOpacity
+            className="mt-3 flex-row items-center gap-6 rounded-xl bg-white p-6"
+            onPress={() => router.push('/profile/posts')}
+          >
+            <Text className="flex-1 text-body04 text-grey-80">내가 작성한 게시물</Text>
+            <Text className="text-body04 text-grey-40">{stats?.postCount ?? '-'}개</Text>
+            <ArrowRightIcon size={20} className="text-grey-30" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="mt-3 flex-row items-center gap-6 rounded-xl bg-white p-6"
+            onPress={() => router.push('/profile/comments')}
+          >
+            <Text className="flex-1 text-body04 text-grey-80">내가 작성한 댓글</Text>
+            <Text className="text-body04 text-grey-40">{stats?.commentCount ?? '-'}개</Text>
+            <ArrowRightIcon size={20} className="text-grey-30" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="mt-3 flex-row items-center gap-6 rounded-xl bg-white p-6"
+            onPress={() => router.push('/profile/liked-posts')}
+          >
+            <Text className="flex-1 text-body04 text-grey-80">찜한 글</Text>
+            <Text className="text-body04 text-grey-40">{stats?.likedPostCount ?? '-'}개</Text>
+            <ArrowRightIcon size={20} className="text-grey-30" />
+          </TouchableOpacity>
+          <Text className="mt-10 text-title03 text-grey-80">정보</Text>
+          <View className="mt-3 rounded-xl bg-white px-5">
+            <TouchableOpacity className="flex-row items-center justify-between border-b border-grey-02 py-3">
+              <Text className="text-body06 text-black">커뮤니티 이용 규칙</Text>
+              <ArrowRightIcon size={20} className="text-grey-30" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              className="flex-row items-center justify-between border-b border-grey-02 py-3"
+              onPress={() => Linking.openURL(TERMS_URL)}
+            >
+              <Text className="text-body06 text-black">서비스 이용 약관</Text>
+              <ArrowRightIcon size={20} className="text-grey-30" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              className="flex-row items-center justify-between py-3"
+              onPress={() => Linking.openURL(PRIVACY_URL)}
+            >
+              <Text className="text-body06 text-black">개인정보 처리 방침</Text>
+              <ArrowRightIcon size={20} className="text-grey-30" />
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity
+            className="mt-5 self-start"
+            hitSlop={12}
+            onPress={() => router.push('/profile/delete-account')}
+          >
+            <Text className="text-body05 text-grey-30">탈퇴하기</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+      <Footer withBottomInset />
+    </ScrollView>
+  );
+}

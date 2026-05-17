@@ -3,6 +3,8 @@ import { Footer } from '@/components/footer';
 import { CategoryFilter } from '@/components/ui/category-filter';
 import { Pagination } from '@/components/ui/pagination';
 import { Text } from '@/components/ui/text';
+import { parseUTCDate } from '@/lib/utils';
+import { format } from 'date-fns';
 import * as React from 'react';
 import {
   ActivityIndicator,
@@ -18,14 +20,6 @@ const CATEGORIES: { label: string; value: NewsCategory }[] = [
   { label: '보도', value: 'REPORT' },
   { label: '사회', value: 'SOCIETY' },
 ];
-
-function formatDate(dateStr: string): string {
-  const date = new Date(dateStr + 'Z');
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}.${month}.${day}`;
-}
 
 export default function NewspaperScreen() {
   const scrollRef = React.useRef<ScrollView>(null);
@@ -97,7 +91,7 @@ export default function NewspaperScreen() {
                   {article.reporter}
                 </Text>
                 <Text className="text-caption04 text-grey-30" numberOfLines={1}>
-                  {formatDate(article.date)}
+                  {format(parseUTCDate(article.date), 'yyyy.MM.dd')}
                 </Text>
               </View>
             </View>

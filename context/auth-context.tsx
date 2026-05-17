@@ -23,7 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!(await hasSessionFlag())) return;
         const member = await getMemberInfo();
         setUser(member);
-      } catch (e) {
+      } catch {
         await clearTokens();
       } finally {
         setIsInitializing(false);

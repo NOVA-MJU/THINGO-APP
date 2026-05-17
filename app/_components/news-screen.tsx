@@ -3,23 +3,10 @@ import { Footer } from '@/components/footer';
 import { Pagination } from '@/components/ui/pagination';
 import { Text } from '@/components/ui/text';
 import { YoutubeEmbed } from '@/components/youtube-embed';
+import { formatTimeAgo } from '@/lib/utils';
 import { Link } from 'expo-router';
 import * as React from 'react';
 import { ActivityIndicator, ScrollView, TouchableOpacity, View } from 'react-native';
-
-function formatDate(dateStr: string): string {
-  const date = new Date(dateStr + 'Z');
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 60) return `${diffMin}분 전`;
-  const diffHour = Math.floor(diffMin / 60);
-  if (diffHour < 24) return `${diffHour}시간 전`;
-  const diffDay = Math.floor(diffHour / 24);
-  if (diffDay === 1) return '어제';
-  if (diffDay < 7) return `${diffDay}일 전`;
-  return `${date.getMonth() + 1}.${date.getDate()}`;
-}
 
 export default function NewsScreen() {
   const scrollRef = React.useRef<ScrollView>(null);
@@ -67,7 +54,7 @@ export default function NewsScreen() {
                       </Text>
                     </View>
                     <Text className="text-caption04 text-grey-30" numberOfLines={1}>
-                      {formatDate(item.publishedAt)}
+                      {formatTimeAgo(item.publishedAt)}
                     </Text>
                   </View>
                 </TouchableOpacity>

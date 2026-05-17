@@ -1,5 +1,5 @@
 import { Text } from '@/components/ui/text';
-import { clsx } from 'clsx';
+import { cn } from '@/lib/utils';
 import * as React from 'react';
 import { Linking, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -29,8 +29,8 @@ export function Footer({
   const insets = useSafeAreaInsets();
   return (
     <View
-      style={withBottomInset ? { paddingBottom: insets.bottom } : undefined}
-      className={clsx('w-full bg-blue-05 px-10 py-5', className)}
+      style={withBottomInset && { paddingBottom: insets.bottom + 20 }}
+      className={cn('w-full bg-blue-05 px-10 py-5', className)}
     >
       <View className="flex-col">
         <View className="flex-row gap-3">

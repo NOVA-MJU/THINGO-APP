@@ -9,6 +9,9 @@ import { Footer } from '@/components/footer';
 import { getNotices, type Notice, type NoticeCategory } from '@/api/notices';
 import { getNews, type NewsItem, type NewsCategory } from '@/api/news';
 import { getBroadcasts, type BroadcastItem } from '@/api/broadcast';
+import { getMenus, type DailyMenu } from '@/api/menus';
+import { getCalendar, type CalendarEvent } from '@/api/calendar';
+import { formatTimeAgo } from '@/lib/utils';
 
 const CATEGORY_MAP: Record<string, NoticeCategory> = {
   전체: 'all',
@@ -18,20 +21,6 @@ const CATEGORY_MAP: Record<string, NoticeCategory> = {
   학생활동: 'activity',
   학칙개정: 'rule',
 };
-
-function formatNoticeDate(dateStr: string): string {
-  const date = new Date(dateStr + 'Z');
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 60) return `${diffMin}분 전`;
-  const diffHour = Math.floor(diffMin / 60);
-  if (diffHour < 24) return `${diffHour}시간 전`;
-  const diffDay = Math.floor(diffHour / 24);
-  if (diffDay === 1) return '어제';
-  if (diffDay < 7) return `${diffDay}일 전`;
-  return `${date.getMonth() + 1}.${date.getDate()}`;
-}
 
 type Props = {
   onNavigate: (tabIndex: number) => void;
@@ -52,6 +41,10 @@ export default function AllScreen({ onNavigate }: Props) {
   const [newspaperLoading, setNewspaperLoading] = React.useState(false);
   const [broadcasts, setBroadcasts] = React.useState<BroadcastItem[]>([]);
   const [broadcastsLoading, setBroadcastsLoading] = React.useState(false);
+  const [menus, setMenus] = React.useState<DailyMenu[]>([]);
+  const [todayEvents, setTodayEvents] = React.useState<
+    { dateLabel: string; description: string }[]
+  >([]);
 
   React.useEffect(() => {
     setNoticesLoading(true);
@@ -77,6 +70,74 @@ export default function AllScreen({ onNavigate }: Props) {
       .finally(() => setBroadcastsLoading(false));
   }, []);
 
+  React.useEffect(() => {
+    getMenus()
+      .then((res) => setMenus(res.data))
+      .catch(() => {});
+  }, []);
+
+  React.useEffect(() => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth() + 1;
+    const dateStr = `${y}-${String(m).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const inRange = (e: CalendarEvent) => e.startDate <= dateStr && dateStr <= e.endDate;
+    const toItem = (e: CalendarEvent) => {
+      const fmt = (d: string) => d.slice(5).replace('-', '.');
+      const dateLabel =
+        e.startDate === e.endDate ? fmt(e.startDate) : `${fmt(e.startDate)} - ${fmt(e.endDate)}`;
+      return { dateLabel, description: e.description };
+    };
+    getCalendar(y, m)
+      .then((data) => {
+        setTodayEvents([
+          ...data.all.filter(inRange).map(toItem),
+          ...data.undergrad.filter(inRange).map(toItem),
+          ...data.graduate.filter(inRange).map(toItem),
+          ...data.holiday.filter(inRange).map(toItem),
+        ]);
+      })
+      .catch(() => {});
+  }, []);
+
+  // 현재 시각 기준으로 조식(~09:00) / 중식(~14:00) / 석식(14:00~) 결정 및 오늘 날짜 레이블 생성
+  const { currentMealLabel, currentMealCategory, todayLabel } = React.useMemo(() => {
+    const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
+    const now = new Date();
+    const hour = now.getHours() * 60 + now.getMinutes();
+    let label: string;
+    let category: 'BREAKFAST' | 'LUNCH' | 'DINNER';
+    if (hour < 9 * 60) {
+      label = '조식';
+      category = 'BREAKFAST';
+    } else if (hour < 14 * 60) {
+      label = '중식';
+      category = 'LUNCH';
+    } else {
+      label = '석식';
+      category = 'DINNER';
+    }
+    const m = now.getMonth() + 1;
+    const d = now.getDate();
+    const day = DAY_NAMES[now.getDay()];
+    return {
+      currentMealLabel: label,
+      currentMealCategory: category,
+      todayLabel: `${m}월 ${d}일 (${day})`,
+    };
+  }, []);
+
+  // menus 배열에서 오늘 날짜 + 현재 식사 카테고리에 해당하는 메뉴 항목 추출
+  const todayMeals = React.useMemo(() => {
+    const mm = String(new Date().getMonth() + 1).padStart(2, '0');
+    const dd = String(new Date().getDate()).padStart(2, '0');
+    const dotDate = `${mm}.${dd}`;
+    return (
+      menus.find((m) => m.date.startsWith(dotDate) && m.menuCategory === currentMealCategory)
+        ?.meals ?? []
+    );
+  }, [menus, currentMealCategory]);
+
   return (
     <ScrollView className="w-screen flex-1">
       <View className="min-h-screen gap-2 bg-grey-02">
@@ -86,9 +147,13 @@ export default function AllScreen({ onNavigate }: Props) {
             <View className="gap-2 rounded-lg border border-grey-10 p-4">
               <View className="flex-row items-center gap-1">
                 <DiningIcon className="text-grey-30" />
-                <Text className="text-body02 text-black">1월 21일 (화) 점심</Text>
+                <Text className="text-body02 text-black">
+                  {todayLabel} {currentMealLabel}
+                </Text>
               </View>
-              <Text className="text-body05 text-grey-80">등록된 식단 내용이 없습니다.</Text>
+              <Text className="text-body05 text-grey-80">
+                {todayMeals.length > 0 ? todayMeals.join(', ') : '등록된 식단 내용이 없습니다.'}
+              </Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -113,9 +178,13 @@ export default function AllScreen({ onNavigate }: Props) {
           <View className="relative mt-2">
             {notices.map((item, index) => (
               <Link key={index} href={item.link as `https://${string}`} asChild>
-                <TouchableOpacity className="flex-row items-center px-5 py-3">
-                  <Text className="flex-1 text-body05 text-black">{item.title}</Text>
-                  <Text className="text-caption04 text-grey-30">{formatNoticeDate(item.date)}</Text>
+                <TouchableOpacity className="flex-row items-center gap-1 px-5 py-3">
+                  <Text className="flex-1 text-body05 text-black" numberOfLines={1}>
+                    {item.title}
+                  </Text>
+                  <Text className="text-caption04 text-grey-30" numberOfLines={1}>
+                    {formatTimeAgo(item.date)}
+                  </Text>
                 </TouchableOpacity>
               </Link>
             ))}
@@ -136,17 +205,21 @@ export default function AllScreen({ onNavigate }: Props) {
             </TouchableOpacity>
           </View>
           <Text className="mt-3 border-b border-grey-02 px-5 py-1 text-body02 text-mju-primary">
-            {SCHEDULE_DUMMY_DATA.date}
+            {todayLabel}
           </Text>
           <View className="mt-2">
-            {SCHEDULE_DUMMY_DATA.items.map((item, index) => (
-              <View key={index} className="flex-row items-start gap-2 px-5 py-2">
-                <Text className="w-[75px] text-caption02 text-grey-40">{item.date}</Text>
-                <Text className="flex-1 text-caption02 text-black" numberOfLines={2}>
-                  <Text className="text-caption02 font-bold">{item.category}</Text> {item.title}
-                </Text>
-              </View>
-            ))}
+            {todayEvents.length === 0 ? (
+              <Text className="px-5 py-2 text-caption02 text-grey-30">오늘 일정이 없습니다.</Text>
+            ) : (
+              todayEvents.map((item, index) => (
+                <View key={index} className="flex-row items-start gap-2 px-5 py-2">
+                  <Text className="w-[80px] text-caption02 text-grey-40">{item.dateLabel}</Text>
+                  <Text className="flex-1 text-caption02 text-black" numberOfLines={2}>
+                    {item.description}
+                  </Text>
+                </View>
+              ))
+            )}
           </View>
         </View>
 
@@ -217,7 +290,7 @@ export default function AllScreen({ onNavigate }: Props) {
                       {item.reporter}
                     </Text>
                     <Text className="text-caption04 text-grey-30" numberOfLines={1}>
-                      {formatNoticeDate(item.date)}
+                      {formatTimeAgo(item.date)}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -254,7 +327,7 @@ export default function AllScreen({ onNavigate }: Props) {
                           {item.title}
                         </Text>
                         <Text className="text-caption04 text-grey-30" numberOfLines={1}>
-                          {formatNoticeDate(item.publishedAt)}
+                          {formatTimeAgo(item.publishedAt)}
                         </Text>
                       </View>
                     </TouchableOpacity>
@@ -274,19 +347,6 @@ export default function AllScreen({ onNavigate }: Props) {
     </ScrollView>
   );
 }
-
-const SCHEDULE_DUMMY_DATA = {
-  date: '01.21 (화)',
-  items: [
-    { date: '01.05', category: '[학부·대학원]', title: '학기 개시일, 2학기 개강' },
-    { date: '01.05', category: '[학부·대학원]', title: '학기 개시일, 2학기 개강 학기 개시일' },
-    {
-      date: '01.05 - 01.09',
-      category: '[학부·대학원]',
-      title: '수강신청 변경 기간 수강신청 변경 기간수강신청 변경 기간수강신청 변경 기간',
-    },
-  ],
-};
 
 const POSTS_DUMMY_DATA = [
   {
