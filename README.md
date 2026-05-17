@@ -2,7 +2,7 @@
 
 ## 시작하기
 
-노드 v20.20.2 버전 셋업 (터미널 종료 시 초기화 되므로 작업 전에 매번 실행):
+### 노드 v20.20.2 버전 셋업 (터미널 종료 시 초기화 되므로 작업 전에 매번 실행):
 
 ```bash
 nvm use
@@ -10,7 +10,7 @@ nvm use
 
 <br />
 
-패키지 설치:
+### 패키지 설치:
 
 ```bash
 pnpm i
@@ -18,33 +18,32 @@ pnpm i
 
 <br />
 
-`.env.local` 셋업: 자세한 내용은 `.env.example` 참고
+### `.env.local` 셋업:
+
+- 셋업 방법은 `.env.example` 참고
 
 <br />
 
-개발 버전 빌드 및 에뮬레이터 실행 (최초 빌드 또는 네이티브 코드 수정 시에만 수행):
+### 개발 버전 빌드 및 에뮬레이터 실행 (최초 빌드 또는 네이티브 코드 수정 후 반드시 수행):
 
 ```bash
-# android
-pnpm expo run:android
-
-# ios
-pnpm expo run:ios
+pnpm prebuild
 ```
 
-참고: `/ios`, `/android` 는 깃에 올리지 않음. 깃 추적 여부는 추후 결정.
-
-<br />
-
-개발 버전 실행:
-
 ```bash
-# android
 pnpm android
-
-# ios
 pnpm ios
 ```
+
+<br />
+
+### 개발 서버 실행:
+
+```bash
+pnpm dev
+```
+
+<br />
 
 ## 깃 전략
 
@@ -100,7 +99,9 @@ chore. 패키지 의존성 업데이트
 | 유틸·헬퍼 (`lib/`)       | 카멜 케이스 또는 단일 단어 소문자 | `utils.ts`, `theme.ts`                                                        |
 | 설정·루트 스크립트       | 도구 관례 따름                    | `babel.config.js`, `metro.config.js`, `tailwind.config.js`                    |
 
-- 파일명에는 **공백·한글**을 쓰지 않는다.
+- 파일명에는 **공백·한글**을 쓰지 않음
+
+<br />
 
 ## 제작지원
 
