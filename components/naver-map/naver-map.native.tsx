@@ -1,4 +1,8 @@
-import { NaverMapView, NaverMapMarkerOverlay } from '@mj-studio/react-native-naver-map';
+import {
+  NaverMapView,
+  NaverMapMarkerOverlay,
+  NaverMapViewRef,
+} from '@mj-studio/react-native-naver-map';
 import * as React from 'react';
 import { StyleSheet } from 'react-native';
 
@@ -16,15 +20,27 @@ interface Props {
   markers?: Marker[];
 }
 
-export function NaverMap({
-  initialLatitude = 37.5665,
-  initialLongitude = 126.978,
-  initialZoom = 14,
-  markers = [],
-}: Props) {
+export interface NaverMapHandle {
+  animateCameraTo: (latitude: number, longitude: number, zoom?: number) => void;
+}
+
+export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMap(
+  { initialLatitude = 37.5665, initialLongitude = 126.978, initialZoom = 14, markers = [] },
+  ref
+) {
+  const mapRef = React.useRef<NaverMapViewRef>(null);
+
+  React.useImperativeHandle(ref, () => ({
+    animateCameraTo: (latitude, longitude, zoom = 16) => {
+      mapRef.current?.animateCameraTo({ latitude, longitude, zoom, duration: 500 });
+    },
+  }));
+
   return (
     <NaverMapView
+      ref={mapRef}
       style={StyleSheet.absoluteFill}
+      isShowZoomControls={false}
       initialCamera={{
         latitude: initialLatitude,
         longitude: initialLongitude,
@@ -44,4 +60,4 @@ export function NaverMap({
       ))}
     </NaverMapView>
   );
-}
+});
