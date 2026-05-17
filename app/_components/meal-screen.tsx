@@ -7,13 +7,11 @@ import {
   UndoIcon,
 } from '@/components/icons';
 import { Text } from '@/components/ui/text';
-import { clsx } from 'clsx';
+import { cn } from '@/lib/utils';
 import * as React from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function MealScreen() {
-  const insets = useSafeAreaInsets();
   const [selectedDate, setSelectedDate] = React.useState<string | null>(null);
   const dateScrollRef = React.useRef<ScrollView>(null);
 
@@ -68,10 +66,7 @@ export default function MealScreen() {
   }
 
   return (
-    <ScrollView
-      className="w-screen"
-      contentContainerStyle={{ paddingBottom: insets.bottom, flexGrow: 1 }}
-    >
+    <ScrollView className="w-screen" contentContainerClassName="flex-grow">
       <View className="gap-4 border-b border-grey-10 bg-white pb-3 pt-4">
         <View className="flex-row items-center gap-2 px-6">
           <Text className="text-body02 text-black">
@@ -102,15 +97,15 @@ export default function MealScreen() {
             return (
               <TouchableOpacity key={item.date} onPress={() => setSelectedDate(item.date)}>
                 <View
-                  className={clsx(
+                  className={cn(
                     'w-[60px] items-center gap-[6.5px] rounded-lg pb-[6.5px] pt-[4px]',
                     isSelected ? 'bg-mju-primary' : 'bg-white'
                   )}
                 >
-                  <Text className={clsx('text-body04', isSelected ? 'text-white' : 'text-grey-60')}>
+                  <Text className={cn('text-body04', isSelected ? 'text-white' : 'text-grey-60')}>
                     {item.day}
                   </Text>
-                  <Text className={clsx('text-body05', isSelected ? 'text-white' : 'text-grey-40')}>
+                  <Text className={cn('text-body05', isSelected ? 'text-white' : 'text-grey-40')}>
                     {item.date}
                   </Text>
                 </View>
@@ -179,7 +174,7 @@ export default function MealScreen() {
           <Text className="text-caption02 text-grey-40">*평일만 운영됩니다.</Text>
         </View>
       </View>
-      <Footer />
+      <Footer withBottomInset />
     </ScrollView>
   );
 }

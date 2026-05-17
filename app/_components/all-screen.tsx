@@ -113,9 +113,13 @@ export default function AllScreen({ onNavigate }: Props) {
           <View className="relative mt-2">
             {notices.map((item, index) => (
               <Link key={index} href={item.link as `https://${string}`} asChild>
-                <TouchableOpacity className="flex-row items-center px-5 py-3">
-                  <Text className="flex-1 text-body05 text-black">{item.title}</Text>
-                  <Text className="text-caption04 text-grey-30">{formatNoticeDate(item.date)}</Text>
+                <TouchableOpacity className="flex-row items-center gap-1 px-5 py-3">
+                  <Text className="flex-1 text-body05 text-black" numberOfLines={1}>
+                    {item.title}
+                  </Text>
+                  <Text className="text-caption04 text-grey-30" numberOfLines={1}>
+                    {formatNoticeDate(item.date)}
+                  </Text>
                 </TouchableOpacity>
               </Link>
             ))}
