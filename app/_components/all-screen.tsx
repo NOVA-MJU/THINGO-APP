@@ -10,6 +10,7 @@ import { getNotices, type Notice, type NoticeCategory } from '@/api/notices';
 import { getNews, type NewsItem, type NewsCategory } from '@/api/news';
 import { getBroadcasts, type BroadcastItem } from '@/api/broadcast';
 import { getMenus, type DailyMenu } from '@/api/menus';
+import { getCalendar, type CalendarEvent } from '@/api/calendar';
 
 const CATEGORY_MAP: Record<string, NoticeCategory> = {
   전체: 'all',
@@ -54,6 +55,9 @@ export default function AllScreen({ onNavigate }: Props) {
   const [broadcasts, setBroadcasts] = React.useState<BroadcastItem[]>([]);
   const [broadcastsLoading, setBroadcastsLoading] = React.useState(false);
   const [menus, setMenus] = React.useState<DailyMenu[]>([]);
+  const [todayEvents, setTodayEvents] = React.useState<
+    { dateLabel: string; description: string }[]
+  >([]);
 
   React.useEffect(() => {
     setNoticesLoading(true);
@@ -82,6 +86,30 @@ export default function AllScreen({ onNavigate }: Props) {
   React.useEffect(() => {
     getMenus()
       .then((res) => setMenus(res.data))
+      .catch(() => {});
+  }, []);
+
+  React.useEffect(() => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth() + 1;
+    const dateStr = `${y}-${String(m).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const inRange = (e: CalendarEvent) => e.startDate <= dateStr && dateStr <= e.endDate;
+    const toItem = (e: CalendarEvent) => {
+      const fmt = (d: string) => d.slice(5).replace('-', '.');
+      const dateLabel =
+        e.startDate === e.endDate ? fmt(e.startDate) : `${fmt(e.startDate)} - ${fmt(e.endDate)}`;
+      return { dateLabel, description: e.description };
+    };
+    getCalendar(y, m)
+      .then((data) => {
+        setTodayEvents([
+          ...data.all.filter(inRange).map(toItem),
+          ...data.undergrad.filter(inRange).map(toItem),
+          ...data.graduate.filter(inRange).map(toItem),
+          ...data.holiday.filter(inRange).map(toItem),
+        ]);
+      })
       .catch(() => {});
   }, []);
 
@@ -190,17 +218,21 @@ export default function AllScreen({ onNavigate }: Props) {
             </TouchableOpacity>
           </View>
           <Text className="mt-3 border-b border-grey-02 px-5 py-1 text-body02 text-mju-primary">
-            {SCHEDULE_DUMMY_DATA.date}
+            {todayLabel}
           </Text>
           <View className="mt-2">
-            {SCHEDULE_DUMMY_DATA.items.map((item, index) => (
-              <View key={index} className="flex-row items-start gap-2 px-5 py-2">
-                <Text className="w-[75px] text-caption02 text-grey-40">{item.date}</Text>
-                <Text className="flex-1 text-caption02 text-black" numberOfLines={2}>
-                  <Text className="text-caption02 font-bold">{item.category}</Text> {item.title}
-                </Text>
-              </View>
-            ))}
+            {todayEvents.length === 0 ? (
+              <Text className="px-5 py-2 text-caption02 text-grey-30">오늘 일정이 없습니다.</Text>
+            ) : (
+              todayEvents.map((item, index) => (
+                <View key={index} className="flex-row items-start gap-2 px-5 py-2">
+                  <Text className="w-[80px] text-caption02 text-grey-40">{item.dateLabel}</Text>
+                  <Text className="flex-1 text-caption02 text-black" numberOfLines={2}>
+                    {item.description}
+                  </Text>
+                </View>
+              ))
+            )}
           </View>
         </View>
 
@@ -328,19 +360,6 @@ export default function AllScreen({ onNavigate }: Props) {
     </ScrollView>
   );
 }
-
-const SCHEDULE_DUMMY_DATA = {
-  date: '01.21 (화)',
-  items: [
-    { date: '01.05', category: '[학부·대학원]', title: '학기 개시일, 2학기 개강' },
-    { date: '01.05', category: '[학부·대학원]', title: '학기 개시일, 2학기 개강 학기 개시일' },
-    {
-      date: '01.05 - 01.09',
-      category: '[학부·대학원]',
-      title: '수강신청 변경 기간 수강신청 변경 기간수강신청 변경 기간수강신청 변경 기간',
-    },
-  ],
-};
 
 const POSTS_DUMMY_DATA = [
   {
