@@ -28,6 +28,8 @@
     "clsx": "^2.1.1",
     "expo": "~55.0.9",
     "expo-constants": "~55.0.9",
+    "expo-image-manipulator": "~55.0.16",
+    "expo-image-picker": "~55.0.20",
     "expo-linking": "~55.0.9",
     "expo-router": "~55.0.8",
     "expo-secure-store": "^55.0.13",

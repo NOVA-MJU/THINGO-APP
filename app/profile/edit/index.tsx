@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { useAuth } from '@/context/auth-context';
+import { useImageUpload } from '@/hooks/useImageUpload';
 import { useRouter } from 'expo-router';
 import { COLLEGE_OPTIONS, DEPARTMENT_OPTIONS } from '@/lib/departments';
 import { PASSWORD_MESSAGE, PASSWORD_REGEX } from '@/lib/validation';
@@ -33,6 +34,10 @@ export default function ProfileEditScreen() {
   const [checkedNickname, setCheckedNickname] = useState<string | null>(user?.nickname ?? null);
   const [isCheckingNickname, setIsCheckingNickname] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(
+    user?.profileImageUrl ?? null
+  );
+  const { isLoading: isUploadingImage, pickAndUpload } = useImageUpload('PROFILE_IMAGE');
 
   const collegeLabel = COLLEGE_OPTIONS.find((c) => c.value === selectedCollege)?.label ?? null;
   const departmentOptions =
@@ -40,12 +45,18 @@ export default function ProfileEditScreen() {
   const departmentLabel =
     departmentOptions.find((d) => d.value === selectedDepartment)?.label ?? null;
 
+  const handlePickProfileImage = async () => {
+    const url = await pickAndUpload();
+    if (url) setProfileImageUrl(url);
+  };
+
   // 기본 정보 변경 시 저장 버튼 활성화
   const hasBasicInfoChanged =
     nickname !== (user?.nickname ?? '') ||
     gender !== ((user?.gender as 'MALE' | 'FEMALE' | 'OTHER') ?? null) ||
     selectedCollege !== (user?.college ?? null) ||
-    selectedDepartment !== (user?.departmentName ?? null);
+    selectedDepartment !== (user?.departmentName ?? null) ||
+    profileImageUrl !== (user?.profileImageUrl ?? null);
 
   // 비밀번호 변경
   const handleChangePassword = async () => {
@@ -92,7 +103,7 @@ export default function ProfileEditScreen() {
         college: selectedCollege,
         departmentName: selectedDepartment,
         studentNumber: user?.studentNumber ?? '',
-        profileImageUrl: user?.profileImageUrl ?? undefined,
+        profileImageUrl: profileImageUrl ?? undefined,
       });
       setUser(updated);
       router.back();
@@ -173,16 +184,22 @@ export default function ProfileEditScreen() {
           <View className="mt-3 rounded-xl bg-white p-6">
             {/* 프로필 이미지 */}
             <Text className="text-body04 text-grey-80">프로필</Text>
-            <TouchableOpacity className="mt-2 self-start">
+            <TouchableOpacity
+              className="mt-2 self-start"
+              onPress={handlePickProfileImage}
+              disabled={isUploadingImage}
+            >
               <View className="aspect-square w-[88px] items-center justify-center overflow-hidden rounded-xl border border-grey-10">
-                {user?.profileImageUrl ? (
+                {profileImageUrl ? (
                   <Image
-                    source={{ uri: user.profileImageUrl }}
+                    source={{ uri: profileImageUrl }}
                     className="h-full w-full"
                     resizeMode="cover"
                   />
                 ) : (
-                  <Text className="text-caption02 text-grey-20">이미지 업로드</Text>
+                  <Text className="text-caption02 text-grey-20">
+                    {isUploadingImage ? '업로드 중...' : '이미지 업로드'}
+                  </Text>
                 )}
               </View>
             </TouchableOpacity>
