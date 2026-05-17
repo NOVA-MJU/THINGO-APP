@@ -14,9 +14,16 @@ const PAGE_TITLES: Record<string, string> = {
 export default function AuthLayout() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, isInitializing } = useAuth();
   const segments = useSegments();
 
+  /**
+   * auth-context에서 사용자 정보와 초기화 상태를 가져옴
+   */
+  const { user, isInitializing } = useAuth();
+
+  /**
+   * 이미 로그인한 사용자가 로그인/회원가입 페이지에 접근할 경우 홈으로 리다이렉트
+   */
   useEffect(() => {
     if (isInitializing) return;
     if (user) {

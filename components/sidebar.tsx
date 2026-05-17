@@ -61,8 +61,12 @@ interface SidebarProps {
 
 export default function Sidebar({ visible, onClose, onNavigate }: SidebarProps) {
   const insets = useSafeAreaInsets();
-  const { user, logout } = useAuth();
   const router = useRouter();
+
+  /**
+   * auth-context에서 사용자 정보와 로그아웃 함수를 가져옴
+   */
+  const { user, logout } = useAuth();
 
   const slideAnim = useSharedValue(SIDEBAR_WIDTH);
   const fadeAnim = useSharedValue(0);

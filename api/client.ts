@@ -2,7 +2,7 @@ import axios, { AxiosError, type AxiosInstance, type InternalAxiosRequestConfig 
 import { Platform } from 'react-native';
 import { clearTokens, getAccessToken, getRefreshToken, setAccessToken } from './token';
 
-const BASE_URL = 'https://api.thingo.kr/api/v1';
+const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL!;
 const isWeb = Platform.OS === 'web';
 const CLIENT_TYPE = isWeb ? 'web' : 'mobile';
 
