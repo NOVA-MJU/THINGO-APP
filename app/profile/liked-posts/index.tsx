@@ -3,14 +3,11 @@ import { Footer } from '@/components/footer';
 import { ChatBubbleIcon, HeartIcon } from '@/components/icons';
 import { Pagination } from '@/components/ui/pagination';
 import { Text } from '@/components/ui/text';
+import { parseUTCDate } from '@/lib/utils';
+import { format } from 'date-fns';
 import { router } from 'expo-router';
 import * as React from 'react';
 import { ActivityIndicator, ScrollView, TouchableOpacity, View } from 'react-native';
-
-function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
-}
 
 export default function LikedPostsScreen() {
   const scrollRef = React.useRef<ScrollView>(null);
@@ -70,7 +67,7 @@ export default function LikedPostsScreen() {
                     </Text>
                     <View className="flex-row items-center">
                       <Text className="flex-1 text-caption04 text-grey-30">
-                        {formatDate(item.publishedAt)}
+                        {format(parseUTCDate(item.publishedAt), 'yyyy.MM.dd')}
                       </Text>
                       <HeartIcon filled className="ms-3 text-blue-10" />
                       <Text className="ms-1 text-caption02 text-grey-40">{item.likeCount}</Text>

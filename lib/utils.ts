@@ -54,3 +54,20 @@ const twMerge = extendTailwindMerge({
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
+
+export function parseUTCDate(dateStr: string): Date {
+  return new Date(dateStr + 'Z');
+}
+
+export function formatTimeAgo(dateStr: string): string {
+  const date = parseUTCDate(dateStr);
+  const diffMs = Date.now() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 60) return `${diffMin}분 전`;
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour}시간 전`;
+  const diffDay = Math.floor(diffHour / 24);
+  if (diffDay === 1) return '어제';
+  if (diffDay < 7) return `${diffDay}일 전`;
+  return `${date.getMonth() + 1}.${date.getDate()}`;
+}
