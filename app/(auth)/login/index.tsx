@@ -6,27 +6,16 @@ import { login } from '@/api/auth';
 import { getMemberInfo } from '@/api/members';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Alert, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { user, setUser } = useAuth();
+  const { setUser } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isPending, setIsPending] = useState(false);
   const passwordRef = useRef<TextInput>(null);
-
-  // 이미 로그인된 경우
-  useEffect(() => {
-    if (user) {
-      if (router.canGoBack()) {
-        router.back();
-      } else {
-        router.replace('/');
-      }
-    }
-  }, [user, router]);
 
   // 로그인 실행
   const handleLogin = async () => {
