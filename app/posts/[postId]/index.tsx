@@ -1,5 +1,6 @@
 import { Footer } from '@/components/footer';
 import { HeartIcon } from '@/components/icons';
+import { PostContent } from '@/components/post-content';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { router } from 'expo-router';
@@ -66,7 +67,7 @@ export default function BoardDetailScreen() {
           </View>
         </View>
         <View className="px-4">
-          <Text className="text-body05 text-black">{POST.content}</Text>
+          <PostContent content={POST.content} />
         </View>
 
         {/* like button */}
