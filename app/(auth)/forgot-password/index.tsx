@@ -35,6 +35,7 @@ export default function ForgotPasswordScreen() {
       await verifyRecoveryEmail(email);
       await sendEmailVerificationCode(email);
       setCodeSent(true);
+      showAlert('인증번호 전송', '입력하신 이메일로 인증번호를 발송했습니다.');
     } catch {
       showAlert('이메일 확인 실패', '가입된 이메일이 아니거나 형식이 잘못되었습니다.');
     } finally {

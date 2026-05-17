@@ -53,17 +53,26 @@ export default function ProfileScreen() {
             </Button>
           </View>
           <Text className="mt-10 text-title03 text-grey-80">나의 활동</Text>
-          <TouchableOpacity className="mt-3 flex-row items-center gap-6 rounded-xl bg-white p-6">
+          <TouchableOpacity
+            className="mt-3 flex-row items-center gap-6 rounded-xl bg-white p-6"
+            onPress={() => router.push('/profile/posts')}
+          >
             <Text className="flex-1 text-body04 text-grey-80">내가 작성한 게시물</Text>
             <Text className="text-body04 text-grey-40">{stats?.postCount ?? '-'}개</Text>
             <ArrowRightIcon size={20} className="text-grey-30" />
           </TouchableOpacity>
-          <TouchableOpacity className="mt-3 flex-row items-center gap-6 rounded-xl bg-white p-6">
+          <TouchableOpacity
+            className="mt-3 flex-row items-center gap-6 rounded-xl bg-white p-6"
+            onPress={() => router.push('/profile/comments')}
+          >
             <Text className="flex-1 text-body04 text-grey-80">내가 작성한 댓글</Text>
             <Text className="text-body04 text-grey-40">{stats?.commentCount ?? '-'}개</Text>
             <ArrowRightIcon size={20} className="text-grey-30" />
           </TouchableOpacity>
-          <TouchableOpacity className="mt-3 flex-row items-center gap-6 rounded-xl bg-white p-6">
+          <TouchableOpacity
+            className="mt-3 flex-row items-center gap-6 rounded-xl bg-white p-6"
+            onPress={() => router.push('/profile/liked-posts')}
+          >
             <Text className="flex-1 text-body04 text-grey-80">찜한 글</Text>
             <Text className="text-body04 text-grey-40">{stats?.likedPostCount ?? '-'}개</Text>
             <ArrowRightIcon size={20} className="text-grey-30" />

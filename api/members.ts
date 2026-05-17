@@ -123,6 +123,83 @@ export async function changePassword(password: string, newPassword: string): Pro
   await client.patch('/members/info/password', { password, newPassword });
 }
 
+export type MyPost = {
+  uuid: string;
+  title: string;
+  previewContent: string;
+  viewCount: number;
+  published: boolean;
+  publishedAt: string;
+  createdAt: string;
+  updatedAt: string;
+  likeCount: number;
+  commentCount: number;
+  author: string;
+  liked: boolean;
+};
+
+type PageData<T> = {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+  first: boolean;
+  last: boolean;
+  empty: boolean;
+};
+
+type MyPostsResponse = {
+  data: PageData<MyPost>;
+};
+
+export type MyPostsPage = {
+  posts: MyPost[];
+  totalElements: number;
+  totalPages: number;
+};
+
+// 내가 작성한 게시물 목록 조회
+export async function getMyPosts(page = 0): Promise<MyPostsPage> {
+  const { data } = await client.get<MyPostsResponse>('/members/posts', { params: { page } });
+  const { content, totalElements, totalPages } = data.data;
+  return { posts: content, totalElements, totalPages };
+}
+
+// 내가 좋아요 누른 게시글 목록 조회
+export async function getMyLikedPosts(page = 0): Promise<MyPostsPage> {
+  const { data } = await client.get<MyPostsResponse>('/profile/liked_posts', { params: { page } });
+  const { content, totalElements, totalPages } = data.data;
+  return { posts: content, totalElements, totalPages };
+}
+
+export type MyCommentedPost = {
+  boardUuid: string;
+  boardTitle: string;
+  boardPreviewContent: string;
+  commentUuid: string;
+  commentPreviewContent: string;
+};
+
+type MyCommentedPostsResponse = {
+  data: PageData<MyCommentedPost>;
+};
+
+export type MyCommentedPostsPage = {
+  items: MyCommentedPost[];
+  totalElements: number;
+  totalPages: number;
+};
+
+// 내가 댓글 단 게시글 목록 조회
+export async function getMyCommentedPosts(page = 0): Promise<MyCommentedPostsPage> {
+  const { data } = await client.get<MyCommentedPostsResponse>('/profile/comments', {
+    params: { page },
+  });
+  const { content, totalElements, totalPages } = data.data;
+  return { items: content, totalElements, totalPages };
+}
+
 // 회원 탈퇴
 export async function deleteAccount(password: string): Promise<void> {
   await client.delete('/members/info', { data: { password } });
