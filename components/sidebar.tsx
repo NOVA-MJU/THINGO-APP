@@ -23,39 +23,38 @@ const SIDEBAR_WIDTH = 249;
 interface SidebarProps {
   visible: boolean;
   onClose: () => void;
+  onNavigate?: (tabIndex: number) => void;
 }
 
 const NAV_SECTIONS = [
   {
     title: 'Information',
     items: [
-      { label: '학과별 정보', href: null },
-      { label: '명지도', href: null },
-      { label: '공지사항', href: null },
-      { label: '학사일정', href: null },
-      { label: '학식', href: null },
-      { label: '명대신문', href: null },
-      { label: '명대뉴스', href: null },
+      { label: '명지도', href: null, tabIndex: 3 },
+      { label: '공지사항', href: null, tabIndex: 4 },
+      { label: '학사일정', href: null, tabIndex: 5 },
+      { label: '학식', href: null, tabIndex: 1 },
+      { label: '명대신문', href: null, tabIndex: 6 },
+      { label: '명대뉴스', href: null, tabIndex: 7 },
     ],
   },
   {
     title: 'Community',
     items: [
-      { label: '정보게시판', href: null },
-      { label: '자유게시판', href: null },
-      { label: '멘토관 서비스', href: null },
+      { label: '정보게시판', href: null, tabIndex: 2 },
+      { label: '자유게시판', href: null, tabIndex: 2 },
     ],
   },
   {
     title: 'My',
     items: [
-      { label: '마이페이지', href: '/profile' },
-      { label: 'SSO', href: 'https://portal.mju.ac.kr', isExternal: true },
+      { label: '마이페이지', href: '/profile', tabIndex: null },
+      { label: 'SSO', href: 'https://portal.mju.ac.kr', isExternal: true, tabIndex: null },
     ],
   },
-] as const;
+];
 
-export default function Sidebar({ visible, onClose }: SidebarProps) {
+export default function Sidebar({ visible, onClose, onNavigate }: SidebarProps) {
   const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();
   const router = useRouter();
@@ -197,12 +196,16 @@ export default function Sidebar({ visible, onClose }: SidebarProps) {
                       <TouchableOpacity
                         key={item.label}
                         onPress={() => {
-                          if (!item.href) return;
-                          if ('isExternal' in item && item.isExternal) {
-                            Linking.openURL(item.href);
-                          } else {
+                          if (item.tabIndex != null) {
                             handleClose();
-                            router.push(item.href as never);
+                            onNavigate?.(item.tabIndex);
+                          } else if (item.href) {
+                            if ('isExternal' in item && item.isExternal) {
+                              Linking.openURL(item.href);
+                            } else {
+                              handleClose();
+                              router.push(item.href as never);
+                            }
                           }
                         }}
                       >
