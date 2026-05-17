@@ -17,8 +17,9 @@ import { useAuth } from '@/context/auth-context';
 import { COLLEGE_OPTIONS, DEPARTMENT_OPTIONS } from '@/lib/departments';
 import { isAxiosError } from 'axios';
 import { useRouter } from 'expo-router';
+import { showAlert } from '@/lib/alert';
 import { useState } from 'react';
-import { Alert, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
+import { Platform, ScrollView, TouchableOpacity, View } from 'react-native';
 import DepartmentSelectModal from './_components/department-select-modal';
 
 export default function SignupScreen() {
@@ -71,13 +72,13 @@ export default function SignupScreen() {
     try {
       await validateStudentNumber(studentNumber);
       setStudentNumberVerified(true);
-      Alert.alert('사용 가능한 학번입니다.');
+      showAlert('사용 가능한 학번입니다.');
     } catch (e) {
       setStudentNumberVerified(false);
       if (isAxiosError(e) && e.response?.data?.message) {
-        Alert.alert(e.response.data.message);
+        showAlert(e.response.data.message);
       } else {
-        Alert.alert('학번 확인 중 오류가 발생했습니다.');
+        showAlert('학번 확인 중 오류가 발생했습니다.');
       }
     } finally {
       setStudentNumberLoading(false);
@@ -91,13 +92,13 @@ export default function SignupScreen() {
     try {
       await validateNickname(nickname);
       setNicknameVerified(true);
-      Alert.alert('사용 가능한 닉네임입니다.');
+      showAlert('사용 가능한 닉네임입니다.');
     } catch (e) {
       setNicknameVerified(false);
       if (isAxiosError(e) && e.response?.data?.message) {
-        Alert.alert(e.response.data.message);
+        showAlert(e.response.data.message);
       } else {
-        Alert.alert('닉네임 확인 중 오류가 발생했습니다.');
+        showAlert('닉네임 확인 중 오류가 발생했습니다.');
       }
     } finally {
       setNicknameLoading(false);
@@ -112,15 +113,15 @@ export default function SignupScreen() {
       const matched = await checkEmailVerificationCode(`${userEmail}@mju.ac.kr`, verificationCode);
       if (matched) {
         setEmailVerified(true);
-        Alert.alert('이메일 인증이 완료되었습니다.');
+        showAlert('이메일 인증이 완료되었습니다.');
       } else {
-        Alert.alert('인증코드가 올바르지 않습니다.');
+        showAlert('인증코드가 올바르지 않습니다.');
       }
     } catch (e) {
       if (isAxiosError(e) && e.response?.data?.message) {
-        Alert.alert(e.response.data.message);
+        showAlert(e.response.data.message);
       } else {
-        Alert.alert('인증코드 확인 중 오류가 발생했습니다.');
+        showAlert('인증코드 확인 중 오류가 발생했습니다.');
       }
     } finally {
       setVerificationCodeLoading(false);
@@ -129,16 +130,16 @@ export default function SignupScreen() {
 
   // 회원가입
   const handleSignup = async () => {
-    if (!emailVerified) return Alert.alert('이메일 인증을 완료해주세요.');
-    if (!password) return Alert.alert('비밀번호를 입력해주세요.');
-    if (!PASSWORD_REGEX.test(password)) return Alert.alert(PASSWORD_MESSAGE);
-    if (password !== confirmPassword) return Alert.alert('비밀번호가 일치하지 않습니다.');
-    if (!name.trim()) return Alert.alert('이름을 입력해주세요.');
-    if (!nicknameVerified) return Alert.alert('닉네임 중복 확인을 해주세요.');
-    if (!gender) return Alert.alert('성별을 선택해주세요.');
-    if (!selectedCollege) return Alert.alert('단과대를 선택해주세요.');
-    if (!selectedDepartment) return Alert.alert('학과를 선택해주세요.');
-    if (!studentNumberVerified) return Alert.alert('학번 중복 확인을 해주세요.');
+    if (!emailVerified) return showAlert('이메일 인증을 완료해주세요.');
+    if (!password) return showAlert('비밀번호를 입력해주세요.');
+    if (!PASSWORD_REGEX.test(password)) return showAlert(PASSWORD_MESSAGE);
+    if (password !== confirmPassword) return showAlert('비밀번호가 일치하지 않습니다.');
+    if (!name.trim()) return showAlert('이름을 입력해주세요.');
+    if (!nicknameVerified) return showAlert('닉네임 중복 확인을 해주세요.');
+    if (!gender) return showAlert('성별을 선택해주세요.');
+    if (!selectedCollege) return showAlert('단과대를 선택해주세요.');
+    if (!selectedDepartment) return showAlert('학과를 선택해주세요.');
+    if (!studentNumberVerified) return showAlert('학번 중복 확인을 해주세요.');
 
     setSignupLoading(true);
     try {
@@ -161,9 +162,9 @@ export default function SignupScreen() {
       }
     } catch (e) {
       if (isAxiosError(e) && e.response?.data?.message) {
-        Alert.alert(e.response.data.message);
+        showAlert(e.response.data.message);
       } else {
-        Alert.alert('회원가입 중 오류가 발생했습니다.');
+        showAlert('회원가입 중 오류가 발생했습니다.');
       }
     } finally {
       setSignupLoading(false);
@@ -173,7 +174,7 @@ export default function SignupScreen() {
   // 이메일 인증코드 요청
   const handleEmailVerification = async () => {
     if (!userEmail.trim()) {
-      Alert.alert('이메일을 입력해주세요.');
+      showAlert('이메일을 입력해주세요.');
       return;
     }
     setEmailVerificationLoading(true);
@@ -185,9 +186,9 @@ export default function SignupScreen() {
       setVerificationCode('');
     } catch (e) {
       if (isAxiosError(e) && e.response?.data?.message) {
-        Alert.alert(e.response.data.message);
+        showAlert(e.response.data.message);
       } else {
-        Alert.alert('이메일 검증 중 오류가 발생했습니다.');
+        showAlert('이메일 검증 중 오류가 발생했습니다.');
       }
     } finally {
       setEmailVerificationLoading(false);
@@ -258,6 +259,7 @@ export default function SignupScreen() {
               className="mt-2"
               secureTextEntry
               textContentType="newPassword"
+              autoComplete="new-password"
               value={password}
               onChangeText={setPassword}
             />
@@ -273,6 +275,7 @@ export default function SignupScreen() {
               className="mt-2"
               secureTextEntry
               textContentType="newPassword"
+              autoComplete="new-password"
               value={confirmPassword}
               onChangeText={setConfirmPassword}
             />

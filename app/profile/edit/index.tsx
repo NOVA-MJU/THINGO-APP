@@ -9,8 +9,9 @@ import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'expo-router';
 import { COLLEGE_OPTIONS, DEPARTMENT_OPTIONS } from '@/lib/departments';
 import { PASSWORD_MESSAGE, PASSWORD_REGEX } from '@/lib/validation';
+import { showAlert } from '@/lib/alert';
 import { useState } from 'react';
-import { Alert, Image, ScrollView, TouchableOpacity, View } from 'react-native';
+import { Image, ScrollView, TouchableOpacity, View } from 'react-native';
 
 export default function ProfileEditScreen() {
   const { user, setUser } = useAuth();
@@ -48,17 +49,17 @@ export default function ProfileEditScreen() {
 
   // 비밀번호 변경
   const handleChangePassword = async () => {
-    if (!PASSWORD_REGEX.test(newPassword)) return Alert.alert('오류', PASSWORD_MESSAGE);
+    if (!PASSWORD_REGEX.test(newPassword)) return showAlert('오류', PASSWORD_MESSAGE);
     if (newPassword !== confirmPassword)
-      return Alert.alert('오류', '새 비밀번호가 일치하지 않습니다.');
+      return showAlert('오류', '새 비밀번호가 일치하지 않습니다.');
     try {
       await changePassword(currentPassword, newPassword);
-      Alert.alert('완료', '비밀번호가 변경되었습니다.');
+      showAlert('완료', '비밀번호가 변경되었습니다.');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch {
-      Alert.alert('오류', '비밀번호 변경에 실패했습니다.');
+      showAlert('오류', '비밀번호 변경에 실패했습니다.');
     }
   };
 
@@ -68,9 +69,9 @@ export default function ProfileEditScreen() {
     try {
       await validateNickname(nickname);
       setCheckedNickname(nickname);
-      Alert.alert('확인', '사용 가능한 닉네임입니다.');
+      showAlert('확인', '사용 가능한 닉네임입니다.');
     } catch {
-      Alert.alert('오류', '이미 사용 중인 닉네임입니다.');
+      showAlert('오류', '이미 사용 중인 닉네임입니다.');
     } finally {
       setIsCheckingNickname(false);
     }
@@ -79,8 +80,8 @@ export default function ProfileEditScreen() {
   // 기본 정보 저장
   const handleSave = async () => {
     if (nickname !== (user?.nickname ?? '') && checkedNickname !== nickname)
-      return Alert.alert('알림', '닉네임 중복 확인을 해주세요.');
-    if (selectedCollege && !selectedDepartment) return Alert.alert('알림', '학과를 선택해주세요.');
+      return showAlert('알림', '닉네임 중복 확인을 해주세요.');
+    if (selectedCollege && !selectedDepartment) return showAlert('알림', '학과를 선택해주세요.');
     if (!gender || !selectedCollege || !selectedDepartment) return;
     setIsSaving(true);
     try {
@@ -96,7 +97,7 @@ export default function ProfileEditScreen() {
       setUser(updated);
       router.back();
     } catch {
-      Alert.alert('오류', '정보 수정에 실패했습니다.');
+      showAlert('오류', '정보 수정에 실패했습니다.');
     } finally {
       setIsSaving(false);
     }
@@ -133,6 +134,7 @@ export default function ProfileEditScreen() {
               placeholder="새 비밀번호를 입력하세요"
               secureTextEntry
               textContentType="newPassword"
+              autoComplete="new-password"
               value={newPassword}
               onChangeText={setNewPassword}
             />
@@ -148,6 +150,7 @@ export default function ProfileEditScreen() {
               placeholder="비밀번호를 다시 입력하세요"
               secureTextEntry
               textContentType="newPassword"
+              autoComplete="new-password"
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               onSubmitEditing={handleChangePassword}

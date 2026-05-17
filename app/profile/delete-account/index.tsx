@@ -5,8 +5,9 @@ import { Text } from '@/components/ui/text';
 import { deleteAccount } from '@/api/members';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'expo-router';
+import { showAlert } from '@/lib/alert';
 import { useState } from 'react';
-import { Alert, Platform, ScrollView, View } from 'react-native';
+import { Platform, ScrollView, View } from 'react-native';
 
 // ai로 작성된 페이지임
 export default function DeleteAccountScreen() {
@@ -27,7 +28,7 @@ export default function DeleteAccountScreen() {
         router.dismissAll();
       }
     } catch {
-      Alert.alert('탈퇴 실패', '비밀번호를 확인해주세요.');
+      showAlert('탈퇴 실패', '비밀번호를 확인해주세요.');
     } finally {
       setIsPending(false);
     }

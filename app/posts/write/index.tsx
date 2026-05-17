@@ -20,8 +20,9 @@ import {
 import { Text } from '@/components/ui/text';
 import { cn } from '@/lib/utils';
 import { router } from 'expo-router';
+import { showAlert } from '@/lib/alert';
 import * as React from 'react';
-import { Alert, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type BoardOption = NonNullable<Option>;
@@ -68,7 +69,6 @@ export default function BoardWriteScreen() {
       router.back();
       return;
     }
-
     setExitDialogOpen(true);
   };
 
@@ -78,11 +78,11 @@ export default function BoardWriteScreen() {
   };
 
   const handleSubmit = () => {
-    Alert.alert('준비 중', PREPARE_POST_MESSAGE);
+    showAlert('준비 중', PREPARE_POST_MESSAGE);
   };
 
   const handleLoginPress = () => {
-    Alert.alert('준비 중', PREPARE_LOGIN_MESSAGE);
+    showAlert('준비 중', PREPARE_LOGIN_MESSAGE);
   };
 
   const handleMockAuthToggle = () => {
@@ -91,7 +91,7 @@ export default function BoardWriteScreen() {
     setIsLoggedIn((prev) => {
       const next = !prev;
 
-      Alert.alert(
+      showAlert(
         'Mock 상태 변경',
         next ? '로그인 화면으로 전환했습니다.' : '비로그인 화면으로 전환했습니다.'
       );

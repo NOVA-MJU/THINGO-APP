@@ -103,6 +103,21 @@ export async function updateMemberInfo(body: UpdateMemberRequest): Promise<Membe
   return data.data;
 }
 
+// 비밀번호 찾기용 이메일 존재 검증
+export async function verifyRecoveryEmail(email: string): Promise<void> {
+  await client.get('/members/recovery/email', { params: { email } });
+}
+
+// 비밀번호 찾기용 인증코드 검증
+export async function verifyRecoveryCode(email: string, code: string): Promise<void> {
+  await client.post('/members/recovery/verify-code', { email, code });
+}
+
+// 비밀번호 찾기 - 비밀번호 재설정
+export async function resetPassword(email: string, newPassword: string): Promise<void> {
+  await client.post('/members/recovery/reset', { email, newPassword });
+}
+
 // 비밀번호 변경
 export async function changePassword(password: string, newPassword: string): Promise<void> {
   await client.patch('/members/info/password', { password, newPassword });
