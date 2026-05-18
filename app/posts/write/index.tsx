@@ -1,7 +1,7 @@
+import { createBoard, getBoardDetail, updateBoard, type CommunityCategory } from '@/api/posts';
 import { Footer } from '@/components/footer';
 import { ArrowLeftIcon, InfoOutlineIcon } from '@/components/icons';
 import { PostEditor, type PostEditorHandle, type PostEditorValue } from '@/components/post-editor';
-import { useKeyboard } from '@10play/tentap-editor';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -20,26 +20,26 @@ import {
   type Option,
 } from '@/components/ui/select';
 import { Text } from '@/components/ui/text';
-import { cn } from '@/lib/utils';
-import { router, useFocusEffect } from 'expo-router';
-import * as React from 'react';
-import { Alert, BackHandler, Keyboard, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { useAuth } from '@/context/auth-context';
 import { showAlert } from '@/lib/alert';
+import { buildContentPreview, normalizePostContent } from '@/lib/post-content';
+import { cn } from '@/lib/utils';
+import { useKeyboard } from '@10play/tentap-editor';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import * as React from 'react';
+import { ActivityIndicator, BackHandler, Keyboard, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type BoardOption = NonNullable<Option>;
-
-type DevAuthToggleProps = {
-  isLoggedIn: boolean;
-  onChange: (next: boolean) => void;
-  topOffset: number;
-};
+type BoardOptionValue = 'info' | 'free';
 
 type WriteFormProps = {
+  isEditMode: boolean;
   title: string;
   contentHtml: string;
   category: Option;
   canSubmit: boolean;
+  isSubmitting: boolean;
   editorRef: React.RefObject<PostEditorHandle | null>;
   onTitleChange: (value: string) => void;
   onContentChange: (value: PostEditorValue) => void;
@@ -53,25 +53,93 @@ type LoggedOutViewProps = {
   onLoginPress: () => void;
 };
 
+type InitialFormState = {
+  title: string;
+  contentText: string;
+  categoryValue: string;
+};
+
+const DEFAULT_BOARD_OPTION: BoardOption = { value: 'info', label: '정보게시판' };
+const BOARD_OPTIONS: BoardOption[] = [
+  DEFAULT_BOARD_OPTION,
+  { value: 'free', label: '자유게시판' },
+];
+
+const DEFAULT_FORM_STATE: InitialFormState = {
+  title: '',
+  contentText: '',
+  categoryValue: DEFAULT_BOARD_OPTION.value,
+};
+
 export default function BoardWriteScreen() {
   const insets = useSafeAreaInsets();
+  const { postId } = useLocalSearchParams<{ postId?: string | string[] }>();
+  const editingBoardUUID = Array.isArray(postId) ? postId[0] : postId;
+  const isEditMode = Boolean(editingBoardUUID);
+  const { user, isInitializing } = useAuth();
   const editorRef = React.useRef<PostEditorHandle>(null);
   const [title, setTitle] = React.useState('');
   const [contentHtml, setContentHtml] = React.useState('');
   const [contentText, setContentText] = React.useState('');
-
   const [category, setCategory] = React.useState<Option>(DEFAULT_BOARD_OPTION);
   const [exitDialogOpen, setExitDialogOpen] = React.useState(false);
-  const [isLoggedIn, setIsLoggedIn] = React.useState(MOCK_DEFAULT_LOGGED_IN);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isPrefillLoading, setIsPrefillLoading] = React.useState(false);
+  const [prefillErrorMessage, setPrefillErrorMessage] = React.useState<string | null>(null);
+  const [initialFormState, setInitialFormState] =
+    React.useState<InitialFormState>(DEFAULT_FORM_STATE);
 
+  const isLoggedIn = Boolean(user);
   const isDirty =
-    title.trim().length > 0 ||
-    contentText.trim().length > 0 ||
-    category?.value !== DEFAULT_BOARD_OPTION.value;
-
+    title.trim() !== initialFormState.title ||
+    contentText.trim() !== initialFormState.contentText ||
+    category?.value !== initialFormState.categoryValue;
   const canSubmit = title.trim().length > 0 && contentText.trim().length > 0;
 
+  const loadBoardForEdit = React.useCallback(async () => {
+    if (!editingBoardUUID || !user) return;
+
+    setIsPrefillLoading(true);
+    setPrefillErrorMessage(null);
+
+    try {
+      const board = await getBoardDetail(editingBoardUUID);
+
+      if (!board.canEdit) {
+        setPrefillErrorMessage('게시글 수정 권한이 없습니다.');
+        return;
+      }
+
+      const normalizedHtml = normalizePostContent(board.content);
+      const normalizedText = htmlToPlainText(normalizedHtml);
+      const nextCategory = getBoardOptionFromCategory(board.communityCategory);
+
+      setTitle(board.title);
+      setContentHtml(normalizedHtml);
+      setContentText(normalizedText);
+      setCategory(nextCategory);
+      setInitialFormState({
+        title: board.title.trim(),
+        contentText: normalizedText,
+        categoryValue: nextCategory.value,
+      });
+    } catch {
+      setPrefillErrorMessage('게시글을 불러오지 못했습니다.');
+    } finally {
+      setIsPrefillLoading(false);
+    }
+  }, [editingBoardUUID, user]);
+
+  React.useEffect(() => {
+    if (isInitializing) return;
+    if (!isEditMode) return;
+    if (!user) return;
+    void loadBoardForEdit();
+  }, [isEditMode, isInitializing, loadBoardForEdit, user]);
+
   const handleBackPress = React.useCallback(() => {
+    if (isSubmitting) return true;
+
     if (!isLoggedIn || !isDirty) {
       router.back();
       return true;
@@ -81,7 +149,7 @@ export default function BoardWriteScreen() {
     Keyboard.dismiss();
     setExitDialogOpen(true);
     return true;
-  }, [isDirty, isLoggedIn]);
+  }, [isDirty, isLoggedIn, isSubmitting]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -93,44 +161,96 @@ export default function BoardWriteScreen() {
     }, [handleBackPress])
   );
 
-  const handleDiscard = () => {
+  const handleDiscard = React.useCallback(() => {
     setExitDialogOpen(false);
     router.back();
-  };
+  }, []);
 
-  const handleSubmit = () => {
-    showAlert('준비 중', PREPARE_POST_MESSAGE);
-  };
+  const handleSubmit = React.useCallback(async () => {
+    if (!user) {
+      router.push('/login');
+      return;
+    }
 
-  const handleLoginPress = () => {
-    showAlert('준비 중', PREPARE_LOGIN_MESSAGE);
-  };
+    const nextTitle = title.trim();
+    const nextContentText = contentText.trim();
+    const nextContentHtml = contentHtml.trim();
 
-  const handleMockAuthToggle = () => {
-    if (!__DEV__) return;
+    if (!nextTitle) {
+      showAlert('제목을 입력해주세요.');
+      return;
+    }
 
-    setIsLoggedIn((prev) => {
-      const next = !prev;
+    if (!nextContentText || !nextContentHtml) {
+      showAlert('본문을 입력해주세요.');
+      return;
+    }
 
+    setIsSubmitting(true);
+
+    try {
+      const requestBody = {
+        title: nextTitle,
+        content: nextContentHtml,
+        contentPreview: buildContentPreview(nextContentText),
+        published: true,
+        communityCategory: mapBoardOptionToCategory(category),
+      };
+
+      const nextBoard =
+        isEditMode && editingBoardUUID
+          ? await updateBoard(editingBoardUUID, requestBody)
+          : await createBoard(requestBody);
+
+      setExitDialogOpen(false);
+      router.replace(`/posts/${nextBoard.uuid}`);
+    } catch {
       showAlert(
-        'Mock 상태 변경',
-        next ? '로그인 화면으로 전환했습니다.' : '비로그인 화면으로 전환했습니다.'
+        isEditMode ? '게시글 수정 실패' : '게시글 작성 실패',
+        '잠시 후 다시 시도해주세요.'
       );
-      return next;
-    });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [category, contentHtml, contentText, editingBoardUUID, isEditMode, title, user]);
 
-    setExitDialogOpen(false);
-  };
+  const handleLoginPress = React.useCallback(() => {
+    router.push('/login');
+  }, []);
+
+  if (isInitializing || (isEditMode && isPrefillLoading)) {
+    return (
+      <LoadingView
+        topInset={insets.top}
+        bottomInset={insets.bottom}
+        message={isEditMode ? '게시글을 불러오고 있습니다.' : '사용자 정보를 확인하고 있습니다.'}
+      />
+    );
+  }
+
+  if (prefillErrorMessage) {
+    return (
+      <ErrorView
+        topInset={insets.top}
+        bottomInset={insets.bottom}
+        message={prefillErrorMessage}
+        onConfirm={() => {
+          if (router.canGoBack()) {
+            router.back();
+            return;
+          }
+
+          router.replace('/');
+        }}
+      />
+    );
+  }
 
   return (
     <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
-      <DevAuthToggle isLoggedIn={isLoggedIn} onChange={setIsLoggedIn} topOffset={insets.top + 6} />
-
-      {/* header */}
       <View className="px-4 pt-4">
         <Pressable
           onPress={handleBackPress}
-          onLongPress={handleMockAuthToggle}
           className="flex-row items-center gap-1 self-start"
           accessibilityRole="button"
           accessibilityLabel="이전"
@@ -140,13 +260,14 @@ export default function BoardWriteScreen() {
         </Pressable>
       </View>
 
-      {/* content */}
       {isLoggedIn ? (
         <WriteForm
+          isEditMode={isEditMode}
           title={title}
           contentHtml={contentHtml}
           category={category}
           canSubmit={canSubmit}
+          isSubmitting={isSubmitting}
           editorRef={editorRef}
           onTitleChange={setTitle}
           onContentChange={({ html, text }) => {
@@ -161,7 +282,6 @@ export default function BoardWriteScreen() {
         <LoggedOutView bottomInset={insets.bottom} onLoginPress={handleLoginPress} />
       )}
 
-      {/* exit dialog */}
       <Dialog open={exitDialogOpen} onOpenChange={setExitDialogOpen}>
         <DialogContent className="mx-6 w-[320px] max-w-[320px] gap-4 rounded-xl border-none py-[24px]">
           <DialogHeader className="gap-1">
@@ -194,39 +314,61 @@ export default function BoardWriteScreen() {
   );
 }
 
-function DevAuthToggle({ isLoggedIn, onChange, topOffset }: DevAuthToggleProps) {
-  if (!__DEV__) return null;
-
+function LoadingView({
+  topInset,
+  bottomInset,
+  message,
+}: {
+  topInset: number;
+  bottomInset: number;
+  message: string;
+}) {
   return (
-    <View
-      className="absolute right-4 z-20 flex-row rounded-full bg-black/80 p-1"
-      style={{ top: topOffset }}
-    >
-      <Pressable
-        onPress={() => onChange(true)}
-        className={cn('rounded-full px-3 py-1.5', isLoggedIn ? 'bg-white' : 'bg-transparent')}
-      >
-        <Text className={cn('text-caption02', isLoggedIn ? 'text-black' : 'text-white')}>
-          로그인
-        </Text>
-      </Pressable>
-      <Pressable
-        onPress={() => onChange(false)}
-        className={cn('rounded-full px-3 py-1.5', !isLoggedIn ? 'bg-white' : 'bg-transparent')}
-      >
-        <Text className={cn('text-caption02', !isLoggedIn ? 'text-black' : 'text-white')}>
-          비로그인
-        </Text>
-      </Pressable>
+    <View className="flex-1 bg-white" style={{ paddingTop: topInset }}>
+      <View className="flex-1 items-center justify-center gap-3">
+        <ActivityIndicator />
+        <Text className="text-body05 text-grey-40">{message}</Text>
+      </View>
+      <View style={{ paddingBottom: bottomInset }}>
+        <Footer />
+      </View>
+    </View>
+  );
+}
+
+function ErrorView({
+  topInset,
+  bottomInset,
+  message,
+  onConfirm,
+}: {
+  topInset: number;
+  bottomInset: number;
+  message: string;
+  onConfirm: () => void;
+}) {
+  return (
+    <View className="flex-1 bg-white" style={{ paddingTop: topInset }}>
+      <View className="flex-1 items-center justify-center gap-4 px-4">
+        <Text className="text-center text-body04 text-black">{message}</Text>
+        <Button onPress={onConfirm} className="rounded-xl px-5">
+          <Text>확인</Text>
+        </Button>
+      </View>
+      <View style={{ paddingBottom: bottomInset }}>
+        <Footer />
+      </View>
     </View>
   );
 }
 
 function WriteForm({
+  isEditMode,
   title,
   contentHtml,
   category,
   canSubmit,
+  isSubmitting,
   editorRef,
   onTitleChange,
   onContentChange,
@@ -256,13 +398,13 @@ function WriteForm({
             value={title}
             onChangeText={onTitleChange}
             placeholder="제목"
-            placeholderTextColor="text-grey-20"
             className="h-[40px] rounded-xl border-grey-10 bg-white px-3 text-body03 text-black"
+            maxLength={100}
           />
 
           <Select value={category} onValueChange={onCategoryChange}>
             <SelectTrigger className="h-[40px] w-full rounded-xl border-grey-10 bg-white px-3">
-              <SelectValue placeholder="자유게시판" className="text-body03 text-blue-20" />
+              <SelectValue placeholder="게시판을 선택하세요" className="text-body03 text-blue-20" />
             </SelectTrigger>
             <SelectContent>
               {BOARD_OPTIONS.map((option) => (
@@ -281,12 +423,12 @@ function WriteForm({
         <View className="px-4 pb-4" style={{ paddingBottom: bottomInset || 16 }}>
           <Button
             variant={canSubmit ? 'default' : 'muted'}
-            disabled={!canSubmit}
+            disabled={!canSubmit || isSubmitting}
             onPress={onSubmit}
             className={cn('h-[40px] rounded-xl', canSubmit ? 'bg-blue-35' : 'bg-grey-02')}
           >
             <Text className={cn('text-body05', canSubmit ? 'text-white' : 'text-grey-40')}>
-              완료
+              {isSubmitting ? (isEditMode ? '수정 중...' : '작성 중...') : '완료'}
             </Text>
           </Button>
         </View>
@@ -314,9 +456,23 @@ function LoggedOutView({ bottomInset, onLoginPress }: LoggedOutViewProps) {
   );
 }
 
-// dummy data
-const PREPARE_POST_MESSAGE = '게시글 작성 API 연동 전입니다.';
-const PREPARE_LOGIN_MESSAGE = '로그인 화면 연결 전입니다.';
-const MOCK_DEFAULT_LOGGED_IN = true;
-const DEFAULT_BOARD_OPTION: BoardOption = { value: 'info', label: '정보게시판' };
-const BOARD_OPTIONS: BoardOption[] = [DEFAULT_BOARD_OPTION, { value: 'free', label: '자유게시판' }];
+function mapBoardOptionToCategory(category: Option): Exclude<CommunityCategory, 'ALL'> {
+  const value = category?.value as BoardOptionValue | undefined;
+  return value === 'free' ? 'FREE' : 'NOTICE';
+}
+
+function getBoardOptionFromCategory(category?: CommunityCategory | null): BoardOption {
+  return category === 'FREE' ? BOARD_OPTIONS[1] : DEFAULT_BOARD_OPTION;
+}
+
+function htmlToPlainText(html: string) {
+  return html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>\s*<p>/gi, '\n\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&amp;/gi, '&')
+    .trim();
+}
