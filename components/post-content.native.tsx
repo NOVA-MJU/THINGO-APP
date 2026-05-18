@@ -1,3 +1,4 @@
+import { normalizePostContent } from '@/lib/post-content';
 import * as React from 'react';
 import { Platform, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
@@ -8,33 +9,6 @@ type PostContentProps = {
 };
 
 const MIN_CONTENT_HEIGHT = 24;
-
-function escapeHtml(text: string) {
-  return text
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
-}
-
-function looksLikeHtml(content: string) {
-  return /<\/?[a-z][\s\S]*>/i.test(content);
-}
-
-function plainTextToHtml(text: string) {
-  if (!text.trim()) return '<p></p>';
-
-  return text
-    .split(/\n{2,}/)
-    .map((paragraph) => `<p>${escapeHtml(paragraph).replace(/\n/g, '<br />')}</p>`)
-    .join('');
-}
-
-function normalizeContent(content?: string) {
-  if (!content?.trim()) return '<p></p>';
-  return looksLikeHtml(content) ? content : plainTextToHtml(content);
-}
 
 function buildHtmlDocument(content: string) {
   return `<!DOCTYPE html>
@@ -190,7 +164,7 @@ export function PostContent({ content, style }: PostContentProps) {
   const [height, setHeight] = React.useState(MIN_CONTENT_HEIGHT);
 
   const source = React.useMemo(() => {
-    return { html: buildHtmlDocument(normalizeContent(content)) };
+    return { html: buildHtmlDocument(normalizePostContent(content)) };
   }, [content]);
 
   const handleMessage = React.useCallback((event: WebViewMessageEvent) => {
