@@ -148,10 +148,7 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
   return (
     <View className="items-center justify-center px-6 py-20">
       <Text className="text-body04 text-black">게시글 목록을 불러오지 못했습니다.</Text>
-      <Pressable
-        onPress={onRetry}
-        className="mt-4 rounded-full border border-blue-20 px-4 py-2"
-      >
+      <Pressable onPress={onRetry} className="mt-4 rounded-full border border-blue-20 px-4 py-2">
         <Text className="text-body05 text-blue-35">다시 시도</Text>
       </Pressable>
     </View>

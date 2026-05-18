@@ -176,7 +176,9 @@ export async function deleteBoard(boardUUID: string): Promise<void> {
 }
 
 export async function getBoardComments(boardUUID: string): Promise<Comment[]> {
-  const { data } = await client.get<ApiResponse<CommentResponse[]>>(`/boards/${boardUUID}/comments`);
+  const { data } = await client.get<ApiResponse<CommentResponse[]>>(
+    `/boards/${boardUUID}/comments`
+  );
   return data.data.map(normalizeComment);
 }
 

@@ -60,10 +60,7 @@ type InitialFormState = {
 };
 
 const DEFAULT_BOARD_OPTION: BoardOption = { value: 'info', label: '정보게시판' };
-const BOARD_OPTIONS: BoardOption[] = [
-  DEFAULT_BOARD_OPTION,
-  { value: 'free', label: '자유게시판' },
-];
+const BOARD_OPTIONS: BoardOption[] = [DEFAULT_BOARD_OPTION, { value: 'free', label: '자유게시판' }];
 
 const DEFAULT_FORM_STATE: InitialFormState = {
   title: '',
@@ -205,10 +202,7 @@ export default function BoardWriteScreen() {
       setExitDialogOpen(false);
       router.replace(`/posts/${nextBoard.uuid}`);
     } catch {
-      showAlert(
-        isEditMode ? '게시글 수정 실패' : '게시글 작성 실패',
-        '잠시 후 다시 시도해주세요.'
-      );
+      showAlert(isEditMode ? '게시글 수정 실패' : '게시글 작성 실패', '잠시 후 다시 시도해주세요.');
     } finally {
       setIsSubmitting(false);
     }

@@ -121,8 +121,7 @@ function renderListItem(block: RichBlock) {
   const inlineHtml = renderInlineContent(block.content);
   const childrenHtml = renderBlocks(block.children);
   const checked = block.type === 'checkListItem' ? block.props?.checked === true : null;
-  const checkboxHtml =
-    checked === null ? '' : `<span>${checked ? '&#x2611;' : '&#x2610;'}</span> `;
+  const checkboxHtml = checked === null ? '' : `<span>${checked ? '&#x2611;' : '&#x2610;'}</span> `;
 
   return `<li>${checkboxHtml}${inlineHtml || '<br />'}${childrenHtml}</li>`;
 }
@@ -159,7 +158,11 @@ function renderBlocks(blocks?: RichBlock[]) {
   for (let index = 0; index < blocks.length; index += 1) {
     const block = blocks[index];
 
-    if (block.type === 'bulletListItem' || block.type === 'numberedListItem' || block.type === 'checkListItem') {
+    if (
+      block.type === 'bulletListItem' ||
+      block.type === 'numberedListItem' ||
+      block.type === 'checkListItem'
+    ) {
       const listTag = block.type === 'numberedListItem' ? 'ol' : 'ul';
       const items: string[] = [];
 

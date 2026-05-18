@@ -558,7 +558,7 @@ function CommentComposer({
         <TextInput
           multiline
           textAlignVertical="center"
-          className="min-h-[21px] max-h-[84px] pe-10 py-0 text-body05 text-black"
+          className="max-h-[84px] min-h-[21px] py-0 pe-10 text-body05 text-black"
           value={value}
           onChangeText={onChange}
           placeholder={placeholder}
@@ -572,7 +572,12 @@ function CommentComposer({
           disabled={!trimmedValue || isSubmitting}
         >
           <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <Circle cx="12" cy="12" r="12" fill={trimmedValue && !isSubmitting ? '#8BC7FF' : '#CDD0D4'} />
+            <Circle
+              cx="12"
+              cy="12"
+              r="12"
+              fill={trimmedValue && !isSubmitting ? '#8BC7FF' : '#CDD0D4'}
+            />
             <Path
               d="M17.993 11.0312C18.2782 11.3198 18.2782 11.7877 17.993 12.0764C17.7079 12.365 17.2456 12.365 16.9604 12.0764L12.7302 7.79445V18.2946C12.7302 18.7029 12.4033 19.0338 12 19.0338C11.5967 19.0338 11.2698 18.7029 11.2698 18.2946V7.79445L7.03956 12.0764C6.7544 12.365 6.29215 12.365 6.00697 12.0764C5.7218 11.7877 5.7218 11.3198 6.00697 11.0312L12 4.96484L17.993 11.0312Z"
               fill="white"
@@ -626,7 +631,8 @@ function CommentThread({
   const isReplySubmitting = replySubmittingParentUUID === comment.commentUUID;
   const isCommentLikePending = pendingCommentLikeUUIDs.includes(comment.commentUUID);
   const shouldRenderInlineReplyComposer = isInReplyLane && isReplyComposerOpen && !hasReplies;
-  const shouldRenderReplyLane = hasReplies || (isReplyComposerOpen && !shouldRenderInlineReplyComposer);
+  const shouldRenderReplyLane =
+    hasReplies || (isReplyComposerOpen && !shouldRenderInlineReplyComposer);
 
   return (
     <View className="gap-4">
@@ -649,10 +655,7 @@ function CommentThread({
               className="pt-1"
               disabled={isDeleting}
             >
-              <CloseIcon
-                size={24}
-                className={isDeleting ? 'text-grey-20' : 'text-[#CDD0D4]'}
-              />
+              <CloseIcon size={24} className={isDeleting ? 'text-grey-20' : 'text-[#CDD0D4]'} />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -717,27 +720,27 @@ function CommentThread({
       {shouldRenderReplyLane ? (
         <View className="border-l-2 border-blue-20 pl-[10px]">
           <View className="gap-4">
-            {hasReplies ? (
-              comment.replies.map((reply) => (
-                <CommentThread
-                  key={reply.commentUUID}
-                  comment={reply}
-                  depth={depth + 1}
-                  isInReplyLane
-                  currentUserNickname={currentUserNickname}
-                  deletingCommentUUID={deletingCommentUUID}
-                  activeReplyParentUUID={activeReplyParentUUID}
-                  pendingCommentLikeUUIDs={pendingCommentLikeUUIDs}
-                  replyText={replyText}
-                  replySubmittingParentUUID={replySubmittingParentUUID}
-                  onCommentLikeToggle={onCommentLikeToggle}
-                  onDelete={onDelete}
-                  onReplyToggle={onReplyToggle}
-                  onReplyTextChange={onReplyTextChange}
-                  onReplySubmit={onReplySubmit}
-                />
-              ))
-            ) : null}
+            {hasReplies
+              ? comment.replies.map((reply) => (
+                  <CommentThread
+                    key={reply.commentUUID}
+                    comment={reply}
+                    depth={depth + 1}
+                    isInReplyLane
+                    currentUserNickname={currentUserNickname}
+                    deletingCommentUUID={deletingCommentUUID}
+                    activeReplyParentUUID={activeReplyParentUUID}
+                    pendingCommentLikeUUIDs={pendingCommentLikeUUIDs}
+                    replyText={replyText}
+                    replySubmittingParentUUID={replySubmittingParentUUID}
+                    onCommentLikeToggle={onCommentLikeToggle}
+                    onDelete={onDelete}
+                    onReplyToggle={onReplyToggle}
+                    onReplyTextChange={onReplyTextChange}
+                    onReplySubmit={onReplySubmit}
+                  />
+                ))
+              : null}
 
             {isReplyComposerOpen ? (
               <CommentComposer
@@ -757,10 +760,7 @@ function CommentThread({
 
 function CommentAvatar({ nickname }: { nickname: string }) {
   return (
-    <View
-      className="h-10 w-10 rounded-full bg-grey-20"
-      accessibilityLabel={`${nickname} 프로필`}
-    />
+    <View className="h-10 w-10 rounded-full bg-grey-20" accessibilityLabel={`${nickname} 프로필`} />
   );
 }
 
