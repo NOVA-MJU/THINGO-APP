@@ -1,52 +1,29 @@
+import { getBoards, type Board, type CommunityCategory } from '@/api/posts';
 import { Footer } from '@/components/footer';
 import { ChatBubbleIcon, HeartIcon } from '@/components/icons';
 import { Pagination } from '@/components/ui/pagination';
 import { Text } from '@/components/ui/text';
-import { cn } from '@/lib/utils';
+import { cn, parseUTCDate } from '@/lib/utils';
+import { format } from 'date-fns';
 import { router } from 'expo-router';
 import { ClipboardPen } from 'lucide-react-native';
 import * as React from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-type BoardCategory = 'info' | 'free';
+type BoardCategoryTab = 'info' | 'free';
 
-type BoardItem = {
-  id: string;
-  category: BoardCategory;
-  title: string;
-  preview: string;
-  likeCount: string;
-  commentCount: string;
-  publishedAt: string;
-  isHot?: boolean;
-  isPressed?: boolean;
-};
-
-const BOARD_TABS: { key: BoardCategory; label: string }[] = [
+const BOARD_TABS: { key: BoardCategoryTab; label: string }[] = [
   { key: 'info', label: '정보 게시판' },
   { key: 'free', label: '자유 게시판' },
 ];
 
-const ITEMS_PER_PAGE = 10;
-const PUBLISHED_DATES = ['2025.XX.XX', '2025.XX.XX', '2025.XX.XX', '2025.XX.XX'];
-const PREVIEW_COPY = [
-  '게시판 본문 내용은 최대 2줄까지만 노출\n게시판 본문 내용이 2줄 이상일 경우에는 이런 형식으로 ...',
-  '게시판 본문 내용은 최대 2줄까지만 노출\n게시판 본문 내용이 2줄 이상일 경우에는 이런 형식으로 ...',
-  '게시판 본문 내용은 최대 2줄까지만 노출\n게시판 본문 내용이 2줄 이상일 경우에는 이런 형식으로 ...',
-];
+const CATEGORY_MAP: Record<BoardCategoryTab, Exclude<CommunityCategory, 'ALL'>> = {
+  info: 'NOTICE',
+  free: 'FREE',
+};
 
-const BOARD_ITEMS: BoardItem[] = Array.from({ length: 100 }, (_, index) => ({
-  id: `board-${index + 1}`,
-  category: index % 2 === 0 ? 'free' : 'info',
-  title: '게시판 제목',
-  preview: PREVIEW_COPY[index % PREVIEW_COPY.length],
-  likeCount: 'NN',
-  commentCount: 'NN',
-  publishedAt: PUBLISHED_DATES[index % PUBLISHED_DATES.length],
-  isPressed: index === 0 || index === 1,
-  isHot: index % 9 === 4,
-}));
+const ITEMS_PER_PAGE = 10;
 
 type BoardTabButtonProps = {
   label: string;
@@ -81,8 +58,18 @@ function BoardHotBadge() {
   );
 }
 
+function formatBoardDate(item: Board) {
+  const date = item.publishedAt ?? item.createdAt;
+  return format(parseUTCDate(date), 'yyyy.MM.dd');
+}
+
+function getBoardPreview(item: Board) {
+  const preview = item.previewContent.trim();
+  return preview.length > 0 ? preview : '등록된 본문 미리보기가 없습니다.';
+}
+
 type BoardCardProps = {
-  item: BoardItem;
+  item: Board;
   onPress?: () => void;
 };
 
@@ -90,24 +77,26 @@ function BoardCard({ item, onPress }: BoardCardProps) {
   return (
     <Pressable
       onPress={onPress}
-      className={cn('border-b border-grey-10 px-4 pb-2 pt-2', item.isPressed && 'bg-blue-05')}
+      className={cn('border-b border-grey-10 px-4 pb-2 pt-2', item.liked && 'bg-blue-05')}
     >
       <View className="gap-2">
         <View className="gap-1.5">
           <View className="flex-row items-center gap-1.5">
-            {item.isHot && <BoardHotBadge />}
-            <Text className="text-body04 text-black">{item.title}</Text>
+            {item.popular && <BoardHotBadge />}
+            <Text className="flex-1 text-body04 text-black" numberOfLines={1}>
+              {item.title}
+            </Text>
           </View>
 
           <Text className="pr-2 text-[14px] leading-[18px] text-black" numberOfLines={2}>
-            {item.preview}
+            {getBoardPreview(item)}
           </Text>
         </View>
 
         <View className="mt-0.5 flex-row items-center justify-between">
           <View className="flex-row items-center gap-2">
             <View className="flex-row items-center gap-0.5">
-              <HeartIcon size={24} className="text-[#8BC7FF]" filled={Boolean(item.isPressed)} />
+              <HeartIcon size={24} className="text-[#8BC7FF]" filled={item.liked} />
               <Text className="text-caption02 text-grey-40">{item.likeCount}</Text>
             </View>
 
@@ -117,7 +106,7 @@ function BoardCard({ item, onPress }: BoardCardProps) {
             </View>
           </View>
 
-          <Text className="text-caption02 text-grey-40">{item.publishedAt}</Text>
+          <Text className="text-caption02 text-grey-40">{formatBoardDate(item)}</Text>
         </View>
       </View>
     </Pressable>
@@ -146,24 +135,76 @@ function WriteButton({ bottomOffset, onPress }: { bottomOffset: number; onPress:
   );
 }
 
+function EmptyState() {
+  return (
+    <View className="items-center justify-center px-6 py-20">
+      <Text className="text-body04 text-black">등록된 게시글이 없습니다.</Text>
+      <Text className="mt-1 text-body05 text-grey-40">첫 번째 글을 작성해보세요.</Text>
+    </View>
+  );
+}
+
+function ErrorState({ onRetry }: { onRetry: () => void }) {
+  return (
+    <View className="items-center justify-center px-6 py-20">
+      <Text className="text-body04 text-black">게시글 목록을 불러오지 못했습니다.</Text>
+      <Pressable onPress={onRetry} className="mt-4 rounded-full border border-blue-20 px-4 py-2">
+        <Text className="text-body05 text-blue-35">다시 시도</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 function NoticeBoardScreen() {
   const { bottom } = useSafeAreaInsets();
-  const [activeCategory, setActiveCategory] = React.useState<BoardCategory>('info');
+  const scrollRef = React.useRef<ScrollView>(null);
+  const [activeCategory, setActiveCategory] = React.useState<BoardCategoryTab>('info');
   const [currentPage, setCurrentPage] = React.useState(1);
+  const [boards, setBoards] = React.useState<Board[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState(false);
+  const [totalPages, setTotalPages] = React.useState(1);
+  const [totalElements, setTotalElements] = React.useState(0);
 
-  const filteredItems = React.useMemo(
-    () => BOARD_ITEMS.filter((item) => item.category === activeCategory),
-    [activeCategory]
-  );
-  const totalPages = Math.max(1, Math.ceil(filteredItems.length / ITEMS_PER_PAGE));
-  const pagedItems = React.useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredItems.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [currentPage, filteredItems]);
+  const loadBoards = React.useCallback(async () => {
+    setLoading(true);
+    setError(false);
+
+    try {
+      const response = await getBoards({
+        page: currentPage - 1,
+        size: ITEMS_PER_PAGE,
+        communityCategory: CATEGORY_MAP[activeCategory],
+        sortBy: 'createdAt',
+        direction: 'DESC',
+      });
+
+      setBoards(response.boards);
+      setTotalPages(Math.max(1, response.totalPages));
+      setTotalElements(response.totalElements);
+    } catch {
+      setBoards([]);
+      setTotalPages(1);
+      setTotalElements(0);
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [activeCategory, currentPage]);
+
+  React.useEffect(() => {
+    void loadBoards();
+  }, [loadBoards]);
 
   React.useEffect(() => {
     setCurrentPage(1);
   }, [activeCategory]);
+
+  React.useEffect(() => {
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+  }, [activeCategory, currentPage]);
+
+  const showPagination = !loading && !error && totalElements > 0 && totalPages > 1;
 
   return (
     <View className="w-screen flex-1 bg-white">
@@ -185,30 +226,58 @@ function NoticeBoardScreen() {
       </View>
 
       <ScrollView
+        ref={scrollRef}
         className="flex-1 bg-white"
         nestedScrollEnabled
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: bottom + 20 }}
+        contentContainerStyle={{ flexGrow: 1 }}
       >
-        <View className="bg-white pt-5">
-          <View className="bg-white">
-            {pagedItems.map((item) => (
-              <BoardCard key={item.id} item={item} />
-            ))}
+        <View className="flex-1 justify-between bg-white pt-5">
+          <View>
+            <View className="px-4 pb-3">
+              <Text className="text-title03 text-black">
+                {BOARD_TABS.find((tab) => tab.key === activeCategory)?.label}
+              </Text>
+              <Text className="mt-1 text-body05 text-grey-40">총 {totalElements}개</Text>
+            </View>
+
+            {loading ? (
+              <View className="items-center justify-center py-20">
+                <ActivityIndicator />
+              </View>
+            ) : error ? (
+              <ErrorState onRetry={() => void loadBoards()} />
+            ) : boards.length === 0 ? (
+              <EmptyState />
+            ) : (
+              <>
+                <View className="bg-white">
+                  {boards.map((item) => (
+                    <BoardCard
+                      key={item.uuid}
+                      item={item}
+                      onPress={() => router.push(`/posts/${item.uuid}`)}
+                    />
+                  ))}
+                </View>
+
+                {showPagination && (
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                    className="mb-7 mt-6"
+                  />
+                )}
+              </>
+            )}
           </View>
 
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-            className="mb-7 mt-6"
-          />
-
-          <Footer />
+          <Footer withBottomInset />
         </View>
       </ScrollView>
 
-      <WriteButton bottomOffset={bottom + 88} onPress={() => router.push('/posts/write')} />
+      <WriteButton bottomOffset={bottom + 124} onPress={() => router.push('/posts/write')} />
     </View>
   );
 }
