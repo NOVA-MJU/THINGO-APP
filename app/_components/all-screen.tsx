@@ -185,7 +185,10 @@ export default function AllScreen({ onNavigate }: Props) {
                     </View>
                   </TouchableOpacity>
                 </Link>
-                <TouchableOpacity className="flex-1 rounded-xl bg-blue-02 pb-0.5 pe-1.5 ps-2.5 pt-2" onPress={() => onNavigate(1)}>
+                <TouchableOpacity
+                  className="flex-1 rounded-xl bg-blue-02 pb-0.5 pe-1.5 ps-2.5 pt-2"
+                  onPress={() => onNavigate(1)}
+                >
                   <Text className="text-body05 text-black">학식</Text>
                   <View className="flex-1 items-end justify-end">
                     <DiningIcon />
@@ -233,7 +236,10 @@ export default function AllScreen({ onNavigate }: Props) {
         </View>
 
         {/* 학식 */}
-        <TouchableOpacity onPress={() => onNavigate(1)} className="mx-4 mt-6 gap-2.5 rounded-xl bg-white px-4 py-5">
+        <TouchableOpacity
+          onPress={() => onNavigate(1)}
+          className="mx-4 mt-6 gap-2.5 rounded-xl bg-white px-4 py-5"
+        >
           <View className="flex-row items-center gap-2">
             <Text className="text-body02 text-black">{currentMealLabel}</Text>
             <Text className="text-caption02 text-grey-60">{currentMealTimeRange}</Text>
