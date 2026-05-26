@@ -11,13 +11,13 @@ import { getBroadcasts, type BroadcastItem } from '@/api/broadcast';
 import { getMenus, type DailyMenu } from '@/api/menus';
 import { getCalendar, type CalendarEvent } from '@/api/calendar';
 import { formatTimeAgo } from '@/lib/utils';
-import { MyeongjiMapIcon } from './icons/MyeongjiMapIcon';
-import { DiningIcon } from './icons/DiningIcon';
-import { CalendarIcon } from './icons/CalendarIcon';
-import { MegaphoneIcon } from './icons/MegaphoneIcon';
-import { ChatIcon } from './icons/ChatIcon';
-import { FireIcon } from './icons/FireIcon';
-import { StarIcon } from './icons/StarIcon';
+import { MyeongjiMapIcon } from './icons/myeongji-map-icon';
+import { DiningIcon } from './icons/dining-icon';
+import { CalendarIcon } from './icons/calendar-icon';
+import { MegaphoneIcon } from './icons/megaphone-icon';
+import { ChatIcon } from './icons/chat-icon';
+import { FireIcon } from './icons/fire-icon';
+import { StarIcon } from './icons/star-icon';
 import { ArrowRightIcon, ChatBubbleIcon, HeartIcon } from '@/components/icons';
 
 const NOTICE_CATEGORIES: { label: string; value: NoticeCategory }[] = [
