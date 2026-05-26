@@ -26,7 +26,13 @@ export interface NaverMapHandle {
 }
 
 export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMap(
-  { initialLatitude = 37.5665, initialLongitude = 126.978, initialZoom = 14, markers = [], onMarkerPress },
+  {
+    initialLatitude = 37.5665,
+    initialLongitude = 126.978,
+    initialZoom = 14,
+    markers = [],
+    onMarkerPress,
+  },
   ref
 ) {
   const mapRef = React.useRef<NaverMapViewRef>(null);

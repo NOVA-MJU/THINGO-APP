@@ -35,7 +35,8 @@ const DUMMY_PLACE = {
 function StarRating({ rating }: { rating: number }) {
   return (
     <Text className="text-yellow-400">
-      {'★'.repeat(rating)}{'☆'.repeat(5 - rating)}
+      {'★'.repeat(rating)}
+      {'☆'.repeat(5 - rating)}
     </Text>
   );
 }
@@ -67,10 +68,10 @@ export function PlaceDetail({ placeId: _ }: { placeId: string }) {
         </View>
       </View>
 
-      <View className="h-px bg-grey-20 mx-6" />
+      <View className="mx-6 h-px bg-grey-20" />
 
       {/* 영업시간 */}
-      <View className="px-6 py-4 gap-3">
+      <View className="gap-3 px-6 py-4">
         <TouchableOpacity
           className="flex-row items-center justify-between"
           onPress={() => setHoursExpanded((v) => !v)}
@@ -91,10 +92,10 @@ export function PlaceDetail({ placeId: _ }: { placeId: string }) {
         )}
       </View>
 
-      <View className="h-px bg-grey-20 mx-6" />
+      <View className="mx-6 h-px bg-grey-20" />
 
       {/* 리뷰 */}
-      <View className="px-6 py-4 gap-4">
+      <View className="gap-4 px-6 py-4">
         <Text className="font-semibold">리뷰</Text>
         {place.reviews.map((review, index) => (
           <View key={index} className="gap-1.5">
