@@ -124,8 +124,10 @@ function buildHtmlDocument(content: string) {
         var lastHeight = 0;
 
         function postHeight() {
+          var bodyRect = document.body.getBoundingClientRect();
           var nextHeight = Math.max(
-            document.documentElement.scrollHeight || 0,
+            bodyRect.height || 0,
+            document.body.offsetHeight || 0,
             document.body.scrollHeight || 0
           );
 
