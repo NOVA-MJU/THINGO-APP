@@ -43,8 +43,15 @@ const COMMENT_MAX_LENGTH = 300;
 
 export default function BoardDetailScreen() {
   const insets = useSafeAreaInsets();
-  const { postId } = useLocalSearchParams<{ postId?: string | string[] }>();
+  const { postId, fromEdit, boardCategory } = useLocalSearchParams<{
+    postId?: string | string[];
+    fromEdit?: string | string[];
+    boardCategory?: string | string[];
+  }>();
+
   const boardUUID = Array.isArray(postId) ? postId[0] : postId;
+  const isFromEdit = (Array.isArray(fromEdit) ? fromEdit[0] : fromEdit) === 'true';
+  const previousBoardCategory = Array.isArray(boardCategory) ? boardCategory[0] : boardCategory;
   const { user, isInitializing } = useAuth();
   const [board, setBoard] = React.useState<Board | null>(null);
   const [comments, setComments] = React.useState<Comment[]>([]);
@@ -164,12 +171,25 @@ export default function BoardDetailScreen() {
     router.push('/login');
   }, []);
 
+  const handleBackPress = React.useCallback(() => {
+    if (isFromEdit) {
+      router.replace({
+        pathname: '/',
+        params: {
+          tab: 'board',
+          boardCategory: previousBoardCategory === 'free' ? 'free' : 'info',
+          refreshBoards: String(Date.now()),
+        },
+      });
+      return;
+    }
+
+    router.back();
+  }, [isFromEdit, previousBoardCategory]);
+
   const handleEditPress = React.useCallback(() => {
     if (!boardUUID || !board?.canEdit) return;
-    router.push({
-      pathname: '/posts/write',
-      params: { postId: boardUUID },
-    });
+    router.push(`/posts/edit/${boardUUID}`);
   }, [board?.canEdit, boardUUID]);
 
   const handleBoardDeleteConfirm = React.useCallback(async () => {
@@ -310,7 +330,7 @@ export default function BoardDetailScreen() {
     [boardUUID, deletingCommentUUID, user]
   );
 
-  if (isInitializing || isLoading) {
+  if (isInitializing || (isLoading && !board)) {
     return <LoadingState topInset={insets.top} bottomInset={insets.bottom} />;
   }
 
@@ -334,7 +354,7 @@ export default function BoardDetailScreen() {
         <View>
           <View className="border-b border-grey-02 px-4 pb-4 pt-5">
             <TouchableOpacity
-              onPress={() => router.back()}
+              onPress={handleBackPress}
               className="flex-row items-center gap-1 self-start"
             >
               <ArrowLeftIcon className="text-black" />
