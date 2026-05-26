@@ -1,7 +1,7 @@
 import { HamburgerIcon, SearchIcon, ThingoLogoSmall } from '@/components/icons';
 import Sidebar from '@/components/sidebar';
 import { Text } from '@/components/ui/text';
-import { Link } from 'expo-router';
+import { Link, useLocalSearchParams } from 'expo-router';
 import * as React from 'react';
 import { Dimensions, Keyboard, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,6 +20,16 @@ const { width } = Dimensions.get('window');
 const TABS = ['ALL', '학식', '게시판', '명지도', '공지사항', '학사일정', '명대신문', '명대뉴스'];
 
 export default function Screen() {
+  const { tab, boardCategory, refreshBoards } = useLocalSearchParams<{
+    tab?: string | string[];
+    boardCategory?: string | string[];
+    refreshBoards?: string | string[];
+  }>();
+
+  const targetTab = Array.isArray(tab) ? tab[0] : tab;
+  const targetBoardCategory = Array.isArray(boardCategory) ? boardCategory[0] : boardCategory;
+  const boardRefreshKey = Array.isArray(refreshBoards) ? refreshBoards[0] : refreshBoards;
+
   const insets = useSafeAreaInsets();
   const scrollRef = React.useRef<ScrollView>(null);
   const [currentTab, setCurrentTab] = React.useState(TABS[0]);
@@ -34,6 +44,14 @@ export default function Screen() {
     const page = Math.round(e.nativeEvent.contentOffset.x / width);
     if (TABS[page]) setCurrentTab(TABS[page]);
   };
+
+  React.useEffect(() => {
+    if (targetTab !== 'board') return;
+
+    const boardTabIndex = 2;
+    setCurrentTab(TABS[boardTabIndex]);
+    scrollRef.current?.scrollTo({ x: width * boardTabIndex, animated: false });
+  }, [targetTab]);
 
   return (
     <>
@@ -82,7 +100,14 @@ export default function Screen() {
         <MealScreen />
 
         {/* 게시판 */}
-        <NoticeBoardScreen />
+        <NoticeBoardScreen
+          initialCategory={
+            targetBoardCategory === 'free' || targetBoardCategory === 'info'
+              ? targetBoardCategory
+              : undefined
+          }
+          refreshKey={boardRefreshKey}
+        />
 
         {/* 명지도 */}
         <MapScreen />
