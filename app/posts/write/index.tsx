@@ -1,6 +1,6 @@
 import { createBoard, getBoardDetail, updateBoard, type CommunityCategory } from '@/api/posts';
 import { Footer } from '@/components/footer';
-import { ArrowLeftIcon, InfoOutlineIcon } from '@/components/icons';
+import { ArrowDownIcon, ArrowLeftIcon, InfoOutlineIcon } from '@/components/icons';
 import { PostEditor, type PostEditorHandle, type PostEditorValue } from '@/components/post-editor';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,14 +11,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  type Option,
-} from '@/components/ui/select';
+import type { Option } from '@/components/ui/select';
+import * as DropdownMenu from 'zeego/dropdown-menu';
 import { Text } from '@/components/ui/text';
 import { useAuth } from '@/context/auth-context';
 import { showAlert } from '@/lib/alert';
@@ -200,6 +194,14 @@ export default function BoardWriteScreen() {
           : await createBoard(requestBody);
 
       setExitDialogOpen(false);
+
+      if (isEditMode) {
+        const nextBoardCategory = nextBoard.communityCategory === 'FREE' ? 'free' : 'info';
+
+        router.replace(`/posts/${nextBoard.uuid}?fromEdit=true&boardCategory=${nextBoardCategory}`);
+        return;
+      }
+
       router.replace(`/posts/${nextBoard.uuid}`);
     } catch {
       showAlert(isEditMode ? '게시글 수정 실패' : '게시글 작성 실패', '잠시 후 다시 시도해주세요.');
@@ -280,10 +282,10 @@ export default function BoardWriteScreen() {
         <DialogContent className="mx-6 w-[320px] max-w-[320px] gap-4 rounded-xl border-none py-[24px]">
           <DialogHeader className="gap-1">
             <DialogTitle className="text-center text-body03 text-black">
-              게시물 작성을 중단하시겠습니까?
+              {isEditMode ? '게시물 수정을 중단하시겠습니까?' : '게시물 작성을 중단하시겠습니까?'}
             </DialogTitle>
             <DialogDescription className="text-center text-body06 text-grey-80">
-              기록된 모든 내용이 삭제됩니다.
+              {isEditMode ? '변경된 내용이 저장되지 않습니다.' : '기록된 모든 내용이 삭제됩니다.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -396,16 +398,7 @@ function WriteForm({
             maxLength={100}
           />
 
-          <Select value={category} onValueChange={onCategoryChange}>
-            <SelectTrigger className="h-[40px] w-full rounded-xl border-grey-10 bg-white px-3">
-              <SelectValue placeholder="게시판을 선택하세요" className="text-body03 text-blue-20" />
-            </SelectTrigger>
-            <SelectContent>
-              {BOARD_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value} label={option.label} />
-              ))}
-            </SelectContent>
-          </Select>
+          <BoardDropdown value={category} onChange={onCategoryChange} />
         </View>
 
         <View className="mt-3.5 h-[360px] overflow-hidden rounded-xl border border-grey-10 bg-white">
@@ -428,6 +421,38 @@ function WriteForm({
         </View>
       ) : null}
     </View>
+  );
+}
+
+type BoardDropdownProps = {
+  value: Option;
+  onChange: (value: Option) => void;
+};
+
+function BoardDropdown({ value, onChange }: BoardDropdownProps) {
+  const selectedLabel =
+    BOARD_OPTIONS.find((option) => option.value === value?.value)?.label ??
+    DEFAULT_BOARD_OPTION.label;
+
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger>
+        <View className="h-[40px] flex-row items-center rounded-xl border border-grey-10 bg-white px-3">
+          <Text className="flex-1 text-body03 text-blue-20" numberOfLines={1}>
+            {selectedLabel}
+          </Text>
+          <ArrowDownIcon size={24} className="text-grey-30" />
+        </View>
+      </DropdownMenu.Trigger>
+
+      <DropdownMenu.Content>
+        {BOARD_OPTIONS.map((option) => (
+          <DropdownMenu.Item key={option.value} onSelect={() => onChange(option)}>
+            <DropdownMenu.ItemTitle>{option.label}</DropdownMenu.ItemTitle>
+          </DropdownMenu.Item>
+        ))}
+      </DropdownMenu.Content>
+    </DropdownMenu.Root>
   );
 }
 
