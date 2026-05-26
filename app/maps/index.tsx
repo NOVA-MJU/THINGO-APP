@@ -2,6 +2,8 @@ import { ArrowLeftIcon, HamburgerIcon } from '@/components/icons';
 import { CategoryFilter } from '@/components/ui/category-filter';
 import { NaverMap, NaverMapHandle } from '@/components/naver-map';
 import Sidebar from '@/components/sidebar';
+import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import { PlaceDetail } from './_components/place-detail';
 import * as Location from 'expo-location';
 import * as React from 'react';
 import { Alert, Platform, TouchableOpacity, View } from 'react-native';
@@ -22,14 +24,29 @@ const MARKERS = [
 
 const FILTER_CATEGORIES = ['버스', '대동명지도', '프린터', '라운지', '은행·ATM'];
 
+const SNAP_POINTS = ['50%', '100%'];
+
 export default function MapsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [selectedCategory, setSelectedCategory] = React.useState(FILTER_CATEGORIES[0]);
+  const [selectedMarkerId, setSelectedMarkerId] = React.useState<string | null>(null);
   const mapRef = React.useRef<NaverMapHandle>(null);
+  const bottomSheetRef = React.useRef<BottomSheet>(null);
 
-  function onSearchButtonPress() {}
+  function onMarkerPress(id: string) {
+    setSelectedMarkerId(id);
+    bottomSheetRef.current?.snapToIndex(0);
+  }
+
+  function onBottomSheetClose() {
+    setSelectedMarkerId(null);
+  }
+
+  function onSearchButtonPress() {
+    router.push('/maps/search');
+  }
 
   async function onCurrentLocationPress() {
     if (Platform.OS === 'web') return;
@@ -59,6 +76,7 @@ export default function MapsScreen() {
         initialLongitude={126.923186}
         initialZoom={16}
         markers={MARKERS}
+        onMarkerPress={onMarkerPress}
       />
 
       {/* 플로팅 헤더 */}
@@ -133,6 +151,21 @@ export default function MapsScreen() {
       )}
 
       <Sidebar visible={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+      {/* 바텀시트 */}
+      <BottomSheet
+        ref={bottomSheetRef}
+        index={-1}
+        snapPoints={SNAP_POINTS}
+        enablePanDownToClose
+        // handleComponent={null}
+        topInset={insets.top}
+        onClose={onBottomSheetClose}
+      >
+        <BottomSheetScrollView>
+          <PlaceDetail placeId={selectedMarkerId ?? ''} />
+        </BottomSheetScrollView>
+      </BottomSheet>
     </View>
   );
 }
