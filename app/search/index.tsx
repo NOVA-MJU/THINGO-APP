@@ -151,10 +151,12 @@ export default function SearchScreen() {
     const trimmedKeyword = keyword.trim();
     if (!trimmedKeyword) return;
 
-    setRecentSearches((prev) => [
-      trimmedKeyword,
-      ...prev.filter((item) => item !== trimmedKeyword),
-    ].slice(0, MAX_RECENT_SEARCH_COUNT));
+    setRecentSearches((prev) =>
+      [trimmedKeyword, ...prev.filter((item) => item !== trimmedKeyword)].slice(
+        0,
+        MAX_RECENT_SEARCH_COUNT
+      )
+    );
   }
 
   function onRecentSearchPress(keyword: string): void {
@@ -287,10 +289,7 @@ export default function SearchScreen() {
                   contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}
                   columnWrapperStyle={{ gap: 4 }}
                   renderItem={({ item, index }) => (
-                    <TouchableOpacity
-                      className="flex-1"
-                      onPress={() => onPopularSearchPress(item)}
-                    >
+                    <TouchableOpacity className="flex-1" onPress={() => onPopularSearchPress(item)}>
                       <View className="flex-row">
                         <Text className="text-body04 text-blue-35">{index + 1}</Text>
                         <Text className="ms-1.5 text-body05 text-grey-40">{item}</Text>
