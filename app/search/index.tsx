@@ -265,7 +265,7 @@ export default function SearchScreen() {
           </View>
         </View>
 
-        {/* 검색 미제출 상태 */}
+        {/* 검색어 미입력 */}
         {!submittedQuery && (
           <View>
             {/* 최근 검색어 */}

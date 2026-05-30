@@ -18,6 +18,7 @@ interface Props {
   initialLongitude?: number;
   initialZoom?: number;
   markers?: Marker[];
+  onMarkerPress?: (id: string) => void;
 }
 
 export interface NaverMapHandle {
@@ -25,7 +26,13 @@ export interface NaverMapHandle {
 }
 
 export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMap(
-  { initialLatitude = 37.5665, initialLongitude = 126.978, initialZoom = 14, markers = [] },
+  {
+    initialLatitude = 37.5665,
+    initialLongitude = 126.978,
+    initialZoom = 14,
+    markers = [],
+    onMarkerPress,
+  },
   ref
 ) {
   const mapRef = React.useRef<NaverMapViewRef>(null);
@@ -56,6 +63,7 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
           width={20}
           height={28}
           caption={{ text: marker.title ?? '' }}
+          onTap={() => onMarkerPress?.(marker.id)}
         />
       ))}
     </NaverMapView>

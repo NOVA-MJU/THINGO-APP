@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@10play/tentap-editor": "^1.0.1",
+    "@gorhom/bottom-sheet": "^5.2.14",
     "@mj-studio/react-native-naver-map": "^2.8.0",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-menu/menu": "^2.0.0",
@@ -49,7 +50,7 @@
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-native": "0.83.4",
-    "react-native-gesture-handler": "~2.30.1",
+    "react-native-gesture-handler": "~2.30.0",
     "react-native-ios-context-menu": "^3.2.1",
     "react-native-ios-utilities": "^5.2.0",
     "react-native-reanimated": "4.2.1",
