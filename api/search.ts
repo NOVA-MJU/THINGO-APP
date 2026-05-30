@@ -245,7 +245,7 @@ export async function searchAll(keyword: string): Promise<SearchResults> {
   return results;
 }
 
-export async function getSearchSuggestions(keyword: string): Promise<string[]> {
+export async function getSearchAutocomplete(keyword: string): Promise<string[]> {
   const trimmedKeyword = keyword.trim();
   if (!trimmedKeyword) return [];
 
