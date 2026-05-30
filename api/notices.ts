@@ -54,8 +54,31 @@ export type NoticesResponse = {
   empty: boolean;
 };
 
+export type HotNotice = {
+  title: string;
+  date: string;
+  category: string;
+  link: string;
+  viewCount: number;
+};
+
+type HotNoticesResponse = {
+  status: string;
+  data: HotNotice[];
+  timestamp: string;
+};
+
 // 공지사항 목록 조회
 export async function getNotices(params: NoticesParams): Promise<NoticesResponse> {
   const { data } = await client.get<NoticesResponse>('/notices', { params });
   return data;
+}
+
+// HOT 공지사항 조회 (최근 1개월 조회수 상위)
+export async function getHotNotices(params?: {
+  page?: number;
+  size?: number;
+}): Promise<HotNotice[]> {
+  const { data } = await client.get<HotNoticesResponse>('/notices/hot', { params });
+  return data.data;
 }
