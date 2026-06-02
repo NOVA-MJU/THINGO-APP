@@ -241,7 +241,7 @@ export const PostEditor = React.forwardRef<PostEditorHandle, PostEditorProps>(fu
         editor.setContent(normalized);
       },
     }),
-    [editor, editorState.isReady]
+    [editor, editorState.isReady, initialHtml]
   );
 
   return (
