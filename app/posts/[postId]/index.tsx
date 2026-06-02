@@ -26,7 +26,7 @@ import { useAuth } from '@/context/auth-context';
 import { showAlert } from '@/lib/alert';
 import { parseUTCDate } from '@/lib/utils';
 import { format } from 'date-fns';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as React from 'react';
 import {
   ActivityIndicator,
@@ -43,14 +43,16 @@ const COMMENT_MAX_LENGTH = 300;
 
 export default function BoardDetailScreen() {
   const insets = useSafeAreaInsets();
-  const { postId, fromEdit, boardCategory } = useLocalSearchParams<{
+  const { postId, fromEdit, fromCreate, boardCategory } = useLocalSearchParams<{
     postId?: string | string[];
     fromEdit?: string | string[];
+    fromCreate?: string | string[];
     boardCategory?: string | string[];
   }>();
 
   const boardUUID = Array.isArray(postId) ? postId[0] : postId;
   const isFromEdit = (Array.isArray(fromEdit) ? fromEdit[0] : fromEdit) === 'true';
+  const isFromCreate = (Array.isArray(fromCreate) ? fromCreate[0] : fromCreate) === 'true';
   const previousBoardCategory = Array.isArray(boardCategory) ? boardCategory[0] : boardCategory;
   const { user, isInitializing } = useAuth();
   const [board, setBoard] = React.useState<Board | null>(null);
@@ -97,10 +99,12 @@ export default function BoardDetailScreen() {
     }
   }, [boardUUID]);
 
-  React.useEffect(() => {
-    if (isInitializing) return;
-    void loadBoardData();
-  }, [isInitializing, loadBoardData, user?.uuid]);
+  useFocusEffect(
+    React.useCallback(() => {
+      if (isInitializing) return;
+      void loadBoardData();
+    }, [isInitializing, loadBoardData, user?.uuid])
+  );
 
   const handlePostLikeClick = React.useCallback(async () => {
     if (!boardUUID || !board || isLikePending) return;
@@ -172,7 +176,7 @@ export default function BoardDetailScreen() {
   }, []);
 
   const handleBackPress = React.useCallback(() => {
-    if (isFromEdit) {
+    if (isFromEdit || isFromCreate) {
       router.replace({
         pathname: '/',
         params: {
@@ -185,7 +189,7 @@ export default function BoardDetailScreen() {
     }
 
     router.back();
-  }, [isFromEdit, previousBoardCategory]);
+  }, [isFromCreate, isFromEdit, previousBoardCategory]);
 
   const handleEditPress = React.useCallback(() => {
     if (!boardUUID || !board?.canEdit) return;
@@ -198,21 +202,31 @@ export default function BoardDetailScreen() {
     setIsBoardDeleting(true);
 
     try {
+      const nextBoardCategory = board.communityCategory === 'FREE' ? 'free' : 'info';
+
       await deleteBoard(boardUUID);
       setDeleteDialogOpen(false);
 
-      if (router.canGoBack()) {
-        router.back();
-        return;
-      }
-
-      router.replace('/');
+      router.replace({
+        pathname: '/',
+        params: {
+          tab: 'board',
+          boardCategory: previousBoardCategory === 'free' ? 'free' : nextBoardCategory,
+          refreshBoards: String(Date.now()),
+        },
+      });
     } catch {
       showAlert('게시글 삭제 실패', '잠시 후 다시 시도해주세요.');
     } finally {
       setIsBoardDeleting(false);
     }
-  }, [board?.canDelete, boardUUID, isBoardDeleting]);
+  }, [
+    board?.canDelete,
+    board?.communityCategory,
+    boardUUID,
+    isBoardDeleting,
+    previousBoardCategory,
+  ]);
 
   const handleCommentLikeClick = React.useCallback(
     async (commentUUID: string) => {
