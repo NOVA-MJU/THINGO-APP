@@ -1,6 +1,6 @@
 import { createBoard, getBoardDetail, updateBoard, type CommunityCategory } from '@/api/posts';
 import { Footer } from '@/components/footer';
-import { ArrowLeftIcon, InfoOutlineIcon } from '@/components/icons';
+import { ArrowDownIcon, ArrowLeftIcon, CloseIcon, InfoOutlineIcon } from '@/components/icons';
 import { PostEditor, type PostEditorHandle, type PostEditorValue } from '@/components/post-editor';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,23 +11,18 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  type Option,
-} from '@/components/ui/select';
+import type { Option } from '@/components/ui/select';
+import * as DropdownMenu from 'zeego/dropdown-menu';
 import { Text } from '@/components/ui/text';
 import { useAuth } from '@/context/auth-context';
+import { useImageUpload } from '@/hooks/useImageUpload';
 import { showAlert } from '@/lib/alert';
-import { buildContentPreview, normalizePostContent } from '@/lib/post-content';
+import { buildContentPreview, escapeHtml, normalizePostContent } from '@/lib/post-content';
 import { cn } from '@/lib/utils';
 import { useKeyboard } from '@10play/tentap-editor';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as React from 'react';
-import { ActivityIndicator, BackHandler, Keyboard, Pressable, View } from 'react-native';
+import { ActivityIndicator, BackHandler, Image, Keyboard, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type BoardOption = NonNullable<Option>;
@@ -38,12 +33,14 @@ type WriteFormProps = {
   title: string;
   contentHtml: string;
   category: Option;
+  imageUrl: string | null;
   canSubmit: boolean;
   isSubmitting: boolean;
   editorRef: React.RefObject<PostEditorHandle | null>;
   onTitleChange: (value: string) => void;
   onContentChange: (value: PostEditorValue) => void;
   onCategoryChange: (value: Option) => void;
+  onImageUrlChange: (value: string | null) => void;
   onSubmit: () => void;
   bottomInset: number;
 };
@@ -56,6 +53,7 @@ type LoggedOutViewProps = {
 type InitialFormState = {
   title: string;
   contentText: string;
+  imageUrl: string | null;
   categoryValue: string;
 };
 
@@ -65,6 +63,7 @@ const BOARD_OPTIONS: BoardOption[] = [DEFAULT_BOARD_OPTION, { value: 'free', lab
 const DEFAULT_FORM_STATE: InitialFormState = {
   title: '',
   contentText: '',
+  imageUrl: null,
   categoryValue: DEFAULT_BOARD_OPTION.value,
 };
 
@@ -78,6 +77,7 @@ export default function BoardWriteScreen() {
   const [title, setTitle] = React.useState('');
   const [contentHtml, setContentHtml] = React.useState('');
   const [contentText, setContentText] = React.useState('');
+  const [imageUrl, setImageUrl] = React.useState<string | null>(null);
   const [category, setCategory] = React.useState<Option>(DEFAULT_BOARD_OPTION);
   const [exitDialogOpen, setExitDialogOpen] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -90,6 +90,7 @@ export default function BoardWriteScreen() {
   const isDirty =
     title.trim() !== initialFormState.title ||
     contentText.trim() !== initialFormState.contentText ||
+    imageUrl !== initialFormState.imageUrl ||
     category?.value !== initialFormState.categoryValue;
   const canSubmit = title.trim().length > 0 && contentText.trim().length > 0;
 
@@ -114,10 +115,12 @@ export default function BoardWriteScreen() {
       setTitle(board.title);
       setContentHtml(normalizedHtml);
       setContentText(normalizedText);
+      setImageUrl(board.imageUrl);
       setCategory(nextCategory);
       setInitialFormState({
         title: board.title.trim(),
         contentText: normalizedText,
+        imageUrl: board.imageUrl,
         categoryValue: nextCategory.value,
       });
     } catch {
@@ -172,6 +175,7 @@ export default function BoardWriteScreen() {
     const nextTitle = title.trim();
     const nextContentText = contentText.trim();
     const nextContentHtml = contentHtml.trim();
+    const nextContentWithImage = appendUploadedImageToContent(nextContentHtml, imageUrl);
 
     if (!nextTitle) {
       showAlert('제목을 입력해주세요.');
@@ -188,8 +192,9 @@ export default function BoardWriteScreen() {
     try {
       const requestBody = {
         title: nextTitle,
-        content: nextContentHtml,
+        content: nextContentWithImage,
         contentPreview: buildContentPreview(nextContentText),
+        imageUrl,
         published: true,
         communityCategory: mapBoardOptionToCategory(category),
       };
@@ -200,13 +205,26 @@ export default function BoardWriteScreen() {
           : await createBoard(requestBody);
 
       setExitDialogOpen(false);
-      router.replace(`/posts/${nextBoard.uuid}`);
+
+      if (isEditMode) {
+        const nextBoardCategory = nextBoard.communityCategory === 'FREE' ? 'free' : 'info';
+
+        router.replace(
+          `/posts/${nextBoard.uuid}?fromEdit=true&boardCategory=${nextBoardCategory}&refreshPost=${Date.now()}`
+        );
+        return;
+      }
+
+      const nextBoardCategory = nextBoard.communityCategory === 'FREE' ? 'free' : 'info';
+      router.replace(
+        `/posts/${nextBoard.uuid}?fromCreate=true&boardCategory=${nextBoardCategory}&refreshPost=${Date.now()}`
+      );
     } catch {
       showAlert(isEditMode ? '게시글 수정 실패' : '게시글 작성 실패', '잠시 후 다시 시도해주세요.');
     } finally {
       setIsSubmitting(false);
     }
-  }, [category, contentHtml, contentText, editingBoardUUID, isEditMode, title, user]);
+  }, [category, contentHtml, contentText, editingBoardUUID, imageUrl, isEditMode, title, user]);
 
   const handleLoginPress = React.useCallback(() => {
     router.push('/login');
@@ -259,6 +277,7 @@ export default function BoardWriteScreen() {
           isEditMode={isEditMode}
           title={title}
           contentHtml={contentHtml}
+          imageUrl={imageUrl}
           category={category}
           canSubmit={canSubmit}
           isSubmitting={isSubmitting}
@@ -269,6 +288,7 @@ export default function BoardWriteScreen() {
             setContentText(text);
           }}
           onCategoryChange={setCategory}
+          onImageUrlChange={setImageUrl}
           onSubmit={handleSubmit}
           bottomInset={insets.bottom}
         />
@@ -280,10 +300,10 @@ export default function BoardWriteScreen() {
         <DialogContent className="mx-6 w-[320px] max-w-[320px] gap-4 rounded-xl border-none py-[24px]">
           <DialogHeader className="gap-1">
             <DialogTitle className="text-center text-body03 text-black">
-              게시물 작성을 중단하시겠습니까?
+              {isEditMode ? '게시물 수정을 중단하시겠습니까?' : '게시물 작성을 중단하시겠습니까?'}
             </DialogTitle>
             <DialogDescription className="text-center text-body06 text-grey-80">
-              기록된 모든 내용이 삭제됩니다.
+              {isEditMode ? '변경된 내용이 저장되지 않습니다.' : '기록된 모든 내용이 삭제됩니다.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -360,6 +380,7 @@ function WriteForm({
   isEditMode,
   title,
   contentHtml,
+  imageUrl,
   category,
   canSubmit,
   isSubmitting,
@@ -367,6 +388,7 @@ function WriteForm({
   onTitleChange,
   onContentChange,
   onCategoryChange,
+  onImageUrlChange,
   onSubmit,
   bottomInset,
 }: WriteFormProps) {
@@ -396,21 +418,19 @@ function WriteForm({
             maxLength={100}
           />
 
-          <Select value={category} onValueChange={onCategoryChange}>
-            <SelectTrigger className="h-[40px] w-full rounded-xl border-grey-10 bg-white px-3">
-              <SelectValue placeholder="게시판을 선택하세요" className="text-body03 text-blue-20" />
-            </SelectTrigger>
-            <SelectContent>
-              {BOARD_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value} label={option.label} />
-              ))}
-            </SelectContent>
-          </Select>
+          <BoardDropdown value={category} onChange={onCategoryChange} />
         </View>
 
         <View className="mt-3.5 h-[360px] overflow-hidden rounded-xl border border-grey-10 bg-white">
-          <PostEditor ref={editorRef} initialHtml={contentHtml} onChange={onContentChange} />
+          <PostEditor
+            ref={editorRef}
+            initialHtml={contentHtml}
+            onChange={onContentChange}
+            placeholder="내용을 입력해주세요."
+          />
         </View>
+
+        <PostImageUploadPreviewV3 imageUrl={imageUrl} onImageUrlChange={onImageUrlChange} />
       </View>
 
       {!isKeyboardUp ? (
@@ -428,6 +448,142 @@ function WriteForm({
         </View>
       ) : null}
     </View>
+  );
+}
+
+function PostImageUploadPreviewV3({
+  imageUrl,
+  onImageUrlChange,
+}: {
+  imageUrl: string | null;
+  onImageUrlChange: (value: string | null) => void;
+}) {
+  const { isLoading, error, pickAndUpload } = useImageUpload('COMMUNITY_POST');
+
+  const handleUploadPress = React.useCallback(async () => {
+    const uploadedUrl = await pickAndUpload();
+    if (uploadedUrl) onImageUrlChange(uploadedUrl);
+  }, [onImageUrlChange, pickAndUpload]);
+
+  return (
+    <View className="mt-3.5">
+      <View className="flex-row items-center gap-3">
+        <Button
+          variant="muted"
+          disabled={isLoading}
+          onPress={handleUploadPress}
+          className="h-[92px] w-[112px] rounded-xl border border-grey-10 bg-grey-02 px-2 py-0"
+        >
+          <Text className="text-center text-caption02 text-grey-40" numberOfLines={2}>
+            {isLoading ? '업로드 중...' : '이미지 업로드'}
+          </Text>
+        </Button>
+
+        <View className="relative h-[92px] w-[92px] items-center justify-center overflow-hidden rounded-xl border border-grey-10 bg-grey-02">
+          {imageUrl ? (
+            <>
+              <Image source={{ uri: imageUrl }} className="h-full w-full" resizeMode="cover" />
+              <Pressable
+                onPress={() => onImageUrlChange(null)}
+                className="absolute right-1 top-1 h-6 w-6 items-center justify-center rounded-full bg-black/70"
+                accessibilityRole="button"
+                accessibilityLabel="업로드 이미지 삭제"
+              >
+                <Text className="text-[14px] font-bold leading-[16px] text-white">X</Text>
+              </Pressable>
+            </>
+          ) : (
+            <Text className="text-caption02 text-grey-30">미리보기</Text>
+          )}
+        </View>
+      </View>
+
+      {error ? <Text className="mt-2 text-caption02 text-error">{error}</Text> : null}
+    </View>
+  );
+}
+
+function PostImageUploadPreviewV2({
+  imageUrl,
+  onImageUrlChange,
+}: {
+  imageUrl: string | null;
+  onImageUrlChange: (value: string | null) => void;
+}) {
+  const { isLoading, error, pickAndUpload } = useImageUpload('COMMUNITY_POST');
+
+  const handleUploadPress = React.useCallback(async () => {
+    const uploadedUrl = await pickAndUpload();
+    if (uploadedUrl) onImageUrlChange(uploadedUrl);
+  }, [onImageUrlChange, pickAndUpload]);
+
+  return (
+    <View className="mt-3.5">
+      <View className="flex-row items-center gap-3">
+        <Button
+          variant="muted"
+          disabled={isLoading}
+          onPress={handleUploadPress}
+          className="h-[92px] w-[112px] rounded-xl border border-grey-10 bg-grey-02 px-2 py-0"
+        >
+          <Text className="text-center text-caption02 text-grey-40" numberOfLines={2}>
+            {isLoading ? '업로드 중...' : '이미지 업로드'}
+          </Text>
+        </Button>
+
+        <View className="relative h-[92px] w-[92px] items-center justify-center overflow-hidden rounded-xl border border-grey-10 bg-grey-02">
+          {imageUrl ? (
+            <>
+              <Image source={{ uri: imageUrl }} className="h-full w-full" resizeMode="cover" />
+              <Pressable
+                onPress={() => onImageUrlChange(null)}
+                className="absolute right-1 top-1 h-6 w-6 items-center justify-center rounded-full bg-black/70"
+                accessibilityRole="button"
+                accessibilityLabel="업로드 이미지 삭제"
+              >
+                <Text className="text-[16px] font-bold leading-[18px] text-white">×</Text>
+              </Pressable>
+            </>
+          ) : (
+            <Text className="text-caption02 text-grey-30">미리보기</Text>
+          )}
+        </View>
+      </View>
+
+      {error ? <Text className="mt-2 text-caption02 text-error">{error}</Text> : null}
+    </View>
+  );
+}
+
+type BoardDropdownProps = {
+  value: Option;
+  onChange: (value: Option) => void;
+};
+
+function BoardDropdown({ value, onChange }: BoardDropdownProps) {
+  const selectedLabel =
+    BOARD_OPTIONS.find((option) => option.value === value?.value)?.label ??
+    DEFAULT_BOARD_OPTION.label;
+
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger>
+        <View className="h-[40px] flex-row items-center rounded-xl border border-grey-10 bg-white px-3">
+          <Text className="flex-1 text-body03 text-blue-20" numberOfLines={1}>
+            {selectedLabel}
+          </Text>
+          <ArrowDownIcon size={24} className="text-grey-30" />
+        </View>
+      </DropdownMenu.Trigger>
+
+      <DropdownMenu.Content>
+        {BOARD_OPTIONS.map((option) => (
+          <DropdownMenu.Item key={option.value} onSelect={() => onChange(option)}>
+            <DropdownMenu.ItemTitle>{option.label}</DropdownMenu.ItemTitle>
+          </DropdownMenu.Item>
+        ))}
+      </DropdownMenu.Content>
+    </DropdownMenu.Root>
   );
 }
 
@@ -457,6 +613,13 @@ function mapBoardOptionToCategory(category: Option): Exclude<CommunityCategory, 
 
 function getBoardOptionFromCategory(category?: CommunityCategory | null): BoardOption {
   return category === 'FREE' ? BOARD_OPTIONS[1] : DEFAULT_BOARD_OPTION;
+}
+
+function appendUploadedImageToContent(contentHtml: string, imageUrl: string | null) {
+  if (!imageUrl) return contentHtml;
+
+  const escapedUrl = escapeHtml(imageUrl);
+  return `${contentHtml}<figure><img src="${escapedUrl}" alt="게시글 이미지" /></figure>`;
 }
 
 function htmlToPlainText(html: string) {

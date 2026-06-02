@@ -216,16 +216,20 @@ export const PostEditor = React.forwardRef<PostEditorHandle, PostEditorProps>(fu
     ref,
     () => ({
       blur: () => {
+        if (!editorState.isReady) return;
         editor.blur();
       },
       focus: () => {
+        if (!editorState.isReady) return;
         editor.focus();
       },
       getHtml: async () => {
+        if (!editorState.isReady) return normalizeHtml(initialHtml);
         const nextHtml = await editor.getHTML();
         return normalizeHtml(nextHtml);
       },
       getText: async () => {
+        if (!editorState.isReady) return '';
         return editor.getText();
       },
       setHtml: (nextHtml: string) => {
@@ -237,7 +241,7 @@ export const PostEditor = React.forwardRef<PostEditorHandle, PostEditorProps>(fu
         editor.setContent(normalized);
       },
     }),
-    [editor, editorState.isReady]
+    [editor, editorState.isReady, initialHtml]
   );
 
   return (
@@ -250,12 +254,14 @@ export const PostEditor = React.forwardRef<PostEditorHandle, PostEditorProps>(fu
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.toolbarContainer}
       >
-        <Toolbar
-          editor={editor}
-          hidden={toolbarHidden}
-          items={toolbarItems}
-          shouldHideDisabledToolbarItems={shouldHideDisabledToolbarItems}
-        />
+        {editorState.isReady ? (
+          <Toolbar
+            editor={editor}
+            hidden={toolbarHidden}
+            items={toolbarItems}
+            shouldHideDisabledToolbarItems={shouldHideDisabledToolbarItems}
+          />
+        ) : null}
       </KeyboardAvoidingView>
     </View>
   );

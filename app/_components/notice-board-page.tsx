@@ -13,6 +13,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type BoardCategoryTab = 'info' | 'free';
 
+type NoticeBoardScreenProps = {
+  initialCategory?: BoardCategoryTab;
+  refreshKey?: string;
+};
+
 const BOARD_TABS: { key: BoardCategoryTab; label: string }[] = [
   { key: 'info', label: '정보 게시판' },
   { key: 'free', label: '자유 게시판' },
@@ -155,10 +160,12 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
   );
 }
 
-function NoticeBoardScreen() {
+function NoticeBoardScreen({ initialCategory, refreshKey }: NoticeBoardScreenProps) {
   const { bottom } = useSafeAreaInsets();
   const scrollRef = React.useRef<ScrollView>(null);
-  const [activeCategory, setActiveCategory] = React.useState<BoardCategoryTab>('info');
+  const [activeCategory, setActiveCategory] = React.useState<BoardCategoryTab>(
+    initialCategory ?? 'info'
+  );
   const [currentPage, setCurrentPage] = React.useState(1);
   const [boards, setBoards] = React.useState<Board[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -194,7 +201,7 @@ function NoticeBoardScreen() {
 
   React.useEffect(() => {
     void loadBoards();
-  }, [loadBoards]);
+  }, [loadBoards, refreshKey]);
 
   React.useEffect(() => {
     setCurrentPage(1);
@@ -203,6 +210,13 @@ function NoticeBoardScreen() {
   React.useEffect(() => {
     scrollRef.current?.scrollTo({ y: 0, animated: false });
   }, [activeCategory, currentPage]);
+
+  React.useEffect(() => {
+    if (!initialCategory) return;
+
+    setActiveCategory(initialCategory);
+    setCurrentPage(1);
+  }, [initialCategory]);
 
   const showPagination = !loading && !error && totalElements > 0 && totalPages > 1;
 

@@ -23,6 +23,7 @@ const config: ExpoConfig = {
       foregroundImage: './assets/images/adaptive-icon.png',
       backgroundColor: '#ffffff',
     },
+    permissions: ['READ_MEDIA_IMAGES', 'READ_EXTERNAL_STORAGE', 'WRITE_EXTERNAL_STORAGE'],
     package: 'com.nova.thingo',
   },
   web: {

@@ -26,7 +26,7 @@ import { useAuth } from '@/context/auth-context';
 import { showAlert } from '@/lib/alert';
 import { parseUTCDate } from '@/lib/utils';
 import { format } from 'date-fns';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as React from 'react';
 import {
   ActivityIndicator,
@@ -43,8 +43,17 @@ const COMMENT_MAX_LENGTH = 300;
 
 export default function BoardDetailScreen() {
   const insets = useSafeAreaInsets();
-  const { postId } = useLocalSearchParams<{ postId?: string | string[] }>();
+  const { postId, fromEdit, fromCreate, boardCategory } = useLocalSearchParams<{
+    postId?: string | string[];
+    fromEdit?: string | string[];
+    fromCreate?: string | string[];
+    boardCategory?: string | string[];
+  }>();
+
   const boardUUID = Array.isArray(postId) ? postId[0] : postId;
+  const isFromEdit = (Array.isArray(fromEdit) ? fromEdit[0] : fromEdit) === 'true';
+  const isFromCreate = (Array.isArray(fromCreate) ? fromCreate[0] : fromCreate) === 'true';
+  const previousBoardCategory = Array.isArray(boardCategory) ? boardCategory[0] : boardCategory;
   const { user, isInitializing } = useAuth();
   const [board, setBoard] = React.useState<Board | null>(null);
   const [comments, setComments] = React.useState<Comment[]>([]);
@@ -90,10 +99,12 @@ export default function BoardDetailScreen() {
     }
   }, [boardUUID]);
 
-  React.useEffect(() => {
-    if (isInitializing) return;
-    void loadBoardData();
-  }, [isInitializing, loadBoardData, user?.uuid]);
+  useFocusEffect(
+    React.useCallback(() => {
+      if (isInitializing) return;
+      void loadBoardData();
+    }, [isInitializing, loadBoardData, user?.uuid])
+  );
 
   const handlePostLikeClick = React.useCallback(async () => {
     if (!boardUUID || !board || isLikePending) return;
@@ -164,12 +175,25 @@ export default function BoardDetailScreen() {
     router.push('/login');
   }, []);
 
+  const handleBackPress = React.useCallback(() => {
+    if (isFromEdit || isFromCreate) {
+      router.replace({
+        pathname: '/',
+        params: {
+          tab: 'board',
+          boardCategory: previousBoardCategory === 'free' ? 'free' : 'info',
+          refreshBoards: String(Date.now()),
+        },
+      });
+      return;
+    }
+
+    router.back();
+  }, [isFromCreate, isFromEdit, previousBoardCategory]);
+
   const handleEditPress = React.useCallback(() => {
     if (!boardUUID || !board?.canEdit) return;
-    router.push({
-      pathname: '/posts/write',
-      params: { postId: boardUUID },
-    });
+    router.push(`/posts/edit/${boardUUID}`);
   }, [board?.canEdit, boardUUID]);
 
   const handleBoardDeleteConfirm = React.useCallback(async () => {
@@ -178,21 +202,31 @@ export default function BoardDetailScreen() {
     setIsBoardDeleting(true);
 
     try {
+      const nextBoardCategory = board.communityCategory === 'FREE' ? 'free' : 'info';
+
       await deleteBoard(boardUUID);
       setDeleteDialogOpen(false);
 
-      if (router.canGoBack()) {
-        router.back();
-        return;
-      }
-
-      router.replace('/');
+      router.replace({
+        pathname: '/',
+        params: {
+          tab: 'board',
+          boardCategory: previousBoardCategory === 'free' ? 'free' : nextBoardCategory,
+          refreshBoards: String(Date.now()),
+        },
+      });
     } catch {
       showAlert('게시글 삭제 실패', '잠시 후 다시 시도해주세요.');
     } finally {
       setIsBoardDeleting(false);
     }
-  }, [board?.canDelete, boardUUID, isBoardDeleting]);
+  }, [
+    board?.canDelete,
+    board?.communityCategory,
+    boardUUID,
+    isBoardDeleting,
+    previousBoardCategory,
+  ]);
 
   const handleCommentLikeClick = React.useCallback(
     async (commentUUID: string) => {
@@ -310,7 +344,7 @@ export default function BoardDetailScreen() {
     [boardUUID, deletingCommentUUID, user]
   );
 
-  if (isInitializing || isLoading) {
+  if (isInitializing || (isLoading && !board)) {
     return <LoadingState topInset={insets.top} bottomInset={insets.bottom} />;
   }
 
@@ -334,7 +368,7 @@ export default function BoardDetailScreen() {
         <View>
           <View className="border-b border-grey-02 px-4 pb-4 pt-5">
             <TouchableOpacity
-              onPress={() => router.back()}
+              onPress={handleBackPress}
               className="flex-row items-center gap-1 self-start"
             >
               <ArrowLeftIcon className="text-black" />

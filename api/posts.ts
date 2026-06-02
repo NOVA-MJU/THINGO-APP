@@ -16,6 +16,9 @@ type BoardResponse = {
   content?: string;
   previewContent?: string;
   contentPreview?: string;
+  imageUrl?: string | null;
+  boardImageUrl?: string | null;
+  thumbnailUrl?: string | null;
   communityCategory?: CommunityCategory;
   viewCount: number;
   published: boolean;
@@ -53,6 +56,7 @@ export type Board = {
   title: string;
   content: string;
   previewContent: string;
+  imageUrl: string | null;
   communityCategory: CommunityCategory | null;
   viewCount: number;
   published: boolean;
@@ -78,6 +82,7 @@ export type CreateBoardRequest = {
   title: string;
   content: string;
   contentPreview: string;
+  imageUrl?: string | null;
   published?: boolean;
   communityCategory: Exclude<CommunityCategory, 'ALL'>;
 };
@@ -104,6 +109,7 @@ function normalizeBoard(board: BoardResponse): Board {
     title: board.title,
     content: board.content ?? '',
     previewContent: board.previewContent ?? board.contentPreview ?? '',
+    imageUrl: board.imageUrl ?? board.boardImageUrl ?? board.thumbnailUrl ?? null,
     communityCategory: board.communityCategory ?? null,
     viewCount: board.viewCount,
     published: board.published,
