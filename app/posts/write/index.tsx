@@ -1,6 +1,6 @@
 import { createBoard, getBoardDetail, updateBoard, type CommunityCategory } from '@/api/posts';
 import { Footer } from '@/components/footer';
-import { ArrowDownIcon, ArrowLeftIcon, CloseIcon, InfoOutlineIcon } from '@/components/icons';
+import { ArrowDownIcon, ArrowLeftIcon, InfoOutlineIcon } from '@/components/icons';
 import { PostEditor, type PostEditorHandle, type PostEditorValue } from '@/components/post-editor';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,12 +17,26 @@ import { Text } from '@/components/ui/text';
 import { useAuth } from '@/context/auth-context';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { showAlert } from '@/lib/alert';
-import { buildContentPreview, escapeHtml, normalizePostContent } from '@/lib/post-content';
+import {
+  buildContentPreview,
+  escapeHtml,
+  normalizePostContent,
+  serializePostContentForStorage,
+} from '@/lib/post-content';
 import { cn } from '@/lib/utils';
 import { useKeyboard } from '@10play/tentap-editor';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as React from 'react';
-import { ActivityIndicator, BackHandler, Image, Keyboard, Pressable, View } from 'react-native';
+import {
+  ActivityIndicator,
+  BackHandler,
+  Image,
+  Keyboard,
+  Platform,
+  Pressable,
+  View,
+  type ViewStyle,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type BoardOption = NonNullable<Option>;
@@ -43,6 +57,13 @@ type WriteFormProps = {
   onImageUrlChange: (value: string | null) => void;
   onSubmit: () => void;
   bottomInset: number;
+};
+
+type SubmitContent = {
+  preview: string;
+  source: string;
+  storage: string;
+  text: string;
 };
 
 type LoggedOutViewProps = {
@@ -172,17 +193,21 @@ export default function BoardWriteScreen() {
       return;
     }
 
+    const latestContentHtml = await editorRef.current?.getHtml();
+    const latestContentText = await editorRef.current?.getText();
     const nextTitle = title.trim();
-    const nextContentText = contentText.trim();
-    const nextContentHtml = contentHtml.trim();
-    const nextContentWithImage = appendUploadedImageToContent(nextContentHtml, imageUrl);
+    const submitContent = buildSubmitContent({
+      html: latestContentHtml ?? contentHtml,
+      imageUrl,
+      text: latestContentText ?? contentText,
+    });
 
     if (!nextTitle) {
       showAlert('제목을 입력해주세요.');
       return;
     }
 
-    if (!nextContentText || !nextContentHtml) {
+    if (!submitContent.text || !submitContent.source) {
       showAlert('본문을 입력해주세요.');
       return;
     }
@@ -192,8 +217,8 @@ export default function BoardWriteScreen() {
     try {
       const requestBody = {
         title: nextTitle,
-        content: nextContentWithImage,
-        contentPreview: buildContentPreview(nextContentText),
+        content: submitContent.storage,
+        contentPreview: submitContent.preview,
         imageUrl,
         published: true,
         communityCategory: mapBoardOptionToCategory(category),
@@ -409,7 +434,7 @@ function WriteForm({
         className="flex-1 px-4 pt-8"
         style={{ paddingBottom: isKeyboardUp ? 16 : bottomInset + 64 }}
       >
-        <View className="gap-3.5">
+        <View className="z-20 gap-3.5">
           <Input
             value={title}
             onChangeText={onTitleChange}
@@ -421,7 +446,7 @@ function WriteForm({
           <BoardDropdown value={category} onChange={onCategoryChange} />
         </View>
 
-        <View className="mt-3.5 h-[360px] overflow-hidden rounded-xl border border-grey-10 bg-white">
+        <View className="z-0 mt-3.5 h-[360px] overflow-hidden rounded-xl border border-grey-10 bg-white">
           <PostEditor
             ref={editorRef}
             initialHtml={contentHtml}
@@ -503,7 +528,7 @@ function PostImageUploadPreviewV3({
   );
 }
 
-function PostImageUploadPreviewV2({
+export function PostImageUploadPreviewV2({
   imageUrl,
   onImageUrlChange,
 }: {
@@ -561,9 +586,45 @@ type BoardDropdownProps = {
 };
 
 function BoardDropdown({ value, onChange }: BoardDropdownProps) {
+  const [isWebMenuOpen, setIsWebMenuOpen] = React.useState(false);
   const selectedLabel =
     BOARD_OPTIONS.find((option) => option.value === value?.value)?.label ??
     DEFAULT_BOARD_OPTION.label;
+
+  if (Platform.OS === 'web') {
+    return (
+      <View style={webBoardDropdownContainerStyle}>
+        <Pressable
+          onPress={() => setIsWebMenuOpen((previous) => !previous)}
+          accessibilityRole="button"
+          accessibilityLabel="게시판 선택"
+          className="h-[40px] flex-row items-center rounded-xl border border-grey-10 bg-white px-3"
+        >
+          <Text className="flex-1 text-body03 text-blue-20" numberOfLines={1}>
+            {selectedLabel}
+          </Text>
+          <ArrowDownIcon size={24} className="text-grey-30" />
+        </Pressable>
+
+        {isWebMenuOpen ? (
+          <View style={webBoardDropdownMenuStyle}>
+            {BOARD_OPTIONS.map((option) => (
+              <Pressable
+                key={option.value}
+                onPress={() => {
+                  onChange(option);
+                  setIsWebMenuOpen(false);
+                }}
+                style={webBoardDropdownItemStyle}
+              >
+                <Text className="text-body03 text-black">{option.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
+      </View>
+    );
+  }
 
   return (
     <DropdownMenu.Root>
@@ -586,6 +647,41 @@ function BoardDropdown({ value, onChange }: BoardDropdownProps) {
     </DropdownMenu.Root>
   );
 }
+
+const webBoardDropdownContainerStyle: ViewStyle = {
+  position: 'relative',
+  zIndex: 100,
+};
+
+const webBoardDropdownMenuStyle: ViewStyle = {
+  backgroundColor: '#FFFFFF',
+  elevation: 8,
+  left: 0,
+  overflow: 'hidden',
+  paddingBottom: 8,
+  paddingTop: 8,
+  position: 'absolute',
+  shadowColor: '#111111',
+  shadowOffset: {
+    width: 0,
+    height: 12,
+  },
+  shadowOpacity: 0.14,
+  shadowRadius: 24,
+  top: 40,
+  width: 200,
+  zIndex: 110,
+};
+
+const webBoardDropdownItemStyle: ViewStyle = {
+  alignItems: 'center',
+  backgroundColor: '#FFFFFF',
+  display: 'flex',
+  flexDirection: 'row',
+  height: 44,
+  paddingLeft: 14,
+  paddingRight: 14,
+};
 
 function LoggedOutView({ bottomInset, onLoginPress }: LoggedOutViewProps) {
   return (
@@ -620,6 +716,28 @@ function appendUploadedImageToContent(contentHtml: string, imageUrl: string | nu
 
   const escapedUrl = escapeHtml(imageUrl);
   return `${contentHtml}<figure><img src="${escapedUrl}" alt="게시글 이미지" /></figure>`;
+}
+
+function buildSubmitContent({
+  html,
+  imageUrl,
+  text,
+}: {
+  html: string;
+  imageUrl: string | null;
+  text: string;
+}): SubmitContent {
+  const trimmedHtml = html.trim();
+  const trimmedText = text.trim();
+  const source = htmlToPlainText(trimmedHtml) ? trimmedHtml : trimmedText;
+  const contentWithImage = appendUploadedImageToContent(source, imageUrl);
+
+  return {
+    preview: buildContentPreview(trimmedText),
+    source,
+    storage: serializePostContentForStorage(contentWithImage),
+    text: trimmedText,
+  };
 }
 
 function htmlToPlainText(html: string) {
