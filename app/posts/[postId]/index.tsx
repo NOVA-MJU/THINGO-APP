@@ -103,7 +103,7 @@ export default function BoardDetailScreen() {
     React.useCallback(() => {
       if (isInitializing) return;
       void loadBoardData();
-    }, [isInitializing, loadBoardData, user?.uuid])
+    }, [isInitializing, loadBoardData])
   );
 
   const handlePostLikeClick = React.useCallback(async () => {
@@ -376,7 +376,7 @@ export default function BoardDetailScreen() {
             </TouchableOpacity>
           </View>
 
-          <View className="gap-5 py-5">
+          <View className="py-5">
             <View className="gap-1 px-4">
               <Text className="text-body02 text-black">{board.title}</Text>
 
@@ -401,11 +401,11 @@ export default function BoardDetailScreen() {
               </View>
             </View>
 
-            <View className="px-4">
-              <PostContent content={board.content} />
+            <View className="px-4 pt-4">
+              <PostContent content={board.content || board.previewContent} />
             </View>
 
-            <View className="flex-row items-center justify-between px-5">
+            <View className="flex-row items-center justify-between px-5 pt-5">
               <TouchableOpacity
                 onPress={() => void handlePostLikeClick()}
                 className="flex-row items-center self-start"
@@ -436,9 +436,9 @@ export default function BoardDetailScreen() {
               ) : null}
             </View>
 
-            <View className="border-b border-grey-02" />
+            <View className="mt-5 border-b border-grey-02" />
 
-            <View className="px-4">
+            <View className="px-4 pt-5">
               <Text className="mb-2 text-body02 text-black">댓글</Text>
 
               {user ? (
