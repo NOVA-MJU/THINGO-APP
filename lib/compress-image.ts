@@ -1,5 +1,6 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
+import { Platform } from 'react-native';
 
 const MAX_BYTES = 1 * 1024 * 1024; // 1MB
 
@@ -28,6 +29,12 @@ function getResizeOption(
 }
 
 async function getFileSize(uri: string): Promise<number> {
+  if (Platform.OS === 'web') {
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    return blob.size;
+  }
+
   const fileInfo = await FileSystem.getInfoAsync(uri);
   return fileInfo.exists && typeof fileInfo.size === 'number' ? fileInfo.size : 0;
 }
