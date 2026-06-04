@@ -1,9 +1,11 @@
 import {
   editorHtml,
+  DEFAULT_TOOLBAR_ITEMS,
   PlaceholderBridge,
   RichText,
   TenTapStartKit,
   Toolbar,
+  Images,
   type ToolbarItem,
   useBridgeState,
   useEditorBridge,
@@ -101,6 +103,39 @@ export const PostEditor = React.forwardRef<PostEditorHandle, PostEditorProps>(fu
     #root div .ProseMirror ul,
     #root div .ProseMirror ol {
       padding-left: 1.25em;
+    }
+    #root div .ProseMirror ul[data-type="taskList"],
+    #root div .ProseMirror ul.task-list {
+      list-style: none;
+      padding-left: 0;
+    }
+    #root div .ProseMirror li[data-type="taskItem"],
+    #root div .ProseMirror li.task-item {
+      align-items: flex-start;
+      display: flex;
+      gap: 8px;
+      padding-left: 0;
+    }
+    #root div .ProseMirror li[data-type="taskItem"] > label,
+    #root div .ProseMirror li.task-item > label {
+      align-items: center;
+      display: inline-flex;
+      flex-shrink: 0;
+      min-height: 21px;
+    }
+    #root div .ProseMirror li[data-type="taskItem"] > label input,
+    #root div .ProseMirror li.task-item > label input {
+      margin: 0;
+    }
+    #root div .ProseMirror li[data-type="taskItem"] > div,
+    #root div .ProseMirror li.task-item > div {
+      flex: 1;
+      min-width: 0;
+    }
+    #root div .ProseMirror li[data-type="taskItem"] > div > p,
+    #root div .ProseMirror li.task-item > div > p {
+      display: block;
+      margin: 0;
     }`
       ),
     []
@@ -138,26 +173,13 @@ export const PostEditor = React.forwardRef<PostEditorHandle, PostEditorProps>(fu
         iconWrapperDisabled: {
           opacity: 0.7,
         },
-        linkBarTheme: {
-          addLinkContainer: {
-            backgroundColor: '#FFFFFF',
-            borderTopColor: TOOLBAR_BORDER_COLOR,
-            borderBottomColor: TOOLBAR_BORDER_COLOR,
-          },
-          linkInput: {
-            color: TOOLBAR_ICON_COLOR,
-          },
-          placeholderTextColor: TOOLBAR_DISABLED_ICON_COLOR,
-          doneButton: {
-            backgroundColor: TOOLBAR_ACTIVE_BACKGROUND,
-          },
-          doneButtonText: {
-            color: TOOLBAR_ICON_COLOR,
-          },
-        },
       },
     }),
     []
+  );
+  const resolvedToolbarItems = React.useMemo(
+    () => toolbarItems ?? DEFAULT_TOOLBAR_ITEMS.filter((item) => !isLinkToolbarItem(item)),
+    [toolbarItems]
   );
 
   const editor = useEditorBridge({
@@ -258,7 +280,7 @@ export const PostEditor = React.forwardRef<PostEditorHandle, PostEditorProps>(fu
           <Toolbar
             editor={editor}
             hidden={toolbarHidden}
-            items={toolbarItems}
+            items={resolvedToolbarItems}
             shouldHideDisabledToolbarItems={shouldHideDisabledToolbarItems}
           />
         ) : null}
@@ -266,6 +288,10 @@ export const PostEditor = React.forwardRef<PostEditorHandle, PostEditorProps>(fu
     </View>
   );
 });
+
+function isLinkToolbarItem(item: ToolbarItem) {
+  return item.image({} as Parameters<ToolbarItem['image']>[0]) === Images.link;
+}
 
 const styles = StyleSheet.create({
   container: {
