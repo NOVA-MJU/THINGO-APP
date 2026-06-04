@@ -1,7 +1,7 @@
 import { normalizePostContent } from '@/lib/post-content';
 import * as React from 'react';
-import { Platform, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { WebView, type WebViewMessageEvent } from 'react-native-webview';
+import { Linking, Platform, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { WebView, type WebViewMessageEvent, type WebViewNavigation } from 'react-native-webview';
 
 type PostContentProps = {
   content?: string;
@@ -81,6 +81,51 @@ function buildHtmlDocument(content: string) {
         padding-left: 20px;
       }
 
+      ul[data-type="taskList"],
+      ul.task-list {
+        list-style: none;
+        padding-left: 0;
+      }
+
+      li[data-type="taskItem"],
+      li.task-item {
+        align-items: flex-start;
+        display: flex;
+        gap: 8px;
+        list-style: none;
+        padding-left: 0;
+      }
+
+      li[data-type="taskItem"]::marker,
+      li.task-item::marker {
+        content: "";
+      }
+
+      li[data-type="taskItem"] > label,
+      li.task-item > label {
+        align-items: center;
+        display: inline-flex;
+        flex-shrink: 0;
+        min-height: 24px;
+      }
+
+      li[data-type="taskItem"] > label input,
+      li.task-item > label input {
+        margin: 0;
+      }
+
+      li[data-type="taskItem"] > div,
+      li.task-item > div {
+        flex: 1;
+        min-width: 0;
+      }
+
+      li[data-type="taskItem"] > div > p,
+      li.task-item > div > p {
+        display: block;
+        margin: 0;
+      }
+
       blockquote {
         border-left: 3px solid #d7dce2;
         color: #59626c;
@@ -88,8 +133,9 @@ function buildHtmlDocument(content: string) {
       }
 
       a {
-        color: #4f7eff;
-        text-decoration: underline;
+        color: #4f7eff !important;
+        font-weight: 700 !important;
+        text-decoration: underline !important;
       }
 
       img,
@@ -180,12 +226,30 @@ export function PostContent({ content, style }: PostContentProps) {
     });
   }, []);
 
+  const handleShouldStartLoad = React.useCallback((request: WebViewNavigation) => {
+    const { url } = request;
+
+    if (!url || url === 'about:blank') return true;
+    if (/^https?:\/\//i.test(url) || /^(mailto|tel):/i.test(url)) {
+      void Linking.openURL(normalizeExternalUrl(url));
+      return false;
+    }
+
+    if (/^[^\s.]+\.[^\s]+/.test(url)) {
+      void Linking.openURL(normalizeExternalUrl(url));
+      return false;
+    }
+
+    return true;
+  }, []);
+
   return (
     <View style={style}>
       <WebView
         source={source}
         originWhitelist={['*']}
         onMessage={handleMessage}
+        onShouldStartLoadWithRequest={handleShouldStartLoad}
         scrollEnabled={false}
         nestedScrollEnabled={false}
         bounces={false}
@@ -208,3 +272,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
 });
+
+function normalizeExternalUrl(url: string) {
+  return /^[a-z][a-z0-9+.-]*:/i.test(url) ? url : `https://${url}`;
+}
