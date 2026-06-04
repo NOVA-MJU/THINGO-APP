@@ -1,11 +1,27 @@
 import { Text } from '@/components/ui/text';
 import * as React from 'react';
 import { Link } from 'expo-router';
-import { ActivityIndicator, Image, ScrollView, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  TouchableOpacity,
+  View,
+  useWindowDimensions,
+} from 'react-native';
+import Carousel from 'react-native-reanimated-carousel';
 import { YoutubeEmbed } from '@/components/youtube-embed';
 import { CategoryFilter } from '@/components/ui/category-filter';
 import { Footer } from '@/components/footer';
-import { getNotices, type Notice, type NoticeCategory } from '@/api/notices';
+import {
+  getNotices,
+  getHotNotices,
+  type Notice,
+  type NoticeCategory,
+  type HotNotice,
+} from '@/api/notices';
+import { getBoards, getHotBoards, type Board } from '@/api/posts';
+import { Skeleton } from '@/components/ui/skeleton';
 import { getNews, type NewsItem, type NewsCategory } from '@/api/news';
 import { getBroadcasts, type BroadcastItem } from '@/api/broadcast';
 import { getMenus, type DailyMenu } from '@/api/menus';
@@ -19,6 +35,7 @@ import { ChatIcon } from './icons/chat-icon';
 import { FireIcon } from './icons/fire-icon';
 import { StarIcon } from './icons/star-icon';
 import { ArrowRightIcon, ChatBubbleIcon, HeartIcon } from '@/components/icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const NOTICE_CATEGORIES: { label: string; value: NoticeCategory }[] = [
   { label: '전체', value: 'all' },
@@ -44,11 +61,38 @@ const NEWSPAPER_CATEGORY_MAP: Record<string, NewsCategory> = {
   사회: 'SOCIETY',
 };
 
+const BOARD_CATEGORY_LABELS: Record<string, string> = {
+  FREE: '자유게시판',
+  NOTICE: '공지게시판',
+};
+
+const CAROUSEL_PEEK = 12;
+const CAROUSEL_GAP = 10;
+
+type BannerItem = {
+  id: number;
+  imageUrl: string;
+  title: string;
+  subCopy: string;
+  category: string;
+};
+
 export default function AllScreen({ onNavigate }: Props) {
+  const { width: screenWidth } = useWindowDimensions();
+  const cardSlot = screenWidth - (CAROUSEL_PEEK + CAROUSEL_GAP / 2) * 2;
+  const carouselOffset = (screenWidth - cardSlot) / 2;
+
+  const [currentBannerIndex, setCurrentBannerIndex] = React.useState(0);
   const [selectedNoticeCategory, setSelectedNoticeCategory] = React.useState('전체');
   const [selectedNewspaperCategory, setSelectedNewspaperCategory] = React.useState('전체');
   const [notices, setNotices] = React.useState<Notice[]>([]);
   const [noticesLoading, setNoticesLoading] = React.useState(false);
+  const [hotNotices, setHotNotices] = React.useState<HotNotice[]>([]);
+  const [hotNoticesLoading, setHotNoticesLoading] = React.useState(false);
+  const [hotBoards, setHotBoards] = React.useState<Board[]>([]);
+  const [hotBoardsLoading, setHotBoardsLoading] = React.useState(false);
+  const [boards, setBoards] = React.useState<Board[]>([]);
+  const [boardsLoading, setBoardsLoading] = React.useState(false);
   const [newspaper, setNewspaper] = React.useState<NewsItem[]>([]);
   const [newspaperLoading, setNewspaperLoading] = React.useState(false);
   const [broadcasts, setBroadcasts] = React.useState<BroadcastItem[]>([]);
@@ -60,7 +104,7 @@ export default function AllScreen({ onNavigate }: Props) {
 
   React.useEffect(() => {
     setNoticesLoading(true);
-    getNotices({ category: CATEGORY_MAP[selectedNoticeCategory], size: 6 })
+    getNotices({ category: CATEGORY_MAP[selectedNoticeCategory], size: 5 })
       .then((res) => setNotices(res.content))
       .catch(() => setNotices([]))
       .finally(() => setNoticesLoading(false));
@@ -68,7 +112,7 @@ export default function AllScreen({ onNavigate }: Props) {
 
   React.useEffect(() => {
     setNewspaperLoading(true);
-    getNews({ category: NEWSPAPER_CATEGORY_MAP[selectedNewspaperCategory], size: 3 })
+    getNews({ category: NEWSPAPER_CATEGORY_MAP[selectedNewspaperCategory], size: 4 })
       .then((res) => setNewspaper(res.content))
       .catch(() => setNewspaper([]))
       .finally(() => setNewspaperLoading(false));
@@ -86,6 +130,30 @@ export default function AllScreen({ onNavigate }: Props) {
     getMenus()
       .then((res) => setMenus(res.data))
       .catch(() => {});
+  }, []);
+
+  React.useEffect(() => {
+    setHotNoticesLoading(true);
+    getHotNotices({ size: 6 })
+      .then((data) => setHotNotices(data))
+      .catch(() => setHotNotices([]))
+      .finally(() => setHotNoticesLoading(false));
+  }, []);
+
+  React.useEffect(() => {
+    setBoardsLoading(true);
+    getBoards({ size: 5 })
+      .then((res) => setBoards(res.boards))
+      .catch(() => setBoards([]))
+      .finally(() => setBoardsLoading(false));
+  }, []);
+
+  React.useEffect(() => {
+    setHotBoardsLoading(true);
+    getHotBoards({ size: 2 })
+      .then((data) => setHotBoards(data))
+      .catch(() => setHotBoards([]))
+      .finally(() => setHotBoardsLoading(false));
   }, []);
 
   React.useEffect(() => {
@@ -164,12 +232,76 @@ export default function AllScreen({ onNavigate }: Props) {
         <View className="bg-white py-5">
           <View className="items-center">
             {/* 배너 */}
-            <View className="h-52 w-full rounded-2xl bg-blue-10"></View>
+            <View style={{ width: screenWidth, overflow: 'hidden' }}>
+              <View style={{ marginLeft: carouselOffset }}>
+                <Carousel
+                  width={cardSlot}
+                  height={200}
+                  style={{ overflow: 'visible' }}
+                  data={BANNER_DATA}
+                  loop
+                  autoPlay
+                  autoPlayInterval={3000}
+                  onSnapToItem={setCurrentBannerIndex}
+                  renderItem={({ item, index }) => (
+                    <View
+                      style={{
+                        flex: 1,
+                        marginHorizontal: CAROUSEL_GAP / 2,
+                        borderRadius: 16,
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <Image
+                        source={{ uri: item.imageUrl }}
+                        className="absolute bottom-0 left-0 right-0 top-0 z-0"
+                        resizeMode="cover"
+                      />
+
+                      <LinearGradient
+                        colors={['rgba(93,171,255,0)', 'rgba(93,171,255,0.85)']}
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          zIndex: 10,
+                        }}
+                      />
+
+                      <View className="absolute bottom-0 left-0 right-0 top-0 z-20 justify-between p-4">
+                        <View className="self-end rounded-full bg-bg px-2 py-0.5">
+                          <Text className="text-caption02 text-white">
+                            {index + 1}/{BANNER_DATA.length}
+                          </Text>
+                        </View>
+                        <View className="p-2">
+                          <View className="self-start rounded-md bg-blue-05 px-1 py-0.5">
+                            <Text className="text-caption01 text-blue-35">{item.category}</Text>
+                          </View>
+                          {/* TODO: 텍스트 스타일 적용해야함 */}
+                          <Text className="mt-3 text-[20px] font-bold text-white" numberOfLines={2}>
+                            {item.title}
+                          </Text>
+                          <Text className="mt-0.5 text-body04 text-blue-05" numberOfLines={1}>
+                            {item.subCopy}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  )}
+                />
+              </View>
+            </View>
             {/* 배너 인디케이터 */}
             <View className="mt-2 flex-row items-center gap-2">
-              <View className="h-1 w-1 bg-blue-20" />
-              <View className="h-1 w-1 bg-grey-20" />
-              <View className="h-1 w-1 bg-grey-20" />
+              {BANNER_DATA.map((_, i) => (
+                <View
+                  key={i}
+                  className={`h-1 w-1 rounded-full ${i === currentBannerIndex ? 'bg-blue-20' : 'bg-grey-20'}`}
+                />
+              ))}
             </View>
           </View>
 
@@ -264,36 +396,30 @@ export default function AllScreen({ onNavigate }: Props) {
         </View>
         <Text className="px-4 text-caption02 text-grey-60">한달동안 가장 많은 조회 수</Text>
         <View className="mx-4 mt-3 rounded-xl bg-white py-1">
-          {[
-            { category: 'general', title: '2025학년도 1학기 기말고사 일정 안내', date: '3일 전' },
-            {
-              category: 'scholarship',
-              title: '국가장학금 2차 신청 기간 안내 (6/1~6/15)',
-              date: '5일 전',
-            },
-            {
-              category: 'career',
-              title: '삼성전자 하계 인턴십 채용 설명회 개최 안내',
-              date: '1주 전',
-            },
-            {
-              category: 'activity',
-              title: '제29대 총학생회 정기 대의원회의 결과 공고',
-              date: '1주 전',
-            },
-            { category: 'academic', title: '2025-1학기 성적 이의신청 기간 안내', date: '2주 전' },
-            { category: 'rule', title: '학칙 일부 개정 예고 (학사운영 관련)', date: '2주 전' },
-          ].map((item, index) => (
-            <TouchableOpacity key={index} className="flex-row items-center gap-1 px-4 py-3">
-              <Text className="text-body04 text-black" numberOfLines={1}>
-                {NOTICE_CATEGORIES.find((c) => c.value === item.category)?.label ?? item.category}
-              </Text>
-              <Text className="flex-1 text-body05 text-black" numberOfLines={1}>
-                {item.title}
-              </Text>
-              <Text className="text-caption04 text-grey-30">{item.date}</Text>
-            </TouchableOpacity>
-          ))}
+          {hotNoticesLoading
+            ? Array.from({ length: 6 }).map((_, i) => (
+                <View key={i} className="flex-row items-center gap-1 px-4 py-3">
+                  <Skeleton className="h-4 w-10 rounded" />
+                  <Skeleton className="h-4 flex-1 rounded" />
+                  <Skeleton className="h-4 w-10 rounded" />
+                </View>
+              ))
+            : hotNotices.map((item, index) => {
+                const d = new Date(item.date);
+                const dateLabel = `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+                return (
+                  <TouchableOpacity key={index} className="flex-row items-center gap-1 px-4 py-3">
+                    <Text className="text-body04 text-black" numberOfLines={1}>
+                      {NOTICE_CATEGORIES.find((c) => c.value === item.category)?.label ??
+                        item.category}
+                    </Text>
+                    <Text className="flex-1 text-body05 text-black" numberOfLines={1}>
+                      {item.title}
+                    </Text>
+                    <Text className="text-caption04 text-grey-30">{dateLabel}</Text>
+                  </TouchableOpacity>
+                );
+              })}
         </View>
 
         {/* HOT 게시판 */}
@@ -303,47 +429,44 @@ export default function AllScreen({ onNavigate }: Props) {
         </View>
         <Text className="px-4 text-caption02 text-grey-60">모두가 가장 보고 싶은 글</Text>
         <View className="mx-4 mt-3 rounded-xl bg-white py-1">
-          {[
-            {
-              board: '정보게시판',
-              title: '중간고사 족보 공유합니다 전공 필수 과목 위주로',
-              date: '2025.05.20',
-              likes: 142,
-              comments: 38,
-            },
-            {
-              board: '자유게시판',
-              title: '학식 오늘 뭐 나왔나요? 맛있는 거 있으면 알려주세요',
-              date: '2025.05.21',
-              likes: 87,
-              comments: 24,
-            },
-            {
-              board: '취업게시판',
-              title: 'SW 개발 인턴 후기 공유 (대기업 계열사 3개월 경험)',
-              date: '2025.05.22',
-              likes: 203,
-              comments: 61,
-            },
-          ].map((item, index) => (
-            <TouchableOpacity key={index} className="gap-2 px-4 pb-2 pt-3">
-              <View className="flex-row gap-1">
-                <Text className="text-body04 text-black" numberOfLines={1}>
-                  {item.board}
-                </Text>
-                <Text className="flex-1 text-body05 text-black" numberOfLines={1}>
-                  {item.title}
-                </Text>
-              </View>
-              <View className="flex-row items-center">
-                <Text className="flex-1 text-caption04 text-grey-30">{item.date}</Text>
-                <HeartIcon className="text-blue-10" />
-                <Text className="ms-1 text-caption02 text-grey-40">{item.likes}</Text>
-                <ChatBubbleIcon className="ms-2 text-blue-10" />
-                <Text className="ms-1 text-caption02 text-grey-40">{item.comments}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+          {hotBoardsLoading
+            ? Array.from({ length: 2 }).map((_, i) => (
+                <View key={i} className="gap-2 px-4 pb-2 pt-3">
+                  <View className="flex-row gap-1">
+                    <Skeleton className="h-4 w-16 rounded" />
+                    <Skeleton className="h-4 flex-1 rounded" />
+                  </View>
+                  <View className="flex-row items-center gap-1">
+                    <Skeleton className="h-3 w-10 rounded" />
+                    <Skeleton className="h-3 w-12 rounded" />
+                    <Skeleton className="h-3 w-12 rounded" />
+                  </View>
+                </View>
+              ))
+            : hotBoards.map((item, index) => {
+                const d = new Date(item.createdAt);
+                const dateLabel = `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+                return (
+                  <TouchableOpacity key={index} className="gap-2 px-4 pb-2 pt-3">
+                    <View className="flex-row gap-1">
+                      <Text className="text-body04 text-black" numberOfLines={1}>
+                        {BOARD_CATEGORY_LABELS[item.communityCategory ?? ''] ??
+                          item.communityCategory}
+                      </Text>
+                      <Text className="flex-1 text-body05 text-black" numberOfLines={1}>
+                        {item.title}
+                      </Text>
+                    </View>
+                    <View className="flex-row items-center">
+                      <Text className="flex-1 text-caption04 text-grey-30">{dateLabel}</Text>
+                      <HeartIcon className="text-blue-10" />
+                      <Text className="ms-1 text-caption02 text-grey-40">{item.likeCount}</Text>
+                      <ChatBubbleIcon className="ms-2 text-blue-10" />
+                      <Text className="ms-1 text-caption02 text-grey-40">{item.commentCount}</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
         </View>
 
         {/* 공지사항 */}
@@ -426,25 +549,48 @@ export default function AllScreen({ onNavigate }: Props) {
             </TouchableOpacity>
           </View>
           <View className="mx-4 mt-3 rounded-xl bg-white py-1">
-            {POSTS_DUMMY_DATA.map((item) => (
-              <Link key={item.postId} href={`/posts/${item.postId}`} asChild>
-                <TouchableOpacity className="gap-2 px-4 pb-2 pt-3">
-                  <View className="flex-row gap-1">
-                    <Text className="text-body04 text-black">{item.category}</Text>
-                    <Text className="flex-1 text-body05 text-black" numberOfLines={1}>
-                      {item.title}
-                    </Text>
+            {boardsLoading
+              ? Array.from({ length: 5 }).map((_, i) => (
+                  <View key={i} className="gap-2 px-4 pb-2 pt-3">
+                    <View className="flex-row gap-1">
+                      <Skeleton className="h-4 w-16 rounded" />
+                      <Skeleton className="h-4 flex-1 rounded" />
+                    </View>
+                    <View className="flex-row items-center gap-1">
+                      <Skeleton className="h-3 w-10 rounded" />
+                      <Skeleton className="h-3 w-12 rounded" />
+                      <Skeleton className="h-3 w-12 rounded" />
+                    </View>
                   </View>
-                  <View className="flex-row items-center">
-                    <Text className="flex-1 text-caption04 text-grey-30">{item.date}</Text>
-                    <HeartIcon className="ms-3 text-blue-10" />
-                    <Text className="ms-1 text-caption02 text-grey-40">{item.likes}</Text>
-                    <ChatBubbleIcon className="ms-2 text-blue-10" />
-                    <Text className="ms-1 text-caption02 text-grey-40">{item.comments}</Text>
-                  </View>
-                </TouchableOpacity>
-              </Link>
-            ))}
+                ))
+              : boards.map((item) => {
+                  const d = new Date(item.createdAt);
+                  const dateLabel = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+                  return (
+                    <Link key={item.uuid} href={`/posts/${item.uuid}`} asChild>
+                      <TouchableOpacity className="gap-2 px-4 pb-2 pt-3">
+                        <View className="flex-row gap-1">
+                          <Text className="text-body04 text-black">
+                            {BOARD_CATEGORY_LABELS[item.communityCategory ?? ''] ??
+                              item.communityCategory}
+                          </Text>
+                          <Text className="flex-1 text-body05 text-black" numberOfLines={1}>
+                            {item.title}
+                          </Text>
+                        </View>
+                        <View className="flex-row items-center">
+                          <Text className="flex-1 text-caption04 text-grey-30">{dateLabel}</Text>
+                          <HeartIcon className="ms-3 text-blue-10" />
+                          <Text className="ms-1 text-caption02 text-grey-40">{item.likeCount}</Text>
+                          <ChatBubbleIcon className="ms-2 text-blue-10" />
+                          <Text className="ms-1 text-caption02 text-grey-40">
+                            {item.commentCount}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    </Link>
+                  );
+                })}
           </View>
         </View>
 
@@ -484,7 +630,7 @@ export default function AllScreen({ onNavigate }: Props) {
                       {item.reporter}
                     </Text>
                     <Text className="text-caption04 text-grey-30" numberOfLines={1}>
-                      {formatTimeAgo(item.date)}
+                      {new Date(item.date).toISOString().slice(0, 10)}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -509,6 +655,8 @@ export default function AllScreen({ onNavigate }: Props) {
           <View className="relative mx-4 mt-4 gap-4">
             {broadcasts.map((item, index) => {
               const videoId = new URL(item.url).searchParams.get('v') ?? '';
+              const d = new Date(item.publishedAt);
+              const dateLabel = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
               return (
                 <View key={index}>
                   <View className="overflow-hidden rounded-t-xl">
@@ -521,7 +669,7 @@ export default function AllScreen({ onNavigate }: Props) {
                           {item.title}
                         </Text>
                         <Text className="text-caption04 text-grey-30" numberOfLines={1}>
-                          {formatTimeAgo(item.publishedAt)}
+                          {dateLabel}
                         </Text>
                       </View>
                     </TouchableOpacity>
@@ -542,45 +690,26 @@ export default function AllScreen({ onNavigate }: Props) {
   );
 }
 
-const POSTS_DUMMY_DATA = [
+const BANNER_DATA: BannerItem[] = [
   {
-    postId: 1,
-    category: '정보게시판',
-    title: '2025학년도 1학기 수강편람 배포 안내',
-    date: '2026.01.20',
-    likes: 35,
-    comments: 12,
+    id: 1,
+    imageUrl: 'https://picsum.photos/seed/banner1/800/400',
+    title: '2026 봄 축제 안내',
+    subCopy: '4월 28일 ~ 30일, 명지대 운동장',
+    category: '행사',
   },
   {
-    postId: 2,
-    category: '자유게시판',
-    title: '도서관 스터디룸 같이 쓸 사람 구합니다',
-    date: '2026.01.21',
-    likes: 8,
-    comments: 5,
+    id: 2,
+    imageUrl: 'https://picsum.photos/seed/banner2/800/400',
+    title: '국가장학금 2차 신청 기간',
+    subCopy: '6월 1일 ~ 6월 15일까지 신청 가능',
+    category: '장학',
   },
   {
-    postId: 3,
-    category: '정보게시판',
-    title: '교내 소프트웨어 무료 라이선스 신청 방법',
-    date: '2026.01.22',
-    likes: 54,
-    comments: 20,
-  },
-  {
-    postId: 4,
-    category: '자유게시판',
-    title: '오늘 학식 메뉴 진짜 너무 맛있었음',
-    date: '2026.01.23',
-    likes: 21,
-    comments: 33,
-  },
-  {
-    postId: 5,
-    category: '정보게시판',
-    title: '졸업 요건 확인 방법 및 신청 절차 총정리',
-    date: '2026.01.24',
-    likes: 77,
-    comments: 41,
+    id: 3,
+    imageUrl: 'https://picsum.photos/seed/banner3/800/400',
+    title: '삼성전자 하계 인턴십 모집',
+    subCopy: '서류 마감 6월 30일, 지금 바로 지원하세요',
+    category: '취업',
   },
 ];

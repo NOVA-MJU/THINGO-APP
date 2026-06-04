@@ -222,3 +222,8 @@ export async function toggleBoardLike(boardUUID: string): Promise<void> {
 export async function toggleCommentLike(boardUUID: string, commentUUID: string): Promise<void> {
   await client.post(`/boards/${boardUUID}/comments/${commentUUID}/like`);
 }
+
+export async function getHotBoards(params?: { page?: number; size?: number }): Promise<Board[]> {
+  const { data } = await client.get<ApiResponse<BoardResponse[]>>('/boards/hot', { params });
+  return data.data.map(normalizeBoard);
+}
