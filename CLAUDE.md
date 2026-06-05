@@ -1,0 +1,39 @@
+# THINGO APP
+
+## environment
+
+- Node.js: v20.20.2
+- 패키지 매니저: **pnpm** (npm, yarn 사용 금지)
+
+## target
+
+- android, ios, web 모두 동작 가능해야한다.
+
+## installation
+
+패키지 설치 명령어는 직접 실행하지 말고 사용자가 실행할 수 있도록 출력:
+
+```
+pnpm add <package>
+pnpm expo install <package>
+```
+
+네이티브 모듈 추가 후 prebuild 필요한 경우 사용자에게 지시:
+
+```
+pnpm expo prebuild
+pnpm expo run:ios
+pnpm expo run:android
+```
+
+## naming conventions
+
+| 구분                     | 규칙                              | 예시                                                                          |
+| ------------------------ | --------------------------------- | ----------------------------------------------------------------------------- |
+| 화면·라우트 (`app/`)     | Expo Router 규칙 준수             | `_layout.tsx`, `index.tsx`, `+not-found.tsx`, `+html.tsx`, `(group)/page.tsx` |
+| 컴포넌트 (`components/`) | 케밥-케이스 사용                  | `campaign-card.tsx`                                                           |
+| 훅 (`hooks/`)            | 카멜 케이스 사용                  | `useAuth.ts`, `useCampaignForm.ts`                                            |
+| 유틸·헬퍼 (`lib/`)       | 카멜 케이스 또는 단일 단어 소문자 | `utils.ts`, `theme.ts`                                                        |
+| 설정·루트 스크립트       | 도구 관례 따름                    | `babel.config.js`, `metro.config.js`, `tailwind.config.js`                    |
+
+- 파일명에는 **공백·한글**을 쓰지 않음
