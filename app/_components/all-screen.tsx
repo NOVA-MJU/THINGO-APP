@@ -25,12 +25,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { getNews, type NewsItem, type NewsCategory } from '@/api/news';
 import { getBroadcasts, type BroadcastItem } from '@/api/broadcast';
 import { getMenus, type DailyMenu } from '@/api/menus';
-import {
-  getCalendar,
-  getCalendarDdays,
-  type CalendarDday,
-  type CalendarEvent,
-} from '@/api/calendar';
+import { getCalendar, type CalendarEvent } from '@/api/calendar';
 import { formatTimeAgo } from '@/lib/utils';
 import { MyeongjiMapIcon } from './icons/myeongji-map-icon';
 import { DiningIcon } from './icons/dining-icon';
@@ -73,7 +68,6 @@ const BOARD_CATEGORY_LABELS: Record<string, string> = {
 
 const CAROUSEL_PEEK = 12;
 const CAROUSEL_GAP = 10;
-const DDAYS_LIMIT = 3;
 
 type BannerItem = {
   id: number;
@@ -82,10 +76,6 @@ type BannerItem = {
   subCopy: string;
   category: string;
 };
-
-function formatDdayValue(value: number): string {
-  return value === 0 ? 'D-DAY' : `D-${value}`;
-}
 
 export default function AllScreen({ onNavigate }: Props) {
   const { width: screenWidth } = useWindowDimensions();
@@ -108,8 +98,6 @@ export default function AllScreen({ onNavigate }: Props) {
   const [broadcasts, setBroadcasts] = React.useState<BroadcastItem[]>([]);
   const [broadcastsLoading, setBroadcastsLoading] = React.useState(false);
   const [menus, setMenus] = React.useState<DailyMenu[]>([]);
-  const [calendarDdays, setCalendarDdays] = React.useState<CalendarDday[]>([]);
-  const [calendarDdaysLoading, setCalendarDdaysLoading] = React.useState(false);
   const [todayEvents, setTodayEvents] = React.useState<
     { dateLabel: string; description: string }[]
   >([]);
@@ -142,14 +130,6 @@ export default function AllScreen({ onNavigate }: Props) {
     getMenus()
       .then((res) => setMenus(res.data))
       .catch(() => {});
-  }, []);
-
-  React.useEffect(() => {
-    setCalendarDdaysLoading(true);
-    getCalendarDdays(DDAYS_LIMIT)
-      .then(setCalendarDdays)
-      .catch(() => setCalendarDdays([]))
-      .finally(() => setCalendarDdaysLoading(false));
   }, []);
 
   React.useEffect(() => {
@@ -371,32 +351,18 @@ export default function AllScreen({ onNavigate }: Props) {
 
             {/* 학사일정 */}
             <View className="flex-[3] gap-2 rounded-xl bg-blue-02 px-3.5 py-3">
-              {calendarDdaysLoading ? (
-                Array.from({ length: DDAYS_LIMIT }).map((_, index) => (
-                  <View key={index} className="flex-1 gap-1">
-                    <Skeleton className="h-3 w-8 rounded" />
-                    <Skeleton className="h-4 w-full rounded" />
-                  </View>
-                ))
-              ) : calendarDdays.length > 0 ? (
-                calendarDdays.map((item) => (
-                  <View
-                    key={`${item.startDate}-${item.endDate}-${item.eventName}`}
-                    className="flex-1 gap-1"
-                  >
-                    <Text className="text-caption03 text-blue-15">
-                      {formatDdayValue(item.ddayValue)}
-                    </Text>
-                    <Text className="text-caption02 text-grey-80" numberOfLines={1}>
-                      {item.eventNameTruncated || item.eventName}
-                    </Text>
-                  </View>
-                ))
-              ) : (
-                <View className="flex-1 justify-center">
-                  <Text className="text-caption02 text-grey-40">예정된 학사일정이 없습니다.</Text>
-                </View>
-              )}
+              <View className="flex-1 gap-1">
+                <Text className="text-caption03 text-blue-15">D-00</Text>
+                <Text className="text-caption01 text-grey-80">중간고사 강의 평가기간</Text>
+              </View>
+              <View className="flex-1 gap-1">
+                <Text className="text-caption03 text-blue-15">D-00</Text>
+                <Text className="text-caption02 text-grey-80">2학기 개강 학기 개시일</Text>
+              </View>
+              <View className="flex-1 gap-1">
+                <Text className="text-caption03 text-blue-15">D-00</Text>
+                <Text className="text-caption02 text-grey-80">2학기 개강 학기 개시일</Text>
+              </View>
             </View>
           </View>
         </View>
