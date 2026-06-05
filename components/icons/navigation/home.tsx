@@ -11,7 +11,11 @@ interface HomeIconProps {
   className?: string;
 }
 
-export default function HomeIcon({ size = 28, filled = false, className = 'text-black' }: HomeIconProps) {
+export default function HomeIcon({
+  size = 28,
+  filled = false,
+  className = 'text-black',
+}: HomeIconProps) {
   return (
     <StyledSvg width={size} height={size} viewBox="0 0 28 28" fill="none" className={className}>
       <Path

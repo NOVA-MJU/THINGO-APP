@@ -11,7 +11,11 @@ interface MapIconProps {
   className?: string;
 }
 
-export default function MapIcon({ size = 28, filled = false, className = 'text-black' }: MapIconProps) {
+export default function MapIcon({
+  size = 28,
+  filled = false,
+  className = 'text-black',
+}: MapIconProps) {
   return (
     <StyledSvg width={size} height={size} viewBox="0 0 28 28" fill="none" className={className}>
       {filled ? (

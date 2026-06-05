@@ -11,7 +11,11 @@ interface ExploreIconProps {
   className?: string;
 }
 
-export default function ExploreIcon({ size = 28, filled = false, className = 'text-black' }: ExploreIconProps) {
+export default function ExploreIcon({
+  size = 28,
+  filled = false,
+  className = 'text-black',
+}: ExploreIconProps) {
   return (
     <StyledSvg width={size} height={size} viewBox="0 0 28 28" fill="none" className={className}>
       <Path

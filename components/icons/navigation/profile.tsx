@@ -11,7 +11,11 @@ interface ProfileIconProps {
   className?: string;
 }
 
-export default function ProfileIcon({ size = 28, filled = false, className = 'text-black' }: ProfileIconProps) {
+export default function ProfileIcon({
+  size = 28,
+  filled = false,
+  className = 'text-black',
+}: ProfileIconProps) {
   return (
     <StyledSvg width={size} height={size} viewBox="0 0 28 28" fill="none" className={className}>
       {filled ? (
