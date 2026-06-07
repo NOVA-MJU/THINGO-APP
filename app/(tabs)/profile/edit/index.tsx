@@ -326,7 +326,7 @@ export default function ProfileEditScreen() {
             <Text>저장하기</Text>
           </Button>
         </View>
-        <Footer withBottomInset />
+        <Footer />
       </ScrollView>
     </>
   );

@@ -26,6 +26,19 @@ pnpm expo run:ios
 pnpm expo run:android
 ```
 
+## scripts
+
+사용자에게 명령어를 안내할 때 `package.json` scripts에 있는 경우 스크립트를 우선 사용:
+
+| 원래 명령어 | 스크립트 |
+| --- | --- |
+| `pnpm expo start -c` | `pnpm dev` |
+| `pnpm expo prebuild` | `pnpm prebuild` |
+| `pnpm expo run:ios` | `pnpm ios` |
+| `pnpm expo run:android` | `pnpm android` |
+| `pnpm expo export --platform web` | `pnpm build:web` |
+| `rm -rf .expo node_modules android ios` | `pnpm clean` |
+
 ## naming conventions
 
 | 구분                     | 규칙                              | 예시                                                                          |

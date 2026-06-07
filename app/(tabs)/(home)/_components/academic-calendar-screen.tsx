@@ -443,7 +443,7 @@ export default function AcademicCalendarScreen() {
         </View>
       )}
 
-      <Footer withBottomInset />
+      <Footer />
     </ScrollView>
   );
 }

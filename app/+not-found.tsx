@@ -1,5 +1,5 @@
-import { Link, Stack } from 'expo-router';
-import { View } from 'react-native';
+import { Stack, useRouter } from 'expo-router';
+import { Platform, View } from 'react-native';
 import { Text } from '@/components/ui/text';
 import ThingoLogoLarge from '@/components/icons/thingo-logo-large';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 
 export default function NotFoundScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   return (
     <>
@@ -20,11 +21,9 @@ export default function NotFoundScreen() {
           404
         </Text>
         <Text>죄송합니다. 현재 찾을 수 없는 페이지를 요청하셨습니다.</Text>
-        <Link href="/" asChild>
-          <Button>
-            <Text>홈으로 돌아가기</Text>
-          </Button>
-        </Link>
+        <Button onPress={() => (Platform.OS === 'web' ? router.push('/') : router.dismissAll())}>
+          <Text>홈으로 돌아가기</Text>
+        </Button>
       </View>
     </>
   );

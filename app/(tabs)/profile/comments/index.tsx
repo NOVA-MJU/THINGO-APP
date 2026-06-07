@@ -82,7 +82,7 @@ export default function MyCommentsScreen() {
           )}
         </View>
       </View>
-      <Footer withBottomInset />
+      <Footer />
     </ScrollView>
   );
 }

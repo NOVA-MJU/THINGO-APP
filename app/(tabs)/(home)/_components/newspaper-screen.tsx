@@ -115,7 +115,7 @@ export default function NewspaperScreen() {
           onPageChange={setCurrentPage}
         />
       </View>
-      <Footer withBottomInset />
+      <Footer />
     </ScrollView>
   );
 }

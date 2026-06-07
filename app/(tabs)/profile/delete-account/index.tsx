@@ -63,7 +63,7 @@ export default function DeleteAccountScreen() {
           </Button>
         </View>
       </View>
-      <Footer withBottomInset />
+      <Footer />
     </ScrollView>
   );
 }

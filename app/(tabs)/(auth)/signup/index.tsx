@@ -476,7 +476,7 @@ export default function SignupScreen() {
             <Text>{signupLoading ? '가입 중...' : 'Thingo 시작하기'}</Text>
           </Button>
         </View>
-        <Footer className="mt-6" withBottomInset />
+        <Footer className="mt-6" />
       </ScrollView>
     </>
   );
