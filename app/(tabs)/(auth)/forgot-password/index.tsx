@@ -4,6 +4,7 @@ import {
   verifyRecoveryCode,
   resetPassword,
 } from '@/api/members';
+import { AppHeader } from '@/components/app-header';
 import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,8 +13,10 @@ import { showAlert } from '@/lib/alert';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ForgotPasswordScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [step, setStep] = React.useState(0);
   const [email, setEmail] = React.useState('');
@@ -73,7 +76,7 @@ export default function ForgotPasswordScreen() {
         if (router.canGoBack()) {
           router.back();
         } else {
-          router.replace('/(auth)/login');
+          router.replace('/(tabs)/(auth)/login');
         }
       });
     } catch {
@@ -82,110 +85,115 @@ export default function ForgotPasswordScreen() {
   }
 
   return (
-    <ScrollView className="bg-grey-02" contentContainerClassName="flex-grow">
-      <View className="flex-1">
-        {step === 0 && (
-          <View className="px-4">
-            <Text className="mt-[30px] text-title01 text-black">비밀번호 재설정</Text>
-            <View className="mt-3 rounded-xl bg-white p-6">
-              <Text className="text-body04 text-grey-80">이메일</Text>
-              <View className="mt-2 flex-row gap-2.5">
-                <Input
-                  placeholder="이메일을 입력하세요(@mju.ac.kr)"
-                  className="flex-1"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  editable={!codeSent}
-                />
-                <Button
-                  variant={email && !codeSent ? 'default' : 'subtle'}
-                  disabled={!email || isRequesting || codeSent}
-                  onPress={handleRequestCode}
-                >
-                  <Text>인증요청</Text>
-                </Button>
-              </View>
-              <Text className="mt-5 text-body04 text-grey-80">인증번호</Text>
-              <View className="mt-2 flex-row gap-2.5">
-                <Input
-                  placeholder="인증번호를 입력하세요"
-                  className="flex-1"
-                  editable={codeSent && !codeVerified}
-                  value={code}
-                  onChangeText={setCode}
-                />
-                <Button
-                  variant={codeSent && code && !codeVerified ? 'default' : 'subtle'}
-                  disabled={!codeSent || !code || codeVerified}
-                  onPress={handleSubmitCode}
-                >
-                  <Text>인증확인</Text>
-                </Button>
-              </View>
-              <Button
-                className="mt-6"
-                variant={codeVerified ? 'default' : 'subtle'}
-                disabled={!codeVerified}
-                onPress={handleNextStep}
-              >
-                <Text>비밀번호 재설정</Text>
-              </Button>
-              <View className="mt-6 flex-row items-center">
-                <TouchableOpacity className="flex-1" onPress={onFindIdPress}>
-                  <View className="h-10 items-center justify-center">
-                    <Text className="text-caption02 text-grey-20">아이디 찾기</Text>
-                  </View>
-                </TouchableOpacity>
-                <View className="h-4 w-[1px] bg-grey-20" />
-                <TouchableOpacity className="flex-1">
-                  <View className="h-10 items-center justify-center">
-                    <Text className="text-caption02 text-grey-20">비밀번호 찾기</Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        )}
-
-        {step === 1 && (
-          <View className="px-4">
-            <Text className="mt-[30px] text-title01 text-black">비밀번호 재설정</Text>
-            <View className="mt-3 rounded-xl bg-white p-6">
-              <Text className="text-body04 text-grey-80">새 비밀번호</Text>
-              <Input
-                placeholder="새 비밀번호를 입력하세요"
-                className="mt-2"
-                secureTextEntry
-                textContentType="newPassword"
-                autoComplete="new-password"
-                value={newPassword}
-                onChangeText={setNewPassword}
-              />
-              <Text className="mt-5 text-body04 text-grey-80">새 비밀번호 확인</Text>
-              <Input
-                placeholder="비밀번호를 다시 입력하세요"
-                className="mt-2"
-                secureTextEntry
-                textContentType="newPassword"
-                autoComplete="new-password"
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-              />
-              <Button
-                className="mt-7"
-                variant={newPassword && confirmPassword ? 'default' : 'subtle'}
-                disabled={!newPassword || !confirmPassword}
-                onPress={requestPasswordReset}
-              >
-                <Text>비밀번호 변경</Text>
-              </Button>
-            </View>
-          </View>
-        )}
+    <View className="flex-1">
+      <View style={{ paddingTop: insets.top }} className="bg-white">
+        <AppHeader title="비밀번호 재설정" />
       </View>
-      <Footer />
-    </ScrollView>
+      <ScrollView className="bg-grey-02" contentContainerClassName="flex-grow">
+        <View className="flex-1">
+          {step === 0 && (
+            <View className="px-4">
+              <Text className="mt-[30px] text-title01 text-black">비밀번호 재설정</Text>
+              <View className="mt-3 rounded-xl bg-white p-6">
+                <Text className="text-body04 text-grey-80">이메일</Text>
+                <View className="mt-2 flex-row gap-2.5">
+                  <Input
+                    placeholder="이메일을 입력하세요(@mju.ac.kr)"
+                    className="flex-1"
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    editable={!codeSent}
+                  />
+                  <Button
+                    variant={email && !codeSent ? 'default' : 'subtle'}
+                    disabled={!email || isRequesting || codeSent}
+                    onPress={handleRequestCode}
+                  >
+                    <Text>인증요청</Text>
+                  </Button>
+                </View>
+                <Text className="mt-5 text-body04 text-grey-80">인증번호</Text>
+                <View className="mt-2 flex-row gap-2.5">
+                  <Input
+                    placeholder="인증번호를 입력하세요"
+                    className="flex-1"
+                    editable={codeSent && !codeVerified}
+                    value={code}
+                    onChangeText={setCode}
+                  />
+                  <Button
+                    variant={codeSent && code && !codeVerified ? 'default' : 'subtle'}
+                    disabled={!codeSent || !code || codeVerified}
+                    onPress={handleSubmitCode}
+                  >
+                    <Text>인증확인</Text>
+                  </Button>
+                </View>
+                <Button
+                  className="mt-6"
+                  variant={codeVerified ? 'default' : 'subtle'}
+                  disabled={!codeVerified}
+                  onPress={handleNextStep}
+                >
+                  <Text>비밀번호 재설정</Text>
+                </Button>
+                <View className="mt-6 flex-row items-center">
+                  <TouchableOpacity className="flex-1" onPress={onFindIdPress}>
+                    <View className="h-10 items-center justify-center">
+                      <Text className="text-caption02 text-grey-20">아이디 찾기</Text>
+                    </View>
+                  </TouchableOpacity>
+                  <View className="h-4 w-[1px] bg-grey-20" />
+                  <TouchableOpacity className="flex-1">
+                    <View className="h-10 items-center justify-center">
+                      <Text className="text-caption02 text-grey-20">비밀번호 찾기</Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {step === 1 && (
+            <View className="px-4">
+              <Text className="mt-[30px] text-title01 text-black">비밀번호 재설정</Text>
+              <View className="mt-3 rounded-xl bg-white p-6">
+                <Text className="text-body04 text-grey-80">새 비밀번호</Text>
+                <Input
+                  placeholder="새 비밀번호를 입력하세요"
+                  className="mt-2"
+                  secureTextEntry
+                  textContentType="newPassword"
+                  autoComplete="new-password"
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                />
+                <Text className="mt-5 text-body04 text-grey-80">새 비밀번호 확인</Text>
+                <Input
+                  placeholder="비밀번호를 다시 입력하세요"
+                  className="mt-2"
+                  secureTextEntry
+                  textContentType="newPassword"
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                />
+                <Button
+                  className="mt-7"
+                  variant={newPassword && confirmPassword ? 'default' : 'subtle'}
+                  disabled={!newPassword || !confirmPassword}
+                  onPress={requestPasswordReset}
+                >
+                  <Text>비밀번호 변경</Text>
+                </Button>
+              </View>
+            </View>
+          )}
+        </View>
+        <Footer />
+      </ScrollView>
+    </View>
   );
 }

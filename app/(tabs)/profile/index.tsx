@@ -8,6 +8,7 @@ import { Text } from '@/components/ui/text';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Image, Linking, ScrollView, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const TERMS_URL =
   'https://verbena-ixia-597.notion.site/Thingo-33e22ef5d21e80b08328edd8519b0b4e?source=copy_link';
@@ -29,6 +30,7 @@ async function openContactMail() {
 }
 
 export default function ProfileScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, logout } = useAuth();
   const [stats, setStats] = useState<ProfileStats | null>(null);
@@ -44,8 +46,11 @@ export default function ProfileScreen() {
   }, []);
 
   return (
-    <ScrollView contentContainerClassName="flex-grow">
-      <View className="flex-1 bg-grey-02">
+    <ScrollView
+      className="bg-grey-02"
+      contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top }}
+    >
+      <View className="flex-1">
         <View className="px-4 pb-6 pt-5">
           <Text className="text-title01 text-black">마이페이지</Text>
           <Text className="mt-5 text-title03 text-grey-80">프로필</Text>
@@ -113,7 +118,7 @@ export default function ProfileScreen() {
               <ArrowRightIcon size={20} className="text-grey-30" />
             </TouchableOpacity>
             <TouchableOpacity
-              className="flex-row items-center justify-between py-3"
+              className="flex-row items-center justify-between border-b border-grey-02 py-3"
               onPress={() => Linking.openURL(PRIVACY_URL)}
             >
               <Text className="text-body06 text-black">개인정보 처리 방침</Text>

@@ -22,8 +22,11 @@ import { useImageUpload } from '@/hooks/useImageUpload';
 import { useState } from 'react';
 import { Image, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
 import * as DropdownMenu from 'zeego/dropdown-menu';
+import { AppHeader } from '@/components/app-header';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function SignupScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { setUser } = useAuth();
 
@@ -204,7 +207,10 @@ export default function SignupScreen() {
   };
 
   return (
-    <>
+    <View className="flex-1">
+      <View style={{ paddingTop: insets.top }} className="bg-white">
+        <AppHeader title="회원가입" />
+      </View>
       <ScrollView className="bg-grey-02" contentContainerClassName="flex-grow">
         <View className="flex-1 px-4">
           <View className="mt-5 flex-row gap-1">
@@ -478,6 +484,6 @@ export default function SignupScreen() {
         </View>
         <Footer className="mt-6" />
       </ScrollView>
-    </>
+    </View>
   );
 }

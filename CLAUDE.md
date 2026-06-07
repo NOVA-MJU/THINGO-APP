@@ -51,6 +51,10 @@ pnpm expo run:android
 
 - 파일명에는 **공백·한글**을 쓰지 않음
 
+## comments
+
+- 기존 파일을 수정할 때 주석을 삭제하지 않는다
+
 ## icons
 
 ### 구조
