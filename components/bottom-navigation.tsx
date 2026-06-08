@@ -1,3 +1,4 @@
+import { useAuth } from '@/context/auth-context';
 import { usePathname, useRouter } from 'expo-router';
 import { TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -28,6 +29,7 @@ export default function BottomNavigation() {
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const activeKey = getActiveKey(pathname);
+  const { user } = useAuth();
 
   return (
     <View
@@ -41,7 +43,13 @@ export default function BottomNavigation() {
           <TouchableOpacity
             key={key}
             className="flex-1 items-center gap-0.5"
-            onPress={() => router.navigate(href)}
+            onPress={() => {
+              if (key === 'my') {
+                router.navigate(user ? '/profile' : '/login');
+              } else {
+                router.navigate(href);
+              }
+            }}
             hitSlop={{ top: 8, bottom: 4 }}
           >
             <Icon filled={isActive} className={color} />

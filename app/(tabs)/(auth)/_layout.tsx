@@ -1,49 +1,18 @@
-import { AppHeader } from '@/components/app-header';
 import { useAuth } from '@/context/auth-context';
-import { Stack, useRouter, useSegments } from 'expo-router';
-import { useEffect } from 'react';
-import { Platform, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-const PAGE_TITLES: Record<string, string> = {
-  login: '로그인',
-  signup: '회원가입',
-  'forgot-password': '비밀번호 재설정',
-};
+import { Redirect, Stack } from 'expo-router';
+import { View } from 'react-native';
 
 export default function AuthLayout() {
-  const insets = useSafeAreaInsets();
-  const router = useRouter();
-  const segments = useSegments();
-
-  /**
-   * auth-context에서 사용자 정보와 초기화 상태를 가져옴
-   */
+  // auth-context에서 사용자 정보와 초기화 상태를 가져옴
   const { user, isInitializing } = useAuth();
 
-  /**
-   * 이미 로그인한 사용자가 로그인/회원가입 페이지에 접근할 경우 홈으로 리다이렉트
-   */
-  useEffect(() => {
-    if (isInitializing) return;
-    if (user) {
-      if (Platform.OS === 'web') {
-        router.replace('/');
-      } else {
-        router.dismissAll();
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isInitializing]);
-
-  const currentSegment = segments[segments.length - 1];
-  const pageTitle = PAGE_TITLES[currentSegment] ?? '로그인';
+  // 이미 로그인한 사용자가 로그인/회원가입 페이지에 접근할 경우 홈으로 리다이렉트
+  if (!isInitializing && user) {
+    return <Redirect href="/" />;
+  }
 
   return (
     <View className="flex-1">
-      <View style={{ paddingTop: insets.top }} className="bg-white">
-        <AppHeader title={pageTitle} />
-      </View>
       <Stack screenOptions={{ headerShown: false }} />
     </View>
   );

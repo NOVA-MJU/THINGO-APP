@@ -9,8 +9,10 @@ import { useRouter } from 'expo-router';
 import { showAlert } from '@/lib/alert';
 import { useRef, useState } from 'react';
 import { ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function LoginScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { setUser } = useAuth();
   const [email, setEmail] = useState('');
@@ -51,7 +53,10 @@ export default function LoginScreen() {
   }
 
   return (
-    <ScrollView className="bg-grey-02" contentContainerClassName="flex-grow">
+    <ScrollView
+      className="bg-grey-02"
+      contentContainerStyle={{ paddingTop: insets.top, flexGrow: 1 }}
+    >
       {/* 로그인 영역 */}
       <View className="flex-1 gap-3 px-4 py-8">
         <Text className="text-title01 text-black">로그인</Text>

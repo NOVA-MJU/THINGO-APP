@@ -13,8 +13,11 @@ import { showAlert } from '@/lib/alert';
 import { useState } from 'react';
 import { Image, ScrollView, TouchableOpacity, View } from 'react-native';
 import * as DropdownMenu from 'zeego/dropdown-menu';
+import { AppHeader } from '@/components/app-header';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ProfileEditScreen() {
+  const insets = useSafeAreaInsets();
   const { user, setUser } = useAuth();
   const router = useRouter();
 
@@ -113,7 +116,10 @@ export default function ProfileEditScreen() {
   };
 
   return (
-    <>
+    <View className="flex-1">
+      <View style={{ paddingTop: insets.top }} className="bg-white">
+        <AppHeader title="프로필 수정" />
+      </View>
       <ScrollView contentContainerClassName="flex-grow">
         <View className="flex-1 bg-grey-02 px-4">
           <View className="mt-5 flex-row">
@@ -328,6 +334,6 @@ export default function ProfileEditScreen() {
         </View>
         <Footer />
       </ScrollView>
-    </>
+    </View>
   );
 }
