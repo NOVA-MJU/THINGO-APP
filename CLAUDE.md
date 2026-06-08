@@ -37,3 +37,25 @@ pnpm expo run:android
 | 설정·루트 스크립트       | 도구 관례 따름                    | `babel.config.js`, `metro.config.js`, `tailwind.config.js`                    |
 
 - 파일명에는 **공백·한글**을 쓰지 않음
+
+## icons
+
+### 구조
+
+```
+components/icons/
+  navigation/          ← 네비게이션 전용 아이콘
+    home.tsx
+    map.tsx
+    explore.tsx
+    profile.tsx
+    index.ts           ← named export 모음
+  heart.tsx            ← 공통 아이콘 (케밥-케이스)
+  index.ts
+```
+
+### 아이콘 컴포넌트 규칙
+
+- 기본 색상: `text-black`, `className` prop으로 오버라이드
+- 크기: `size` prop (기본값 컴포넌트 내부에서 정의, 파일명에 크기 포함 금지)
+- 색상 적용: `cssInterop` + `currentColor` 패턴 사용
