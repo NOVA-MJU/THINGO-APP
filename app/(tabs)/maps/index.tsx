@@ -1,15 +1,16 @@
-import { ArrowLeftIcon, HamburgerIcon } from '@/components/icons';
-import { CategoryFilter } from '@/components/ui/category-filter';
+import { SearchIcon, ThingoLogoSmall } from '@/components/icons';
 import { NaverMap, NaverMapHandle } from '@/components/naver-map';
-import Sidebar from '@/components/sidebar';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { PlaceDetail } from './_components/place-detail';
 import * as Location from 'expo-location';
 import * as React from 'react';
-import { Alert, Platform, TouchableOpacity, View } from 'react-native';
+import { Alert, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Text } from '@/components/ui/text';
+import SheetHandle from './_components/sheets/sheet-handle';
+import { MoreIcon, StarIcon } from './_components/icons';
+import CategoryList from './_components/sheets/category-list';
+import { CATEGORIES } from './_constants/category-data';
 
 const MARKERS = [
   { id: '1', latitude: 37.58036, longitude: 126.92343 },
@@ -22,16 +23,20 @@ const MARKERS = [
   { id: '8', latitude: 37.580815, longitude: 126.923101 },
 ];
 
-const FILTER_CATEGORIES = ['버스', '대동명지도', '프린터', '라운지', '은행·ATM'];
+const QUICK_CHIP_IDS = ['bus', 'daedong', 'printer', 'lounge', 'bank'];
 
-const SNAP_POINTS = ['50%', '100%'];
+const QUICK_CHIPS = CATEGORIES.flatMap((c) =>
+  c.chips.map((chip) => ({ ...chip, iconClassName: c.iconClassName }))
+)
+  .filter((chip) => QUICK_CHIP_IDS.includes(chip.id))
+  .sort((a, b) => QUICK_CHIP_IDS.indexOf(a.id) - QUICK_CHIP_IDS.indexOf(b.id));
+
+const SNAP_POINTS = ['10%', '50%', '100%'];
 
 export default function MapsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [sidebarOpen, setSidebarOpen] = React.useState(false);
-  const [selectedCategory, setSelectedCategory] = React.useState(FILTER_CATEGORIES[0]);
-  const [selectedMarkerId, setSelectedMarkerId] = React.useState<string | null>(null);
+  const [, setSelectedMarkerId] = React.useState<string | null>(null);
   const mapRef = React.useRef<NaverMapHandle>(null);
   const bottomSheetRef = React.useRef<BottomSheet>(null);
 
@@ -68,6 +73,8 @@ export default function MapsScreen() {
     }
   }
 
+  function handleMoreCategories() {}
+
   return (
     <View style={{ flex: 1 }}>
       <NaverMap
@@ -86,42 +93,84 @@ export default function MapsScreen() {
       >
         <View className="h-[60px]">
           {/* 검색바 행 */}
-          <View className="flex-row gap-3 px-3 py-1.5">
+          <View className="flex-row gap-2 px-4 pb-2 pt-4">
+            {/* 검색바 */}
             <View
-              className="flex-1 flex-row items-center gap-3 rounded-xl bg-white p-3"
+              className="flex-1 flex-row items-center gap-1 rounded-xl bg-white px-3 py-[5px]"
               style={{
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.08,
-                shadowRadius: 8,
-                elevation: 4,
-                ...(Platform.OS === 'web' ? { boxShadow: '0 2px 8px rgba(0,0,0,0.08)' } : {}),
+                boxShadow: '0px 2px 6px rgba(23,23,27,0.15), 0px 1px 4px rgba(23,23,27,0.15)',
               }}
             >
-              <TouchableOpacity onPress={router.back} hitSlop={8}>
-                <ArrowLeftIcon className="text-grey-80" />
+              <TouchableOpacity onPress={router.back} hitSlop={4}>
+                <ThingoLogoSmall size={32} />
               </TouchableOpacity>
-              <TouchableOpacity className="flex-1" onPress={onSearchButtonPress}>
-                <Text className="text-grey-40">명지도 검색</Text>
+              <TouchableOpacity className="flex-1" onPress={onSearchButtonPress} hitSlop={4}>
+                <Text className="text-body05 text-grey-20">건물명, 강의실 코드를 검색해보세요</Text>
+              </TouchableOpacity>
+              <SearchIcon size={24} className="text-grey-40" />
+            </View>
+
+            {/* 즐겨찾기 버튼 */}
+            <View
+              className="rounded-md bg-blue-35"
+              style={{
+                boxShadow: '0px 2px 6px rgba(23,23,27,0.15), 0px 1px 4px rgba(23,23,27,0.15)',
+              }}
+            >
+              <TouchableOpacity className="items-center gap-[1px] px-1.5 py-[2.5px]" hitSlop={4}>
+                <StarIcon size={24} className="text-blue-05" />
+                <Text className="text-caption05 text-blue-05" style={{ fontSize: 9 }}>
+                  즐겨찾기
+                </Text>
               </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              className="aspect-square items-center justify-center rounded-xl bg-mju-primary"
-              onPress={() => setSidebarOpen(true)}
-              hitSlop={8}
-            >
-              <HamburgerIcon size={24} className="text-white" />
-            </TouchableOpacity>
           </View>
         </View>
 
         {/* 필터 칩 */}
-        <View style={{ elevation: 4 }}>
-          <CategoryFilter
-            categories={FILTER_CATEGORIES}
-            selected={selectedCategory}
-            onSelect={setSelectedCategory}
-          />
+        <View className="flex-row items-center">
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerClassName="flex-row gap-1 py-2 px-4"
+            className="flex-1"
+          >
+            {QUICK_CHIPS.map((chip) => (
+              <View
+                key={chip.id}
+                className="rounded-full border border-white bg-white"
+                style={{
+                  shadowColor: '#17171B',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 4,
+                  elevation: 2,
+                }}
+              >
+                <TouchableOpacity
+                  className="flex-row items-center gap-0.5 py-1.5 pe-2 ps-1.5"
+                  hitSlop={2}
+                >
+                  <chip.Icon size={20} className={chip.iconClassName} />
+                  <Text className="text-caption02 text-black">{chip.label}</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </ScrollView>
+
+          {/* 더보기 버튼 */}
+          <View className="py-2 pe-4 ps-1.5">
+            <View
+              className="rounded-full bg-blue-02"
+              style={{
+                boxShadow: '0px 2px 6px rgba(23,23,27,0.15), 0px 1px 4px rgba(23,23,27,0.15)',
+              }}
+            >
+              <TouchableOpacity onPress={handleMoreCategories} hitSlop={8} className="p-1">
+                <MoreIcon size={24} className="text-blue-15" />
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       </View>
 
@@ -150,20 +199,21 @@ export default function MapsScreen() {
         </TouchableOpacity>
       )}
 
-      <Sidebar visible={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
       {/* 바텀시트 */}
       <BottomSheet
         ref={bottomSheetRef}
-        index={-1}
+        index={0}
         snapPoints={SNAP_POINTS}
-        enablePanDownToClose
-        // handleComponent={null}
+        // enablePanDownToClose
+        handleComponent={SheetHandle}
         topInset={insets.top}
         onClose={onBottomSheetClose}
       >
         <BottomSheetScrollView>
-          <PlaceDetail placeId={selectedMarkerId ?? ''} />
+          {/* <PlaceList /> */}
+          {/* <PlaceDetail /> */}
+          <CategoryList />
+          {/* <BusInfoSheet /> */}
         </BottomSheetScrollView>
       </BottomSheet>
     </View>
