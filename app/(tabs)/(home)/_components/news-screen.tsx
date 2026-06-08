@@ -74,7 +74,7 @@ export default function NewsScreen() {
         onPageChange={handlePageChange}
         className="pb-9 pt-1"
       />
-      <Footer withBottomInset />
+      <Footer />
     </ScrollView>
   );
 }

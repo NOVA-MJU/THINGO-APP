@@ -185,7 +185,7 @@ export default function ForgotPasswordScreen() {
           </View>
         )}
       </View>
-      <Footer withBottomInset />
+      <Footer />
     </ScrollView>
   );
 }

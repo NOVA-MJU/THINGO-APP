@@ -90,7 +90,7 @@ export default function NoticeScreen() {
         onPageChange={setCurrentPage}
         className="mt-6"
       />
-      <Footer className="mt-9" withBottomInset />
+      <Footer className="mt-9" />
     </ScrollView>
   );
 }

@@ -87,7 +87,7 @@ export default function MyPostsScreen() {
           )}
         </View>
       </View>
-      <Footer withBottomInset />
+      <Footer />
     </ScrollView>
   );
 }

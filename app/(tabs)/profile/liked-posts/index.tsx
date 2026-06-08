@@ -87,7 +87,7 @@ export default function LikedPostsScreen() {
           )}
         </View>
       </View>
-      <Footer withBottomInset />
+      <Footer />
     </ScrollView>
   );
 }

@@ -11,13 +11,6 @@ const TERMS_URL =
   'https://verbena-ixia-597.notion.site/Thingo-33e22ef5d21e80b08328edd8519b0b4e?source=copy_link';
 const PRIVACY_URL =
   'https://verbena-ixia-597.notion.site/Thingo-33e22ef5d21e807d9738dc14def5de24?source=copy_link';
-const CONTACT_MAIL = `mailto:mjsearch2025@gmail.com?subject=${encodeURIComponent('문의 내용을 작성해주세요')}&body=${encodeURIComponent('안녕하세요,\n\n문의사항을 아래에 작성해주세요.\n\n- 이름:\n- 연락처:\n- 문의 내용:')}`;
-
-async function openContactMail() {
-  const supported = await Linking.canOpenURL(CONTACT_MAIL);
-  if (supported) Linking.openURL(CONTACT_MAIL);
-  else alert('mail 앱이 설치되어있지 않습니다.');
-}
 
 export function Footer({
   className,
@@ -57,9 +50,6 @@ export function Footer({
           </Pressable>
           <Pressable onPress={() => Linking.openURL(PRIVACY_URL)}>
             <Text className="text-caption02 text-grey-40">개인정보 처리방침</Text>
-          </Pressable>
-          <Pressable onPress={openContactMail}>
-            <Text className="text-caption02 text-grey-40">문의하기</Text>
           </Pressable>
         </View>
         <View className="py-1">

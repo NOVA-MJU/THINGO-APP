@@ -7,16 +7,30 @@ import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Image, Linking, ScrollView, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, Linking, ScrollView, TouchableOpacity, View } from 'react-native';
 
 const TERMS_URL =
   'https://verbena-ixia-597.notion.site/Thingo-33e22ef5d21e80b08328edd8519b0b4e?source=copy_link';
 const PRIVACY_URL =
   'https://verbena-ixia-597.notion.site/Thingo-33e22ef5d21e807d9738dc14def5de24?source=copy_link';
+const CONTACT_MAIL = `mailto:mjsearch2025@gmail.com?subject=${encodeURIComponent('문의 내용을 작성해주세요')}&body=${encodeURIComponent('안녕하세요,\n\n문의사항을 아래에 작성해주세요.\n\n- 이름:\n- 연락처:\n- 문의 내용:')}`;
+
+async function openContactMail() {
+  const supported = await Linking.canOpenURL(CONTACT_MAIL);
+  if (!supported) {
+    Alert.alert('알림', 'mail 앱이 설치되어있지 않습니다.');
+    return;
+  }
+  try {
+    await Linking.openURL(CONTACT_MAIL);
+  } catch {
+    Alert.alert('알림', 'mail 앱이 설치되어있지 않습니다.');
+  }
+}
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [stats, setStats] = useState<ProfileStats | null>(null);
   const departmentLabel = DEPARTMENT_OPTIONS.flatMap((c) => c.departments).find(
     (d) => d.value === user?.departmentName
@@ -53,6 +67,14 @@ export default function ProfileScreen() {
             </Button>
           </View>
           <Text className="mt-10 text-title03 text-grey-80">나의 활동</Text>
+          <TouchableOpacity
+            className="mt-3 flex-row items-center gap-6 rounded-xl bg-white p-6"
+            onPress={() => router.push('/profile/maps')}
+          >
+            <Text className="flex-1 text-body04 text-grey-80">명지도 즐겨찾기</Text>
+            <Text className="text-body04 text-grey-40">- 개</Text>
+            <ArrowRightIcon size={20} className="text-grey-30" />
+          </TouchableOpacity>
           <TouchableOpacity
             className="mt-3 flex-row items-center gap-6 rounded-xl bg-white p-6"
             onPress={() => router.push('/profile/posts')}
@@ -97,9 +119,23 @@ export default function ProfileScreen() {
               <Text className="text-body06 text-black">개인정보 처리 방침</Text>
               <ArrowRightIcon size={20} className="text-grey-30" />
             </TouchableOpacity>
+            <TouchableOpacity
+              className="flex-row items-center justify-between py-3"
+              onPress={openContactMail}
+            >
+              <Text className="text-body06 text-black">1:1 문의</Text>
+              <ArrowRightIcon size={20} className="text-grey-30" />
+            </TouchableOpacity>
           </View>
+
+          {/* 로그아웃 버튼 */}
+          <Button className="mt-5" variant="outline" onPress={logout}>
+            <Text>로그아웃</Text>
+          </Button>
+
+          {/* 회원 탈퇴 버튼 */}
           <TouchableOpacity
-            className="mt-5 self-start"
+            className="mt-6 self-start"
             hitSlop={12}
             onPress={() => router.push('/profile/delete-account')}
           >
@@ -107,7 +143,7 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
       </View>
-      <Footer withBottomInset />
+      <Footer />
     </ScrollView>
   );
 }

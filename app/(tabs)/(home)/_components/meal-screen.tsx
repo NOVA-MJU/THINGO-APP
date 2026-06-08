@@ -185,7 +185,7 @@ export default function MealScreen() {
           <Text className="text-caption02 text-grey-40">*평일만 운영됩니다.</Text>
         </View>
       </View>
-      <Footer withBottomInset />
+      <Footer />
     </ScrollView>
   );
 }

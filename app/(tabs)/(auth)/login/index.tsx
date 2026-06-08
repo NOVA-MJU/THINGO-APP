@@ -109,7 +109,7 @@ export default function LoginScreen() {
       </View>
 
       {/* 푸터 */}
-      <Footer withBottomInset />
+      <Footer />
     </ScrollView>
   );
 }

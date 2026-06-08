@@ -40,7 +40,7 @@ import { ChatIcon } from './icons/chat-icon';
 import { FireIcon } from './icons/fire-icon';
 import { StarIcon } from './icons/star-icon';
 import { ArrowRightIcon, ChatBubbleIcon, HeartIcon } from '@/components/icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Defs, LinearGradient as SvgLinearGradient, Rect, Stop } from 'react-native-svg';
 
 const NOTICE_CATEGORIES: { label: string; value: NoticeCategory }[] = [
   { label: '전체', value: 'all' },
@@ -278,8 +278,7 @@ export default function AllScreen({ onNavigate }: Props) {
                         resizeMode="cover"
                       />
 
-                      <LinearGradient
-                        colors={['rgba(93,171,255,0)', 'rgba(93,171,255,0.85)']}
+                      <View
                         style={{
                           position: 'absolute',
                           top: 0,
@@ -288,7 +287,17 @@ export default function AllScreen({ onNavigate }: Props) {
                           bottom: 0,
                           zIndex: 10,
                         }}
-                      />
+                      >
+                        <Svg width="100%" height="100%">
+                          <Defs>
+                            <SvgLinearGradient id="hotGrad" x1="0" y1="0" x2="0" y2="1">
+                              <Stop offset="0" stopColor="#5DABFF" stopOpacity="0" />
+                              <Stop offset="1" stopColor="#5DABFF" stopOpacity="0.85" />
+                            </SvgLinearGradient>
+                          </Defs>
+                          <Rect width="100%" height="100%" fill="url(#hotGrad)" />
+                        </Svg>
+                      </View>
 
                       <View className="absolute bottom-0 left-0 right-0 top-0 z-20 justify-between p-4">
                         <View className="self-end rounded-full bg-bg px-2 py-0.5">
@@ -719,7 +728,7 @@ export default function AllScreen({ onNavigate }: Props) {
           </View>
         </View>
       </View>
-      <Footer withBottomInset />
+      <Footer />
     </ScrollView>
   );
 }

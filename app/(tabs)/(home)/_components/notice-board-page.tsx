@@ -287,7 +287,7 @@ function NoticeBoardScreen({ initialCategory, refreshKey }: NoticeBoardScreenPro
             )}
           </View>
 
-          <Footer withBottomInset />
+          <Footer />
         </View>
       </ScrollView>
 
