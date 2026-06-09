@@ -1,4 +1,4 @@
-import { changePassword, updateMemberInfo, validateNickname } from '@/api/members';
+import { changePassword, getMemberInfo, updateMemberInfo, validateNickname } from '@/api/members';
 import { Footer } from '@/components/footer';
 import { ArrowDownIcon, InfoCircleIcon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import { COLLEGE_OPTIONS, DEPARTMENT_OPTIONS } from '@/lib/departments';
 import { PASSWORD_MESSAGE, PASSWORD_REGEX } from '@/lib/validation';
 import { showAlert } from '@/lib/alert';
 import { useState } from 'react';
-import { Image, ScrollView, TouchableOpacity, View } from 'react-native';
+import { Image, Pressable, ScrollView, TouchableOpacity, View } from 'react-native';
 import * as DropdownMenu from 'zeego/dropdown-menu';
 import { AppHeader } from '@/components/app-header';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -49,6 +49,10 @@ export default function ProfileEditScreen() {
   const handlePickProfileImage = async () => {
     const url = await pickAndUpload();
     if (url) setProfileImageUrl(url);
+  };
+
+  const handleDeleteProfileImage = () => {
+    setProfileImageUrl(null);
   };
 
   // 기본 정보 변경 시 저장 버튼 활성화
@@ -97,16 +101,19 @@ export default function ProfileEditScreen() {
     if (!gender || !selectedCollege || !selectedDepartment) return;
     setIsSaving(true);
     try {
-      const updated = await updateMemberInfo({
+      const nextProfileImageUrl = profileImageUrl ?? '';
+
+      await updateMemberInfo({
         name: user?.name ?? '',
         gender,
         nickname,
         college: selectedCollege,
         departmentName: selectedDepartment,
         studentNumber: user?.studentNumber ?? '',
-        profileImageUrl: profileImageUrl ?? undefined,
+        profileImageUrl: nextProfileImageUrl,
       });
-      setUser(updated);
+      const updated = await getMemberInfo();
+      setUser({ ...updated, profileImageUrl });
       router.back();
     } catch {
       showAlert('오류', '정보 수정에 실패했습니다.');
@@ -188,25 +195,34 @@ export default function ProfileEditScreen() {
           <View className="mt-3 rounded-xl bg-white p-6">
             {/* 프로필 이미지 */}
             <Text className="text-body04 text-grey-80">프로필</Text>
-            <TouchableOpacity
-              className="mt-2 self-start"
-              onPress={handlePickProfileImage}
-              disabled={isUploadingImage}
-            >
-              <View className="aspect-square w-[88px] items-center justify-center overflow-hidden rounded-xl border border-grey-10">
-                {profileImageUrl ? (
-                  <Image
-                    source={{ uri: profileImageUrl }}
-                    className="h-full w-full"
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <Text className="text-caption02 text-grey-20">
-                    {isUploadingImage ? '업로드 중...' : '이미지 업로드'}
-                  </Text>
-                )}
-              </View>
-            </TouchableOpacity>
+            <View className="relative mt-2 self-start">
+              <TouchableOpacity onPress={handlePickProfileImage} disabled={isUploadingImage}>
+                <View className="aspect-square w-[88px] items-center justify-center overflow-hidden rounded-xl border border-grey-10">
+                  {profileImageUrl ? (
+                    <Image
+                      source={{ uri: profileImageUrl }}
+                      className="h-full w-full"
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <Text className="text-caption02 text-grey-20">
+                      {isUploadingImage ? '업로드 중...' : '이미지 업로드'}
+                    </Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+
+              {profileImageUrl ? (
+                <Pressable
+                  onPress={handleDeleteProfileImage}
+                  className="absolute right-1 top-1 h-6 w-6 items-center justify-center rounded-full bg-black/70"
+                  accessibilityRole="button"
+                  accessibilityLabel="프로필 이미지 삭제"
+                >
+                  <Text className="text-[14px] font-bold leading-[16px] text-white">X</Text>
+                </Pressable>
+              ) : null}
+            </View>
 
             {/* 닉네임 */}
             <Text className="mt-6 text-body04 text-grey-80">닉네임</Text>
