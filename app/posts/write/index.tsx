@@ -57,6 +57,8 @@ type WriteFormProps = {
   onImageUrlChange: (value: string | null) => void;
   onSubmit: () => void;
   bottomInset: number;
+  iosWebViewportHeight: number | null;
+  isIOSWeb: boolean;
 };
 
 type SubmitContent = {
@@ -88,8 +90,19 @@ const DEFAULT_FORM_STATE: InitialFormState = {
   categoryValue: DEFAULT_BOARD_OPTION.value,
 };
 
+const IOS_WEB_HEADER_HEIGHT = 64;
+const IOS_WEB_FORM_TOP_PADDING = 24;
+const IOS_WEB_FIELDS_HEIGHT = 94;
+const IOS_WEB_FIELD_GAP_TOTAL = 28;
+const IOS_WEB_IMAGE_PREVIEW_HEIGHT = 92;
+const IOS_WEB_SUBMIT_AREA_HEIGHT = 72;
+const IOS_WEB_BOTTOM_COMFORT_SPACE = 18;
+const IOS_WEB_MIN_EDITOR_HEIGHT = 160;
+const IOS_WEB_MAX_EDITOR_HEIGHT = 360;
+
 export default function BoardWriteScreen() {
   const insets = useSafeAreaInsets();
+  const { height: iosWebViewportHeight, isIOSWeb } = useIOSWebViewport();
   const { postId } = useLocalSearchParams<{ postId?: string | string[] }>();
   const editingBoardUUID = Array.isArray(postId) ? postId[0] : postId;
   const isEditMode = Boolean(editingBoardUUID);
@@ -284,7 +297,19 @@ export default function BoardWriteScreen() {
   }
 
   return (
-    <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
+    <View
+      className="flex-1 bg-white"
+      style={[
+        { paddingTop: insets.top },
+        isIOSWeb && iosWebViewportHeight
+          ? ({
+              height: iosWebViewportHeight,
+              maxHeight: iosWebViewportHeight,
+              overflow: 'hidden',
+            } as ViewStyle)
+          : null,
+      ]}
+    >
       <View className="px-4 pt-4">
         <Pressable
           onPress={handleBackPress}
@@ -316,6 +341,8 @@ export default function BoardWriteScreen() {
           onImageUrlChange={setImageUrl}
           onSubmit={handleSubmit}
           bottomInset={insets.bottom}
+          iosWebViewportHeight={iosWebViewportHeight}
+          isIOSWeb={isIOSWeb}
         />
       ) : (
         <LoggedOutView bottomInset={insets.bottom} onLoginPress={handleLoginPress} />
@@ -416,9 +443,32 @@ function WriteForm({
   onImageUrlChange,
   onSubmit,
   bottomInset,
+  iosWebViewportHeight,
+  isIOSWeb,
 }: WriteFormProps) {
   const { isKeyboardUp } = useKeyboard();
   const previousKeyboardStateRef = React.useRef(false);
+  const iosWebBottomInset = isIOSWeb
+    ? Math.max(bottomInset, IOS_WEB_BOTTOM_COMFORT_SPACE)
+    : bottomInset;
+  const iosWebEditorHeight = React.useMemo(() => {
+    if (!isIOSWeb || !iosWebViewportHeight) return null;
+
+    const fixedHeight =
+      IOS_WEB_HEADER_HEIGHT +
+      IOS_WEB_FORM_TOP_PADDING +
+      IOS_WEB_FIELDS_HEIGHT +
+      IOS_WEB_FIELD_GAP_TOTAL +
+      IOS_WEB_IMAGE_PREVIEW_HEIGHT +
+      IOS_WEB_SUBMIT_AREA_HEIGHT +
+      iosWebBottomInset;
+    const availableHeight = iosWebViewportHeight - fixedHeight;
+
+    return Math.max(
+      IOS_WEB_MIN_EDITOR_HEIGHT,
+      Math.min(IOS_WEB_MAX_EDITOR_HEIGHT, availableHeight)
+    );
+  }, [iosWebBottomInset, iosWebViewportHeight, isIOSWeb]);
 
   React.useEffect(() => {
     if (previousKeyboardStateRef.current && !isKeyboardUp) {
@@ -429,10 +479,16 @@ function WriteForm({
   }, [editorRef, isKeyboardUp]);
 
   return (
-    <View className="flex-1 bg-white">
+    <View
+      className="flex-1 bg-white"
+      style={isIOSWeb ? ({ overflow: 'hidden' } as ViewStyle) : null}
+    >
       <View
-        className="flex-1 px-4 pt-8"
-        style={{ paddingBottom: isKeyboardUp ? 16 : bottomInset + 64 }}
+        className="flex-1 px-4"
+        style={{
+          paddingBottom: isKeyboardUp ? 16 : isIOSWeb ? iosWebBottomInset + 12 : bottomInset + 64,
+          paddingTop: isIOSWeb ? IOS_WEB_FORM_TOP_PADDING : 32,
+        }}
       >
         <View className="z-20 gap-3.5">
           <Input
@@ -446,7 +502,13 @@ function WriteForm({
           <BoardDropdown value={category} onChange={onCategoryChange} />
         </View>
 
-        <View className="z-0 mt-3.5 h-[360px] overflow-hidden rounded-xl border border-grey-10 bg-white">
+        <View
+          className={cn(
+            'z-0 mt-3.5 overflow-hidden rounded-xl border border-grey-10 bg-white',
+            iosWebEditorHeight ? null : 'h-[360px]'
+          )}
+          style={iosWebEditorHeight ? { height: iosWebEditorHeight } : null}
+        >
           <PostEditor
             ref={editorRef}
             initialHtml={contentHtml}
@@ -459,7 +521,10 @@ function WriteForm({
       </View>
 
       {!isKeyboardUp ? (
-        <View className="px-4 pb-4" style={{ paddingBottom: bottomInset || 16 }}>
+        <View
+          className="px-4 pb-4"
+          style={{ paddingBottom: isIOSWeb ? iosWebBottomInset : bottomInset || 16 }}
+        >
           <Button
             variant={canSubmit ? 'default' : 'muted'}
             disabled={!canSubmit || isSubmitting}
@@ -474,6 +539,44 @@ function WriteForm({
       ) : null}
     </View>
   );
+}
+
+function useIOSWebViewport() {
+  const [state, setState] = React.useState(() => ({
+    height: null as number | null,
+    isIOSWeb: false,
+  }));
+
+  React.useEffect(() => {
+    if (Platform.OS !== 'web') return;
+
+    const userAgent = window.navigator.userAgent;
+    const isIOSDevice =
+      /iPad|iPhone|iPod/.test(userAgent) ||
+      (userAgent.includes('Macintosh') && window.navigator.maxTouchPoints > 1);
+
+    if (!isIOSDevice) return;
+
+    const updateViewportHeight = () => {
+      setState({
+        height: Math.round(window.visualViewport?.height ?? window.innerHeight),
+        isIOSWeb: true,
+      });
+    };
+
+    updateViewportHeight();
+    window.visualViewport?.addEventListener('resize', updateViewportHeight);
+    window.visualViewport?.addEventListener('scroll', updateViewportHeight);
+    window.addEventListener('orientationchange', updateViewportHeight);
+
+    return () => {
+      window.visualViewport?.removeEventListener('resize', updateViewportHeight);
+      window.visualViewport?.removeEventListener('scroll', updateViewportHeight);
+      window.removeEventListener('orientationchange', updateViewportHeight);
+    };
+  }, []);
+
+  return state;
 }
 
 function PostImageUploadPreviewV3({
