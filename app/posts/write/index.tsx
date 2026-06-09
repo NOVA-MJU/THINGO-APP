@@ -34,6 +34,7 @@ import {
   Keyboard,
   Platform,
   Pressable,
+  ScrollView,
   View,
   type ViewStyle,
 } from 'react-native';
@@ -57,7 +58,6 @@ type WriteFormProps = {
   onImageUrlChange: (value: string | null) => void;
   onSubmit: () => void;
   bottomInset: number;
-  iosWebViewportHeight: number | null;
   isIOSWeb: boolean;
 };
 
@@ -90,15 +90,8 @@ const DEFAULT_FORM_STATE: InitialFormState = {
   categoryValue: DEFAULT_BOARD_OPTION.value,
 };
 
-const IOS_WEB_HEADER_HEIGHT = 64;
 const IOS_WEB_FORM_TOP_PADDING = 24;
-const IOS_WEB_FIELDS_HEIGHT = 94;
-const IOS_WEB_FIELD_GAP_TOTAL = 28;
-const IOS_WEB_IMAGE_PREVIEW_HEIGHT = 92;
-const IOS_WEB_SUBMIT_AREA_HEIGHT = 72;
 const IOS_WEB_BOTTOM_COMFORT_SPACE = 18;
-const IOS_WEB_MIN_EDITOR_HEIGHT = 160;
-const IOS_WEB_MAX_EDITOR_HEIGHT = 360;
 
 export default function BoardWriteScreen() {
   const insets = useSafeAreaInsets();
@@ -341,7 +334,6 @@ export default function BoardWriteScreen() {
           onImageUrlChange={setImageUrl}
           onSubmit={handleSubmit}
           bottomInset={insets.bottom}
-          iosWebViewportHeight={iosWebViewportHeight}
           isIOSWeb={isIOSWeb}
         />
       ) : (
@@ -443,7 +435,6 @@ function WriteForm({
   onImageUrlChange,
   onSubmit,
   bottomInset,
-  iosWebViewportHeight,
   isIOSWeb,
 }: WriteFormProps) {
   const { isKeyboardUp } = useKeyboard();
@@ -451,24 +442,7 @@ function WriteForm({
   const iosWebBottomInset = isIOSWeb
     ? Math.max(bottomInset, IOS_WEB_BOTTOM_COMFORT_SPACE)
     : bottomInset;
-  const iosWebEditorHeight = React.useMemo(() => {
-    if (!isIOSWeb || !iosWebViewportHeight) return null;
-
-    const fixedHeight =
-      IOS_WEB_HEADER_HEIGHT +
-      IOS_WEB_FORM_TOP_PADDING +
-      IOS_WEB_FIELDS_HEIGHT +
-      IOS_WEB_FIELD_GAP_TOTAL +
-      IOS_WEB_IMAGE_PREVIEW_HEIGHT +
-      IOS_WEB_SUBMIT_AREA_HEIGHT +
-      iosWebBottomInset;
-    const availableHeight = iosWebViewportHeight - fixedHeight;
-
-    return Math.max(
-      IOS_WEB_MIN_EDITOR_HEIGHT,
-      Math.min(IOS_WEB_MAX_EDITOR_HEIGHT, availableHeight)
-    );
-  }, [iosWebBottomInset, iosWebViewportHeight, isIOSWeb]);
+  const iosWebContentBottomPadding = iosWebBottomInset + 24;
 
   React.useEffect(() => {
     if (previousKeyboardStateRef.current && !isKeyboardUp) {
@@ -478,65 +452,83 @@ function WriteForm({
     previousKeyboardStateRef.current = isKeyboardUp;
   }, [editorRef, isKeyboardUp]);
 
-  return (
+  const formFields = (
+    <>
+      <View className="z-20 gap-3.5">
+        <Input
+          value={title}
+          onChangeText={onTitleChange}
+          placeholder="제목"
+          className="h-[40px] rounded-xl border-grey-10 bg-white px-3 text-body03 text-black"
+          maxLength={100}
+        />
+
+        <BoardDropdown value={category} onChange={onCategoryChange} />
+      </View>
+
+      <View className="z-0 mt-3.5 h-[360px] overflow-hidden rounded-xl border border-grey-10 bg-white">
+        <PostEditor
+          ref={editorRef}
+          initialHtml={contentHtml}
+          onChange={onContentChange}
+          placeholder="내용을 입력해주세요."
+        />
+      </View>
+
+      <PostImageUploadPreviewV3 imageUrl={imageUrl} onImageUrlChange={onImageUrlChange} />
+    </>
+  );
+
+  const submitButton = !isKeyboardUp ? (
     <View
-      className="flex-1 bg-white"
-      style={isIOSWeb ? ({ overflow: 'hidden' } as ViewStyle) : null}
+      className="px-4 pb-4"
+      style={{ paddingBottom: isIOSWeb ? iosWebBottomInset : bottomInset || 16 }}
     >
+      <Button
+        variant={canSubmit ? 'default' : 'muted'}
+        disabled={!canSubmit || isSubmitting}
+        onPress={onSubmit}
+        className={cn('h-[40px] rounded-xl', canSubmit ? 'bg-blue-35' : 'bg-grey-02')}
+      >
+        <Text className={cn('text-body05', canSubmit ? 'text-white' : 'text-grey-40')}>
+          {isSubmitting ? (isEditMode ? '수정 중...' : '작성 중...') : '완료'}
+        </Text>
+      </Button>
+    </View>
+  ) : null;
+
+  if (isIOSWeb) {
+    return (
+      <View className="flex-1 bg-white" style={{ overflow: 'hidden' } as ViewStyle}>
+        <ScrollView
+          className="flex-1 px-4"
+          contentContainerStyle={{
+            paddingBottom: isKeyboardUp ? 16 : iosWebContentBottomPadding,
+            paddingTop: IOS_WEB_FORM_TOP_PADDING,
+          }}
+          keyboardShouldPersistTaps="handled"
+        >
+          {formFields}
+        </ScrollView>
+
+        {submitButton}
+      </View>
+    );
+  }
+
+  return (
+    <View className="flex-1 bg-white">
       <View
         className="flex-1 px-4"
         style={{
-          paddingBottom: isKeyboardUp ? 16 : isIOSWeb ? iosWebBottomInset + 12 : bottomInset + 64,
-          paddingTop: isIOSWeb ? IOS_WEB_FORM_TOP_PADDING : 32,
+          paddingBottom: isKeyboardUp ? 16 : bottomInset + 64,
+          paddingTop: 32,
         }}
       >
-        <View className="z-20 gap-3.5">
-          <Input
-            value={title}
-            onChangeText={onTitleChange}
-            placeholder="제목"
-            className="h-[40px] rounded-xl border-grey-10 bg-white px-3 text-body03 text-black"
-            maxLength={100}
-          />
-
-          <BoardDropdown value={category} onChange={onCategoryChange} />
-        </View>
-
-        <View
-          className={cn(
-            'z-0 mt-3.5 overflow-hidden rounded-xl border border-grey-10 bg-white',
-            iosWebEditorHeight ? null : 'h-[360px]'
-          )}
-          style={iosWebEditorHeight ? { height: iosWebEditorHeight } : null}
-        >
-          <PostEditor
-            ref={editorRef}
-            initialHtml={contentHtml}
-            onChange={onContentChange}
-            placeholder="내용을 입력해주세요."
-          />
-        </View>
-
-        <PostImageUploadPreviewV3 imageUrl={imageUrl} onImageUrlChange={onImageUrlChange} />
+        {formFields}
       </View>
 
-      {!isKeyboardUp ? (
-        <View
-          className="px-4 pb-4"
-          style={{ paddingBottom: isIOSWeb ? iosWebBottomInset : bottomInset || 16 }}
-        >
-          <Button
-            variant={canSubmit ? 'default' : 'muted'}
-            disabled={!canSubmit || isSubmitting}
-            onPress={onSubmit}
-            className={cn('h-[40px] rounded-xl', canSubmit ? 'bg-blue-35' : 'bg-grey-02')}
-          >
-            <Text className={cn('text-body05', canSubmit ? 'text-white' : 'text-grey-40')}>
-              {isSubmitting ? (isEditMode ? '수정 중...' : '작성 중...') : '완료'}
-            </Text>
-          </Button>
-        </View>
-      ) : null}
+      {submitButton}
     </View>
   );
 }
