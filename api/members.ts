@@ -53,7 +53,7 @@ export type UpdateMemberRequest = {
   college: string;
   departmentName: string;
   studentNumber: string;
-  profileImageUrl?: string;
+  profileImageUrl?: string | null;
 };
 
 // 마이페이지 통계 조회
