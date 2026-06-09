@@ -1,0 +1,16 @@
+name: Check Base Branch
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  check-base-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require develop as source branch
+        if: github.head_ref != 'develop'
+        run: |
+          echo "PRs to main must come from the develop branch."
+          echo "head: ${{ github.head_ref }} -> base: ${{ github.base_ref }}"
+          exit 1
