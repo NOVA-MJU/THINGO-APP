@@ -23,6 +23,7 @@ import {
 import { getBoards, getHotBoards, type Board } from '@/api/posts';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getNews, type NewsItem, type NewsCategory } from '@/api/news';
+import { getBanners, type Banner } from '@/api/banners';
 import { getBroadcasts, type BroadcastItem } from '@/api/broadcast';
 import { getMenus, type DailyMenu } from '@/api/menus';
 import {
@@ -75,14 +76,6 @@ const CAROUSEL_PEEK = 12;
 const CAROUSEL_GAP = 10;
 const DDAYS_LIMIT = 3;
 
-type BannerItem = {
-  id: number;
-  imageUrl: string;
-  title: string;
-  subCopy: string;
-  category: string;
-};
-
 function formatDdayValue(value: number): string {
   return value === 0 ? 'D-DAY' : `D-${value}`;
 }
@@ -92,6 +85,8 @@ export default function AllScreen({ onNavigate }: Props) {
   const cardSlot = screenWidth - (CAROUSEL_PEEK + CAROUSEL_GAP / 2) * 2;
   const carouselOffset = (screenWidth - cardSlot) / 2;
 
+  const [banners, setBanners] = React.useState<Banner[]>([]);
+  const [bannersLoading, setBannersLoading] = React.useState(false);
   const [currentBannerIndex, setCurrentBannerIndex] = React.useState(0);
   const [selectedNoticeCategory, setSelectedNoticeCategory] = React.useState('전체');
   const [selectedNewspaperCategory, setSelectedNewspaperCategory] = React.useState('전체');
@@ -113,6 +108,14 @@ export default function AllScreen({ onNavigate }: Props) {
   const [todayEvents, setTodayEvents] = React.useState<
     { dateLabel: string; description: string }[]
   >([]);
+
+  React.useEffect(() => {
+    setBannersLoading(true);
+    getBanners()
+      .then((data) => setBanners(data))
+      .catch(() => setBanners([]))
+      .finally(() => setBannersLoading(false));
+  }, []);
 
   React.useEffect(() => {
     setNoticesLoading(true);
@@ -254,84 +257,95 @@ export default function AllScreen({ onNavigate }: Props) {
             {/* 배너 */}
             <View style={{ width: screenWidth, overflow: 'hidden' }}>
               <View style={{ marginLeft: carouselOffset }}>
-                <Carousel
-                  width={cardSlot}
-                  height={200}
-                  style={{ overflow: 'visible' }}
-                  data={BANNER_DATA}
-                  loop
-                  autoPlay
-                  autoPlayInterval={3000}
-                  onSnapToItem={setCurrentBannerIndex}
-                  renderItem={({ item, index }) => (
-                    <View
-                      style={{
-                        flex: 1,
-                        marginHorizontal: CAROUSEL_GAP / 2,
-                        borderRadius: 16,
-                        overflow: 'hidden',
-                      }}
-                    >
-                      <Image
-                        source={{ uri: item.imageUrl }}
-                        className="absolute bottom-0 left-0 right-0 top-0 z-0"
-                        resizeMode="cover"
-                      />
+                {bannersLoading ? (
+                  <Skeleton style={{ width: cardSlot, height: 200, borderRadius: 16 }} />
+                ) : (
+                  <Carousel
+                    width={cardSlot}
+                    height={200}
+                    style={{ overflow: 'visible' }}
+                    data={banners}
+                    loop
+                    autoPlay
+                    autoPlayInterval={3000}
+                    onSnapToItem={setCurrentBannerIndex}
+                    renderItem={({ item, index }: { item: Banner; index: number }) => (
+                      <Link href={item.linkUrl as `https://${string}`} asChild>
+                        <TouchableOpacity
+                          style={{
+                            flex: 1,
+                            marginHorizontal: CAROUSEL_GAP / 2,
+                            borderRadius: 16,
+                            overflow: 'hidden',
+                          }}
+                        >
+                          <Image
+                            source={{ uri: item.imageUrl }}
+                            className="absolute bottom-0 left-0 right-0 top-0 z-0"
+                            resizeMode="cover"
+                          />
 
-                      <View
-                        style={{
-                          position: 'absolute',
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          zIndex: 10,
-                        }}
-                      >
-                        <Svg width="100%" height="100%">
-                          <Defs>
-                            <SvgLinearGradient id="hotGrad" x1="0" y1="0" x2="0" y2="1">
-                              <Stop offset="0" stopColor="#5DABFF" stopOpacity="0" />
-                              <Stop offset="1" stopColor="#5DABFF" stopOpacity="0.85" />
-                            </SvgLinearGradient>
-                          </Defs>
-                          <Rect width="100%" height="100%" fill="url(#hotGrad)" />
-                        </Svg>
-                      </View>
-
-                      <View className="absolute bottom-0 left-0 right-0 top-0 z-20 justify-between p-4">
-                        <View className="self-end rounded-full bg-bg px-2 py-0.5">
-                          <Text className="text-caption02 text-white">
-                            {index + 1}/{BANNER_DATA.length}
-                          </Text>
-                        </View>
-                        <View className="p-2">
-                          <View className="self-start rounded-md bg-blue-05 px-1 py-0.5">
-                            <Text className="text-caption01 text-blue-35">{item.category}</Text>
+                          <View
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              zIndex: 10,
+                            }}
+                          >
+                            <Svg width="100%" height="100%">
+                              <Defs>
+                                <SvgLinearGradient id="hotGrad" x1="0" y1="0" x2="0" y2="1">
+                                  <Stop offset="0" stopColor="#5DABFF" stopOpacity="0" />
+                                  <Stop offset="1" stopColor="#5DABFF" stopOpacity="0.85" />
+                                </SvgLinearGradient>
+                              </Defs>
+                              <Rect width="100%" height="100%" fill="url(#hotGrad)" />
+                            </Svg>
                           </View>
-                          {/* TODO: 텍스트 스타일 적용해야함 */}
-                          <Text className="mt-3 text-[20px] font-bold text-white" numberOfLines={2}>
-                            {item.title}
-                          </Text>
-                          <Text className="mt-0.5 text-body04 text-blue-05" numberOfLines={1}>
-                            {item.subCopy}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-                  )}
-                />
+
+                          <View className="absolute bottom-0 left-0 right-0 top-0 z-20 justify-between p-4">
+                            <View className="self-end rounded-full bg-bg px-2 py-0.5">
+                              <Text className="text-caption02 text-white">
+                                {index + 1}/{banners.length}
+                              </Text>
+                            </View>
+                            <View className="p-2">
+                              <View className="self-start rounded-md bg-blue-05 px-1 py-0.5">
+                                <Text className="text-caption01 text-blue-35">{item.category}</Text>
+                              </View>
+                              {/* TODO: 텍스트 스타일 적용해야함 */}
+                              <Text
+                                className="mt-3 text-[20px] font-bold text-white"
+                                numberOfLines={2}
+                              >
+                                {item.title}
+                              </Text>
+                              <Text className="mt-0.5 text-body04 text-blue-05" numberOfLines={1}>
+                                {item.oneLineIntro}
+                              </Text>
+                            </View>
+                          </View>
+                        </TouchableOpacity>
+                      </Link>
+                    )}
+                  />
+                )}
               </View>
             </View>
             {/* 배너 인디케이터 */}
-            <View className="mt-2 flex-row items-center gap-2">
-              {BANNER_DATA.map((_, i) => (
-                <View
-                  key={i}
-                  className={`h-1 w-1 rounded-full ${i === currentBannerIndex ? 'bg-blue-20' : 'bg-grey-20'}`}
-                />
-              ))}
-            </View>
+            {!bannersLoading && (
+              <View className="mt-2 flex-row items-center gap-2">
+                {banners.map((_, i) => (
+                  <View
+                    key={i}
+                    className={`h-1 w-1 rounded-full ${i === currentBannerIndex ? 'bg-blue-20' : 'bg-grey-20'}`}
+                  />
+                ))}
+              </View>
+            )}
           </View>
 
           <View className="mt-3 flex-row gap-4 px-4">
@@ -388,16 +402,13 @@ export default function AllScreen({ onNavigate }: Props) {
                   </View>
                 ))
               ) : calendarDdays.length > 0 ? (
-                calendarDdays.map((item) => (
-                  <View
-                    key={`${item.startDate}-${item.endDate}-${item.eventName}`}
-                    className="flex-1 gap-1"
-                  >
-                    <Text className="text-caption03 text-blue-15">
+                calendarDdays.map((item, index) => (
+                  <View key={index} className="flex-1 gap-1">
+                    <Text className="text-caption03 text-blue-15" numberOfLines={1}>
                       {formatDdayValue(item.ddayValue)}
                     </Text>
                     <Text className="text-caption02 text-grey-80" numberOfLines={1}>
-                      {item.eventNameTruncated || item.eventName}
+                      {item.eventName}
                     </Text>
                   </View>
                 ))
@@ -732,27 +743,3 @@ export default function AllScreen({ onNavigate }: Props) {
     </ScrollView>
   );
 }
-
-const BANNER_DATA: BannerItem[] = [
-  {
-    id: 1,
-    imageUrl: 'https://picsum.photos/seed/banner1/800/400',
-    title: '2026 봄 축제 안내',
-    subCopy: '4월 28일 ~ 30일, 명지대 운동장',
-    category: '행사',
-  },
-  {
-    id: 2,
-    imageUrl: 'https://picsum.photos/seed/banner2/800/400',
-    title: '국가장학금 2차 신청 기간',
-    subCopy: '6월 1일 ~ 6월 15일까지 신청 가능',
-    category: '장학',
-  },
-  {
-    id: 3,
-    imageUrl: 'https://picsum.photos/seed/banner3/800/400',
-    title: '삼성전자 하계 인턴십 모집',
-    subCopy: '서류 마감 6월 30일, 지금 바로 지원하세요',
-    category: '취업',
-  },
-];
