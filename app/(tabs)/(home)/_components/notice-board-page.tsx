@@ -291,7 +291,7 @@ function NoticeBoardScreen({ initialCategory, refreshKey }: NoticeBoardScreenPro
         </View>
       </ScrollView>
 
-      <WriteButton bottomOffset={bottom + 124} onPress={() => router.push('/posts/write')} />
+      <WriteButton bottomOffset={bottom + 30} onPress={() => router.push('/posts/write')} />
     </View>
   );
 }
