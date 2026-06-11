@@ -872,7 +872,10 @@ function getImageUrlsFromHtml(html: string) {
 
 function removeImageNodesFromHtml(html: string) {
   return html
-    .replace(/<figure\b[^>]*>\s*<img\b[^>]*>\s*(?:<figcaption\b[^>]*>[\s\S]*?<\/figcaption>\s*)?<\/figure>/gi, '')
+    .replace(
+      /<figure\b[^>]*>\s*<img\b[^>]*>\s*(?:<figcaption\b[^>]*>[\s\S]*?<\/figcaption>\s*)?<\/figure>/gi,
+      ''
+    )
     .replace(/<img\b[^>]*>/gi, '')
     .trim();
 }
