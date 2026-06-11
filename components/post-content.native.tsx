@@ -36,7 +36,7 @@ function buildHtmlDocument(content: string) {
         font-size: 14px;
         line-height: 1.75;
         font-family:
-          -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR",
+          Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR",
           "Malgun Gothic", sans-serif;
         overflow: hidden;
         word-break: break-word;

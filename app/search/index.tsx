@@ -250,7 +250,7 @@ export default function SearchScreen() {
               returnKeyType="search"
               onSubmitEditing={() => submitSearch(query)}
               style={{ padding: 0, lineHeight: undefined }}
-              className="flex-1 text-body06 text-black outline-none"
+              className="flex-1 font-pretendard text-body06 text-black outline-none"
             />
             {!!query && (
               <TouchableOpacity

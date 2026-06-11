@@ -68,6 +68,17 @@ module.exports = {
       transparent: 'transparent',
     },
     extend: {
+      fontFamily: {
+        pretendard: [
+          'Pretendard',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'Apple SD Gothic Neo',
+          'Noto Sans KR',
+          'Malgun Gothic',
+          'sans-serif',
+        ],
+      },
       fontSize: {
         heading01: ['40px', { lineHeight: '1.5', fontWeight: '700' }],
         heading02: ['28px', { lineHeight: '1.5', fontWeight: '700' }],

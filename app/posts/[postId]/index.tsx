@@ -592,7 +592,7 @@ function CommentComposer({
         <TextInput
           multiline
           textAlignVertical="center"
-          className="max-h-[84px] min-h-[21px] py-0 pe-10 text-body05 text-black"
+          className="max-h-[84px] min-h-[21px] py-0 pe-10 font-pretendard text-body05 text-black"
           value={value}
           onChangeText={onChange}
           placeholder={placeholder}
