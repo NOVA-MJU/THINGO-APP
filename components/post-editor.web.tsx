@@ -1,7 +1,7 @@
 import TiptapPlaceholder from '@tiptap/extension-placeholder';
 import TiptapStarterKit from '@tiptap/starter-kit';
 import { EditorContent, useEditor, type Editor } from '@tiptap/react';
-import type { AnyExtension } from '@tiptap/core';
+import { Node, type AnyExtension } from '@tiptap/core';
 import * as React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
@@ -51,6 +51,42 @@ type ToolbarButtonProps = {
 
 type ToolbarIconName = 'bulletList' | 'orderedList' | 'blockquote' | 'undo' | 'redo';
 type HeadingLevel = 1 | 2 | 3;
+
+const TiptapImage = Node.create({
+  name: 'image',
+
+  group: 'block',
+
+  draggable: false,
+
+  atom: true,
+
+  addAttributes() {
+    return {
+      src: {
+        default: null,
+      },
+      alt: {
+        default: null,
+      },
+      title: {
+        default: null,
+      },
+    };
+  },
+
+  parseHTML() {
+    return [
+      {
+        tag: 'img[src]',
+      },
+    ];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return ['img', HTMLAttributes];
+  },
+});
 
 type TiptapCommandChain = {
   blur: () => TiptapCommandChain;
@@ -340,6 +376,7 @@ export const PostEditor = React.forwardRef<PostEditorHandle, PostEditorProps>(fu
             levels: [1, 2, 3],
           },
         }),
+        TiptapImage,
         TiptapPlaceholder.configure({
           placeholder,
         }),
@@ -458,7 +495,7 @@ const editorCss = `
   .thingo-post-editor-content {
     box-sizing: border-box;
     color: #1a1f24;
-    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+    font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
     font-size: 14px;
     line-height: 1.5;
     min-height: 280px;
@@ -561,6 +598,12 @@ const editorCss = `
     border: 0;
     border-top: 1px solid #d7dce2;
     margin: 12px 0;
+  }
+
+  .thingo-post-editor-content img {
+    display: block;
+    height: auto;
+    max-width: 100%;
   }
 
   .thingo-post-editor-content p.is-editor-empty:first-child::before {

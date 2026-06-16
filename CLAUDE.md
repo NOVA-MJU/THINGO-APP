@@ -51,6 +51,16 @@ pnpm expo run:android
 
 - 파일명에는 **공백·한글**을 쓰지 않음
 
+## localization
+
+- 앱은 한국어만 지원
+- `locales/ko.json`은 한국어 감지용 형식적인 파일이고 i18n키 추가하지 말 것
+
+## lib utilities
+
+- Tailwind 클래스 병합 시 `cn()` 사용 (`lib/utils.ts`)
+- 알림 표시 `Alert.alert` 직접 사용 금지(웹 미지원) - `showAlert()` 사용할 것 (`lib/alert.ts`)
+
 ## comments
 
 - 기존 파일을 수정할 때 주석을 삭제하지 않는다

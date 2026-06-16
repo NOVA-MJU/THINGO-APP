@@ -5,8 +5,8 @@ import { Footer } from '@/components/footer';
 import { ArrowRightIcon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { Alert, Image, Linking, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -38,12 +38,22 @@ export default function ProfileScreen() {
     (d) => d.value === user?.departmentName
   )?.label;
 
-  // 프로필 통계 조회
-  useEffect(() => {
-    getProfileStats()
-      .then(setStats)
-      .catch(() => {});
-  }, []);
+  // 프로필 화면으로 돌아올 때마다 최신 정보 조회
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+
+      getProfileStats()
+        .then((nextStats) => {
+          if (isActive) setStats(nextStats);
+        })
+        .catch(() => {});
+
+      return () => {
+        isActive = false;
+      };
+    }, [])
+  );
 
   return (
     <ScrollView
@@ -56,10 +66,16 @@ export default function ProfileScreen() {
           <Text className="mt-5 text-title03 text-grey-80">프로필</Text>
           <View className="mt-3 gap-5 rounded-xl bg-white p-6">
             <View className="flex-row gap-4">
-              <Image
-                source={user?.profileImageUrl ? { uri: user.profileImageUrl } : undefined}
-                className="aspect-square w-[88px] rounded-xl border border-grey-10"
-              />
+              {user?.profileImageUrl ? (
+                <Image
+                  source={{ uri: user.profileImageUrl }}
+                  className="aspect-square w-[88px] rounded-xl border border-grey-10"
+                />
+              ) : (
+                <View className="aspect-square w-[88px] items-center justify-center rounded-xl border border-grey-10 bg-grey-02">
+                  <Text className="text-caption02 text-grey-30">이미지 없음</Text>
+                </View>
+              )}
               <View className="gap-0.5">
                 <Text className="text-caption01 text-black">{user?.nickname}</Text>
                 <Text className="text-caption01 text-black">{departmentLabel}</Text>

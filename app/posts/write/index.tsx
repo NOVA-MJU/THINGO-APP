@@ -136,18 +136,20 @@ export default function BoardWriteScreen() {
       }
 
       const normalizedHtml = normalizePostContent(board.content);
-      const normalizedText = htmlToPlainText(normalizedHtml);
+      const nextImageUrl = board.imageUrl ?? getFirstImageUrlFromHtml(normalizedHtml);
+      const editorHtml = removeImageNodesFromHtml(normalizedHtml);
+      const normalizedText = htmlToPlainText(editorHtml);
       const nextCategory = getBoardOptionFromCategory(board.communityCategory);
 
       setTitle(board.title);
-      setContentHtml(normalizedHtml);
+      setContentHtml(editorHtml);
       setContentText(normalizedText);
-      setImageUrl(board.imageUrl);
+      setImageUrl(nextImageUrl);
       setCategory(nextCategory);
       setInitialFormState({
         title: board.title.trim(),
         contentText: normalizedText,
-        imageUrl: board.imageUrl,
+        imageUrl: nextImageUrl,
         categoryValue: nextCategory.value,
       });
     } catch {
@@ -808,6 +810,7 @@ function getBoardOptionFromCategory(category?: CommunityCategory | null): BoardO
 
 function appendUploadedImageToContent(contentHtml: string, imageUrl: string | null) {
   if (!imageUrl) return contentHtml;
+  if (htmlIncludesImageUrl(contentHtml, imageUrl)) return contentHtml;
 
   const escapedUrl = escapeHtml(imageUrl);
   return `${contentHtml}<figure><img src="${escapedUrl}" alt="게시글 이미지" /></figure>`;
@@ -823,9 +826,14 @@ function buildSubmitContent({
   text: string;
 }): SubmitContent {
   const trimmedHtml = html.trim();
-  const trimmedText = text.trim();
-  const source = htmlToPlainText(trimmedHtml) ? trimmedHtml : trimmedText;
-  const contentWithImage = appendUploadedImageToContent(source, imageUrl);
+  const contentWithoutAttachedImages = removeImageNodesFromHtml(trimmedHtml);
+  const plainTextFromHtml = htmlToPlainText(contentWithoutAttachedImages);
+  const trimmedText = text.trim() || plainTextFromHtml;
+  const source = plainTextFromHtml ? contentWithoutAttachedImages : trimmedText;
+  const contentBase = source;
+  const contentWithImage = imageUrl
+    ? appendUploadedImageToContent(contentBase, imageUrl)
+    : contentBase;
 
   return {
     preview: buildContentPreview(trimmedText),
@@ -845,4 +853,38 @@ function htmlToPlainText(html: string) {
     .replace(/&gt;/gi, '>')
     .replace(/&amp;/gi, '&')
     .trim();
+}
+
+function getFirstImageUrlFromHtml(html: string) {
+  const imageMatch = html.match(/<img\b[^>]*\bsrc=(["'])(.*?)\1/i);
+  return imageMatch?.[2] ? decodeHtmlAttribute(imageMatch[2]) : null;
+}
+
+function htmlIncludesImageUrl(html: string, imageUrl: string) {
+  return getImageUrlsFromHtml(html).includes(imageUrl);
+}
+
+function getImageUrlsFromHtml(html: string) {
+  return Array.from(html.matchAll(/<img\b[^>]*\bsrc=(["'])(.*?)\1/gi))
+    .map((match) => decodeHtmlAttribute(match[2] ?? ''))
+    .filter(Boolean);
+}
+
+function removeImageNodesFromHtml(html: string) {
+  return html
+    .replace(
+      /<figure\b[^>]*>\s*<img\b[^>]*>\s*(?:<figcaption\b[^>]*>[\s\S]*?<\/figcaption>\s*)?<\/figure>/gi,
+      ''
+    )
+    .replace(/<img\b[^>]*>/gi, '')
+    .trim();
+}
+
+function decodeHtmlAttribute(value: string) {
+  return value
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&amp;/gi, '&');
 }

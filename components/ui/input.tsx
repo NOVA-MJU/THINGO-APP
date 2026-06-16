@@ -20,6 +20,7 @@ function Input({ className, ref, clearable, onChangeText, value, ...props }: Inp
         onChangeText={onChangeText}
         className={cn(
           Platform.select({ android: 'text-body05', web: 'text-body05' }),
+          'font-pretendard',
           'text-black',
           'placeholder:text-grey-20',
           'flex h-10 w-full min-w-0 flex-row items-center rounded-[8px] border border-grey-10 px-3 py-0',
@@ -50,6 +51,7 @@ function Input({ className, ref, clearable, onChangeText, value, ...props }: Inp
         onChangeText={onChangeText}
         className={cn(
           Platform.select({ android: 'text-body05', web: 'text-body05' }),
+          'font-pretendard',
           'text-black',
           'placeholder:text-grey-20',
           'flex h-10 w-full min-w-0 flex-row items-center rounded-[8px] border border-grey-10 py-0',

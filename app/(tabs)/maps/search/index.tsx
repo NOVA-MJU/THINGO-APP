@@ -64,7 +64,7 @@ export default function MapsSearchScreen() {
               returnKeyType="search"
               multiline={false}
               style={{ flex: 1, padding: 0, lineHeight: undefined }}
-              className="text-black outline-none"
+              className="font-pretendard text-black outline-none"
             />
           </View>
         </View>

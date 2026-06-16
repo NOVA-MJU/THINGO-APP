@@ -36,7 +36,7 @@ function buildHtmlDocument(content: string) {
         font-size: 14px;
         line-height: 1.75;
         font-family:
-          -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR",
+          Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR",
           "Malgun Gothic", sans-serif;
         overflow: hidden;
         word-break: break-word;
@@ -210,9 +210,15 @@ function buildHtmlDocument(content: string) {
 
 export function PostContent({ content, style }: PostContentProps) {
   const [height, setHeight] = React.useState(MIN_CONTENT_HEIGHT);
+  const [isReady, setIsReady] = React.useState(false);
 
   const source = React.useMemo(() => {
     return { html: buildHtmlDocument(normalizePostContent(content)) };
+  }, [content]);
+
+  React.useEffect(() => {
+    setIsReady(false);
+    setHeight(MIN_CONTENT_HEIGHT);
   }, [content]);
 
   const handleMessage = React.useCallback((event: WebViewMessageEvent) => {
@@ -224,6 +230,7 @@ export function PostContent({ content, style }: PostContentProps) {
       const normalizedHeight = Math.max(MIN_CONTENT_HEIGHT, Math.ceil(nextHeight));
       return previousHeight === normalizedHeight ? previousHeight : normalizedHeight;
     });
+    setIsReady(true);
   }, []);
 
   const handleShouldStartLoad = React.useCallback((request: WebViewNavigation) => {
@@ -245,6 +252,13 @@ export function PostContent({ content, style }: PostContentProps) {
 
   return (
     <View style={style}>
+      {!isReady && (
+        <View style={styles.skeleton}>
+          {[1, 0.9, 1, 0.85, 0.6].map((widthRatio, i) => (
+            <View key={i} style={[styles.skeletonLine, { width: `${widthRatio * 100}%` }]} />
+          ))}
+        </View>
+      )}
       <WebView
         source={source}
         originWhitelist={['*']}
@@ -255,7 +269,7 @@ export function PostContent({ content, style }: PostContentProps) {
         bounces={false}
         showsVerticalScrollIndicator={false}
         automaticallyAdjustContentInsets={false}
-        style={[styles.webview, { height }]}
+        style={[styles.webview, { height }, !isReady && styles.webviewHidden]}
         containerStyle={styles.webviewContainer}
         androidLayerType={Platform.OS === 'android' ? 'hardware' : 'none'}
       />
@@ -268,8 +282,24 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     width: '100%',
   },
+  webviewHidden: {
+    opacity: 0,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+  },
   webviewContainer: {
     backgroundColor: 'transparent',
+  },
+  skeleton: {
+    gap: 8,
+    paddingVertical: 2,
+  },
+  skeletonLine: {
+    height: 16,
+    borderRadius: 4,
+    backgroundColor: '#F0F2F5',
   },
 });
 
