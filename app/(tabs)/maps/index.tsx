@@ -11,6 +11,9 @@ import SheetHandle from './_components/sheets/sheet-handle';
 import { MoreIcon, StarIcon } from './_components/icons';
 import CategoryList from './_components/sheets/category-list';
 import { CATEGORIES } from './_constants/category-data';
+import PlaceList from './_components/sheets/place-list';
+import PlaceDetail from './_components/sheets/place-detail';
+import BusInfoSheet from './_components/sheets/bus-info';
 
 const MARKERS = [
   { id: '1', latitude: 37.58036, longitude: 126.92343 },
@@ -212,8 +215,8 @@ export default function MapsScreen() {
         <BottomSheetScrollView>
           {/* <PlaceList /> */}
           {/* <PlaceDetail /> */}
-          <CategoryList />
-          {/* <BusInfoSheet /> */}
+          {/* <CategoryList /> */}
+          <BusInfoSheet />
         </BottomSheetScrollView>
       </BottomSheet>
     </View>
