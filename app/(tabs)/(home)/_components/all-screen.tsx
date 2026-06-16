@@ -462,16 +462,18 @@ export default function AllScreen({ onNavigate }: Props) {
                 const d = new Date(item.date);
                 const dateLabel = `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
                 return (
-                  <TouchableOpacity key={index} className="flex-row items-center gap-1 px-4 py-3">
-                    <Text className="text-body04 text-black" numberOfLines={1}>
-                      {NOTICE_CATEGORIES.find((c) => c.value === item.category)?.label ??
-                        item.category}
-                    </Text>
-                    <Text className="flex-1 text-body05 text-black" numberOfLines={1}>
-                      {item.title}
-                    </Text>
-                    <Text className="text-caption04 text-grey-30">{dateLabel}</Text>
-                  </TouchableOpacity>
+                  <Link key={index} href={item.link as `https://${string}`} asChild>
+                    <TouchableOpacity className="flex-row items-center gap-1 px-4 py-3">
+                      <Text className="text-body04 text-black" numberOfLines={1}>
+                        {NOTICE_CATEGORIES.find((c) => c.value === item.category)?.label ??
+                          item.category}
+                      </Text>
+                      <Text className="flex-1 text-body05 text-black" numberOfLines={1}>
+                        {item.title}
+                      </Text>
+                      <Text className="text-caption04 text-grey-30">{dateLabel}</Text>
+                    </TouchableOpacity>
+                  </Link>
                 );
               })}
         </View>
@@ -501,24 +503,28 @@ export default function AllScreen({ onNavigate }: Props) {
                 const d = new Date(item.createdAt);
                 const dateLabel = `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
                 return (
-                  <TouchableOpacity key={index} className="gap-2 px-4 pb-2 pt-3">
-                    <View className="flex-row gap-1">
-                      <Text className="text-body04 text-black" numberOfLines={1}>
-                        {BOARD_CATEGORY_LABELS[item.communityCategory ?? ''] ??
-                          item.communityCategory}
-                      </Text>
-                      <Text className="flex-1 text-body05 text-black" numberOfLines={1}>
-                        {item.title}
-                      </Text>
-                    </View>
-                    <View className="flex-row items-center">
-                      <Text className="flex-1 text-caption04 text-grey-30">{dateLabel}</Text>
-                      <HeartIcon className="text-blue-10" />
-                      <Text className="ms-1 text-caption02 text-grey-40">{item.likeCount}</Text>
-                      <ChatBubbleIcon className="ms-2 text-blue-10" />
-                      <Text className="ms-1 text-caption02 text-grey-40">{item.commentCount}</Text>
-                    </View>
-                  </TouchableOpacity>
+                  <Link key={index} href={`/posts/${item.uuid}`} asChild>
+                    <TouchableOpacity className="gap-2 px-4 pb-2 pt-3">
+                      <View className="flex-row gap-1">
+                        <Text className="text-body04 text-black" numberOfLines={1}>
+                          {BOARD_CATEGORY_LABELS[item.communityCategory ?? ''] ??
+                            item.communityCategory}
+                        </Text>
+                        <Text className="flex-1 text-body05 text-black" numberOfLines={1}>
+                          {item.title}
+                        </Text>
+                      </View>
+                      <View className="flex-row items-center">
+                        <Text className="flex-1 text-caption04 text-grey-30">{dateLabel}</Text>
+                        <HeartIcon className="text-blue-10" />
+                        <Text className="ms-1 text-caption02 text-grey-40">{item.likeCount}</Text>
+                        <ChatBubbleIcon className="ms-2 text-blue-10" />
+                        <Text className="ms-1 text-caption02 text-grey-40">
+                          {item.commentCount}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  </Link>
                 );
               })}
         </View>
