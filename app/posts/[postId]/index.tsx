@@ -12,6 +12,7 @@ import {
 } from '@/api/posts';
 import { Footer } from '@/components/footer';
 import { ArrowLeftIcon, ChatBubbleIcon, CloseIcon, HeartIcon } from '@/components/icons';
+import { Skeleton } from '@/components/ui/skeleton';
 import { PostContent } from '@/components/post-content';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,14 +29,7 @@ import { parseUTCDate } from '@/lib/utils';
 import { format } from 'date-fns';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as React from 'react';
-import {
-  ActivityIndicator,
-  Keyboard,
-  ScrollView,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Keyboard, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
 
@@ -59,7 +53,8 @@ export default function BoardDetailScreen() {
   const [comments, setComments] = React.useState<Comment[]>([]);
   const [commentText, setCommentText] = React.useState('');
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
+  const [isBoardLoading, setIsBoardLoading] = React.useState(true);
+  const [isCommentsLoading, setIsCommentsLoading] = React.useState(true);
   const [isLikePending, setIsLikePending] = React.useState(false);
   const [isCommentSubmitting, setIsCommentSubmitting] = React.useState(false);
   const [isBoardDeleting, setIsBoardDeleting] = React.useState(false);
@@ -72,38 +67,48 @@ export default function BoardDetailScreen() {
     null
   );
 
-  const loadBoardData = React.useCallback(async () => {
+  const loadBoard = React.useCallback(async () => {
     if (!boardUUID) {
       setErrorMessage('잘못된 게시글 주소입니다.');
-      setIsLoading(false);
+      setIsBoardLoading(false);
       return;
     }
 
-    setIsLoading(true);
+    setIsBoardLoading(true);
     setErrorMessage(null);
 
     try {
-      const [nextBoard, nextComments] = await Promise.all([
-        getBoardDetail(boardUUID),
-        getBoardComments(boardUUID),
-      ]);
-
+      const nextBoard = await getBoardDetail(boardUUID);
       setBoard(nextBoard);
-      setComments(nextComments);
     } catch {
       setErrorMessage('게시글을 불러오지 못했습니다.');
       setBoard(null);
+    } finally {
+      setIsBoardLoading(false);
+    }
+  }, [boardUUID]);
+
+  const loadComments = React.useCallback(async () => {
+    if (!boardUUID) return;
+
+    setIsCommentsLoading(true);
+
+    try {
+      const nextComments = await getBoardComments(boardUUID);
+      setComments(nextComments);
+    } catch {
       setComments([]);
     } finally {
-      setIsLoading(false);
+      setIsCommentsLoading(false);
     }
   }, [boardUUID]);
 
   useFocusEffect(
     React.useCallback(() => {
       if (isInitializing) return;
-      void loadBoardData();
-    }, [isInitializing, loadBoardData])
+      void loadBoard();
+      void loadComments();
+    }, [isInitializing, loadBoard, loadComments])
   );
 
   const handlePostLikeClick = React.useCallback(async () => {
@@ -344,17 +349,16 @@ export default function BoardDetailScreen() {
     [boardUUID, deletingCommentUUID, user]
   );
 
-  if (isInitializing || (isLoading && !board)) {
-    return <LoadingState topInset={insets.top} bottomInset={insets.bottom} />;
-  }
-
-  if (!board || errorMessage) {
+  if (!board && !isBoardLoading) {
     return (
       <ErrorState
         topInset={insets.top}
         bottomInset={insets.bottom}
         message={errorMessage ?? '게시글을 불러오지 못했습니다.'}
-        onRetry={() => void loadBoardData()}
+        onRetry={() => {
+          void loadBoard();
+          void loadComments();
+        }}
       />
     );
   }
@@ -376,106 +380,143 @@ export default function BoardDetailScreen() {
             </TouchableOpacity>
           </View>
 
-          <View className="py-5">
-            <View className="gap-1 px-4">
-              <Text className="text-body02 text-black">{board.title}</Text>
-
-              <View className="flex-row items-center justify-between gap-4">
+          {/* 본문 */}
+          {isBoardLoading || !board ? (
+            <View className="py-5">
+              <View className="gap-2 px-4">
+                <Skeleton className="h-5 w-3/4 rounded" />
                 <View className="flex-row items-center gap-3">
-                  <Text className="text-body05 text-grey-40">{formatBoardDate(board)}</Text>
-                  <Svg width="1" height="16" viewBox="0 0 1 16" fill="none">
-                    <Line x1="0.5" x2="0.5" y2="16" stroke="#AEB2B6" />
-                  </Svg>
-                  <Text className="text-body05 text-grey-40">{board.author}</Text>
-                </View>
-
-                <View className="flex-row items-center">
-                  <HeartIcon size={24} filled={board.liked} className="text-blue-20" />
-                  <Text className="text-body05 text-grey-40">{board.likeCount}</Text>
-                  <Svg width="1" height="16" viewBox="0 0 1 16" fill="none" className="ms-2">
-                    <Line x1="0.5" x2="0.5" y2="16" stroke="#AEB2B6" />
-                  </Svg>
-                  <ChatBubbleIcon size={24} className="ms-1.5 text-blue-20" />
-                  <Text className="text-body05 text-grey-40">{board.commentCount}</Text>
+                  <Skeleton className="h-4 w-20 rounded" />
+                  <Skeleton className="h-4 w-16 rounded" />
                 </View>
               </View>
+              <View className="mt-4 gap-2 px-4">
+                <Skeleton className="h-4 w-full rounded" />
+                <Skeleton className="h-4 w-full rounded" />
+                <Skeleton className="h-4 w-5/6 rounded" />
+                <Skeleton className="h-4 w-full rounded" />
+                <Skeleton className="h-4 w-2/3 rounded" />
+              </View>
             </View>
+          ) : (
+            <View className="py-5">
+              <View className="gap-1 px-4">
+                <Text className="text-body02 text-black">{board.title}</Text>
 
-            <View className="px-4 pt-4">
-              <PostContent content={board.content || board.previewContent} />
-            </View>
+                <View className="flex-row items-center justify-between gap-4">
+                  <View className="flex-row items-center gap-3">
+                    <Text className="text-body05 text-grey-40">{formatBoardDate(board)}</Text>
+                    <Svg width="1" height="16" viewBox="0 0 1 16" fill="none">
+                      <Line x1="0.5" x2="0.5" y2="16" stroke="#AEB2B6" />
+                    </Svg>
+                    <Text className="text-body05 text-grey-40">{board.author}</Text>
+                  </View>
 
-            <View className="flex-row items-center justify-between px-5 pt-5">
-              <TouchableOpacity
-                onPress={() => void handlePostLikeClick()}
-                className="flex-row items-center self-start"
-                disabled={isLikePending}
-              >
-                <Text className="text-body04 text-grey-40">
-                  {isLikePending ? '처리 중...' : '좋아요'}
-                </Text>
-                <HeartIcon
-                  filled={board.liked}
-                  className={board.liked ? 'text-blue-20' : 'text-grey-20'}
-                />
-              </TouchableOpacity>
-
-              {board.canEdit || board.canDelete ? (
-                <View className="flex-row items-center gap-5">
-                  {board.canEdit ? (
-                    <TouchableOpacity onPress={handleEditPress}>
-                      <Text className="text-body05 text-grey-40">수정</Text>
-                    </TouchableOpacity>
-                  ) : null}
-                  {board.canDelete ? (
-                    <TouchableOpacity onPress={() => setDeleteDialogOpen(true)}>
-                      <Text className="text-body05 text-grey-40">삭제</Text>
-                    </TouchableOpacity>
-                  ) : null}
+                  <View className="flex-row items-center">
+                    <HeartIcon size={24} filled={board.liked} className="text-blue-20" />
+                    <Text className="text-body05 text-grey-40">{board.likeCount}</Text>
+                    <Svg width="1" height="16" viewBox="0 0 1 16" fill="none" className="ms-2">
+                      <Line x1="0.5" x2="0.5" y2="16" stroke="#AEB2B6" />
+                    </Svg>
+                    <ChatBubbleIcon size={24} className="ms-1.5 text-blue-20" />
+                    <Text className="text-body05 text-grey-40">{board.commentCount}</Text>
+                  </View>
                 </View>
-              ) : null}
-            </View>
+              </View>
 
-            <View className="mt-5 border-b border-grey-02" />
+              <View className="px-4 pt-4">
+                <PostContent content={board.content || board.previewContent} />
+              </View>
 
-            <View className="px-4 pt-5">
-              <Text className="mb-2 text-body02 text-black">댓글</Text>
-
-              {user ? (
-                <>
-                  <CommentComposer
-                    value={commentText}
-                    isSubmitting={isCommentSubmitting}
-                    onChange={setCommentText}
-                    onSubmit={() => void handleCommentSubmitClick()}
+              <View className="flex-row items-center justify-between px-5 pt-5">
+                <TouchableOpacity
+                  onPress={() => void handlePostLikeClick()}
+                  className="flex-row items-center self-start"
+                  disabled={isLikePending}
+                >
+                  <Text className="text-body04 text-grey-40">
+                    {isLikePending ? '처리 중...' : '좋아요'}
+                  </Text>
+                  <HeartIcon
+                    filled={board.liked}
+                    className={board.liked ? 'text-blue-20' : 'text-grey-20'}
                   />
+                </TouchableOpacity>
 
-                  {comments.length > 0 ? (
-                    <View className="mt-4 gap-5">
-                      {comments.map((comment) => (
-                        <CommentThread
-                          key={comment.commentUUID}
-                          comment={comment}
-                          currentUserNickname={user.nickname}
-                          deletingCommentUUID={deletingCommentUUID}
-                          activeReplyParentUUID={activeReplyParentUUID}
-                          pendingCommentLikeUUIDs={pendingCommentLikeUUIDs}
-                          replyText={replyText}
-                          replySubmittingParentUUID={replySubmittingParentUUID}
-                          onCommentLikeToggle={handleCommentLikeClick}
-                          onDelete={handleCommentDeleteClick}
-                          onReplyToggle={handleReplyToggleClick}
-                          onReplyTextChange={setReplyText}
-                          onReplySubmit={() => void handleReplySubmitClick()}
-                        />
-                      ))}
-                    </View>
-                  ) : null}
-                </>
-              ) : (
-                <LoggedOutCommentView onLoginPress={handleLoginPress} />
-              )}
+                {board.canEdit || board.canDelete ? (
+                  <View className="flex-row items-center gap-5">
+                    {board.canEdit ? (
+                      <TouchableOpacity onPress={handleEditPress}>
+                        <Text className="text-body05 text-grey-40">수정</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                    {board.canDelete ? (
+                      <TouchableOpacity onPress={() => setDeleteDialogOpen(true)}>
+                        <Text className="text-body05 text-grey-40">삭제</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
+                ) : null}
+              </View>
             </View>
+          )}
+
+          <View className="mt-5 border-b border-grey-02" />
+
+          {/* 댓글 */}
+          <View className="px-4 pt-5">
+            <Text className="mb-2 text-body02 text-black">댓글</Text>
+
+            {isCommentsLoading ? (
+              <View className="mt-2 gap-5">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <View key={i} className="gap-[10px]">
+                    <View className="flex-row items-start gap-3">
+                      <Skeleton className="h-10 w-10 rounded-full" />
+                      <View className="flex-1 gap-0.5 pt-1">
+                        <Skeleton className="h-4 w-24 rounded" />
+                        <Skeleton className="h-3 w-16 rounded" />
+                      </View>
+                    </View>
+                    <Skeleton className="h-4 w-full rounded" />
+                    <Skeleton className="h-4 w-3/4 rounded" />
+                  </View>
+                ))}
+              </View>
+            ) : user ? (
+              <>
+                <CommentComposer
+                  value={commentText}
+                  isSubmitting={isCommentSubmitting}
+                  onChange={setCommentText}
+                  onSubmit={() => void handleCommentSubmitClick()}
+                />
+
+                {comments.length > 0 ? (
+                  <View className="mt-4 gap-5">
+                    {comments.map((comment) => (
+                      <CommentThread
+                        key={comment.commentUUID}
+                        comment={comment}
+                        currentUserNickname={user.nickname}
+                        deletingCommentUUID={deletingCommentUUID}
+                        activeReplyParentUUID={activeReplyParentUUID}
+                        pendingCommentLikeUUIDs={pendingCommentLikeUUIDs}
+                        replyText={replyText}
+                        replySubmittingParentUUID={replySubmittingParentUUID}
+                        onCommentLikeToggle={handleCommentLikeClick}
+                        onDelete={handleCommentDeleteClick}
+                        onReplyToggle={handleReplyToggleClick}
+                        onReplyTextChange={setReplyText}
+                        onReplySubmit={() => void handleReplySubmitClick()}
+                      />
+                    ))}
+                  </View>
+                ) : null}
+              </>
+            ) : (
+              <LoggedOutCommentView onLoginPress={handleLoginPress} />
+            )}
           </View>
         </View>
 
@@ -515,20 +556,6 @@ export default function BoardDetailScreen() {
         </DialogContent>
       </Dialog>
     </ScrollView>
-  );
-}
-
-function LoadingState({ topInset, bottomInset }: { topInset: number; bottomInset: number }) {
-  return (
-    <View className="flex-1 bg-white" style={{ paddingTop: topInset }}>
-      <View className="flex-1 items-center justify-center gap-3">
-        <ActivityIndicator />
-        <Text className="text-body05 text-grey-40">게시글을 불러오고 있습니다.</Text>
-      </View>
-      <View style={{ paddingBottom: bottomInset }}>
-        <Footer />
-      </View>
-    </View>
   );
 }
 
@@ -592,7 +619,7 @@ function CommentComposer({
         <TextInput
           multiline
           textAlignVertical="center"
-          className="max-h-[84px] min-h-[21px] py-0 pe-10 text-body05 text-black"
+          className="max-h-[84px] min-h-[21px] py-0 pe-10 font-pretendard text-body05 text-black"
           value={value}
           onChangeText={onChange}
           placeholder={placeholder}

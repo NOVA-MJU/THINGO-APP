@@ -1,9 +1,10 @@
 import { ExpoConfig } from 'expo/config';
 
 const config: ExpoConfig = {
-  name: 'thingo-app',
+  name: 'Thingo',
   slug: 'thingo-app',
   version: '0.1.0',
+  locales: { ko: './locales/ko.json' },
   orientation: 'portrait',
   icon: './assets/images/icon.png',
   scheme: 'thingo-app',
@@ -17,11 +18,15 @@ const config: ExpoConfig = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'com.nova.thingo',
+    infoPlist: {
+      CFBundleDevelopmentRegion: 'ko',
+      CFBundleLocalizations: ['ko'],
+    },
   },
   android: {
     adaptiveIcon: {
       foregroundImage: './assets/images/adaptive-icon.png',
-      backgroundColor: '#ffffff',
+      backgroundColor: '#1778ff',
     },
     permissions: ['READ_MEDIA_IMAGES', 'READ_EXTERNAL_STORAGE', 'WRITE_EXTERNAL_STORAGE'],
     package: 'com.nova.thingo',
@@ -29,7 +34,6 @@ const config: ExpoConfig = {
   web: {
     bundler: 'metro',
     output: 'static',
-    favicon: './assets/images/favicon.png',
   },
   plugins: [
     'expo-router',

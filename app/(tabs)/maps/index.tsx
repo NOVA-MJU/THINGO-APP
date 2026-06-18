@@ -1,18 +1,19 @@
 import { SearchIcon, ThingoLogoSmall } from '@/components/icons';
 import { NaverMap, NaverMapHandle } from '@/components/naver-map';
+import { Text } from '@/components/ui/text';
+import { findPlaceById, PLACES } from '@/lib/maps/places';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
 import { Alert, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Text } from '@/components/ui/text';
-import SheetHandle from './_components/sheets/sheet-handle';
 import { MoreIcon, StarIcon } from './_components/icons';
+import BusInfoSheet from './_components/sheets/bus-info';
 import CategoryList from './_components/sheets/category-list';
-import { CATEGORIES } from './_constants/category-data';
 import PlaceDetailSheet from './_components/sheets/place-detail';
-import { findPlaceById, PLACES } from '@/lib/maps/places';
+import SheetHandle from './_components/sheets/sheet-handle';
+import { CATEGORIES } from './_constants/category-data';
 
 const QUICK_CHIP_IDS = ['bus', 'daedong', 'printer', 'lounge', 'bank'];
 
@@ -35,10 +36,12 @@ export default function MapsScreen() {
   const insets = useSafeAreaInsets();
   const [selectedPlaceId, setSelectedPlaceId] = React.useState<string | null>(null);
   const [selectedFacilityId, setSelectedFacilityId] = React.useState<string | null>(null);
+  const [selectedSheetMode, setSelectedSheetMode] = React.useState<'category' | 'bus'>('category');
   const mapRef = React.useRef<NaverMapHandle>(null);
   const bottomSheetRef = React.useRef<BottomSheet>(null);
   const selectedPlace = findPlaceById(selectedPlaceId);
   const selectedFacility = findPlaceById(selectedFacilityId);
+
   const markers = React.useMemo(
     () =>
       PLACES.map((place) => ({
@@ -54,6 +57,7 @@ export default function MapsScreen() {
     const nextPlace = findPlaceById(placeId);
     if (!nextPlace) return;
 
+    setSelectedSheetMode('category');
     setSelectedPlaceId(nextPlace.id);
     setSelectedFacilityId(Array.isArray(facilityId) ? facilityId[0] : (facilityId ?? null));
     mapRef.current?.animateCameraTo(nextPlace.latitude, nextPlace.longitude, 17);
@@ -64,6 +68,7 @@ export default function MapsScreen() {
     const nextPlace = findPlaceById(id);
     if (!nextPlace) return;
 
+    setSelectedSheetMode('category');
     setSelectedPlaceId(nextPlace.id);
     setSelectedFacilityId(null);
     mapRef.current?.animateCameraTo(nextPlace.latitude, nextPlace.longitude, 17);
@@ -71,12 +76,26 @@ export default function MapsScreen() {
   }
 
   function onBottomSheetClose() {
+    setSelectedSheetMode('category');
     setSelectedPlaceId(null);
     setSelectedFacilityId(null);
   }
 
   function onSearchButtonPress() {
     router.push('/maps/search');
+  }
+
+  function onQuickChipPress(chipId: string) {
+    if (chipId === 'bus') {
+      setSelectedPlaceId(null);
+      setSelectedFacilityId(null);
+      setSelectedSheetMode('bus');
+      bottomSheetRef.current?.snapToIndex(1);
+      return;
+    }
+
+    setSelectedSheetMode('category');
+    bottomSheetRef.current?.snapToIndex(1);
   }
 
   async function onCurrentLocationPress() {
@@ -92,14 +111,31 @@ export default function MapsScreen() {
     }
 
     try {
-      const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
       mapRef.current?.animateCameraTo(location.coords.latitude, location.coords.longitude, 16);
     } catch {
       Alert.alert('위치 오류', '현재 위치를 가져올 수 없습니다.');
     }
   }
 
-  function handleMoreCategories() {}
+  function handleMoreCategories() {
+    setSelectedSheetMode('category');
+    bottomSheetRef.current?.snapToIndex(1);
+  }
+
+  function renderBottomSheetContent() {
+    if (selectedPlace) {
+      return <PlaceDetailSheet place={selectedPlace} selectedFacility={selectedFacility} />;
+    }
+
+    if (selectedSheetMode === 'bus') {
+      return <BusInfoSheet />;
+    }
+
+    return <CategoryList />;
+  }
 
   return (
     <View style={{ flex: 1 }}>
@@ -131,7 +167,9 @@ export default function MapsScreen() {
                 <ThingoLogoSmall size={32} />
               </TouchableOpacity>
               <TouchableOpacity className="flex-1" onPress={onSearchButtonPress} hitSlop={4}>
-                <Text className="text-body05 text-grey-20">건물명, 강의실 코드를 검색해보세요</Text>
+                <Text className="text-body05 text-grey-20">
+                  건물명, 강의실 코드를 검색해보세요
+                </Text>
               </TouchableOpacity>
               <SearchIcon size={24} className="text-grey-40" />
             </View>
@@ -174,6 +212,7 @@ export default function MapsScreen() {
                 }}
               >
                 <TouchableOpacity
+                  onPress={() => onQuickChipPress(chip.id)}
                   className="flex-row items-center gap-0.5 py-1.5 pe-2 ps-1.5"
                   hitSlop={2}
                 >
@@ -221,7 +260,7 @@ export default function MapsScreen() {
             elevation: 5,
           }}
         >
-          <Text style={{ fontSize: 22 }}>◎</Text>
+          <Text style={{ fontSize: 22 }}>⌖</Text>
         </TouchableOpacity>
       )}
 
@@ -235,14 +274,7 @@ export default function MapsScreen() {
         topInset={insets.top}
         onClose={onBottomSheetClose}
       >
-        <BottomSheetScrollView>
-          {selectedPlace ? (
-            <PlaceDetailSheet place={selectedPlace} selectedFacility={selectedFacility} />
-          ) : (
-            <CategoryList />
-          )}
-          {/* <BusInfoSheet /> */}
-        </BottomSheetScrollView>
+        <BottomSheetScrollView>{renderBottomSheetContent()}</BottomSheetScrollView>
       </BottomSheet>
     </View>
   );

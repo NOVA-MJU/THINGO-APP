@@ -495,7 +495,7 @@ const editorCss = `
   .thingo-post-editor-content {
     box-sizing: border-box;
     color: #1a1f24;
-    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+    font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
     font-size: 14px;
     line-height: 1.5;
     min-height: 280px;
