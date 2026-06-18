@@ -167,9 +167,7 @@ export default function MapsScreen() {
                 <ThingoLogoSmall size={32} />
               </TouchableOpacity>
               <TouchableOpacity className="flex-1" onPress={onSearchButtonPress} hitSlop={4}>
-                <Text className="text-body05 text-grey-20">
-                  건물명, 강의실 코드를 검색해보세요
-                </Text>
+                <Text className="text-body05 text-grey-20">건물명, 강의실 코드를 검색해보세요</Text>
               </TouchableOpacity>
               <SearchIcon size={24} className="text-grey-40" />
             </View>
