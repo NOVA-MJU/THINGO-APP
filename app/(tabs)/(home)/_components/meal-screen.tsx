@@ -67,7 +67,7 @@ export default function MealScreen() {
   const dinner = getMeals('DINNER');
 
   return (
-    <ScrollView className="w-screen" contentContainerClassName="flex-grow">
+    <ScrollView className="native:w-screen web:w-full" contentContainerClassName="flex-grow">
       <View className="gap-4 border-b border-grey-10 bg-white pb-3 pt-4">
         <View className="flex-row items-center gap-2 px-6">
           <Text className="text-body02 text-black">
@@ -114,7 +114,7 @@ export default function MealScreen() {
           })}
         </ScrollView>
       </View>
-      <View className="w-screen flex-1 gap-2.5 bg-grey-02 px-4 pb-9 pt-5">
+      <View className="flex-1 gap-2.5 bg-grey-02 px-4 pb-9 pt-5">
         {/* 조식 */}
         <View className="gap-2.5 rounded-xl bg-white px-4 py-5">
           <View className="flex-row items-center">

@@ -34,7 +34,7 @@ export default function NewsScreen() {
   return (
     <ScrollView
       ref={scrollRef}
-      className="w-screen flex-1 bg-grey-02"
+      className="native:w-screen flex-1 bg-grey-02 web:w-full"
       contentContainerClassName="flex-grow"
     >
       <View className="relative flex-1 gap-4 p-5">

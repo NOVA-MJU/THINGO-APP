@@ -4,6 +4,7 @@ import { Link } from 'expo-router';
 import {
   ActivityIndicator,
   Image,
+  Platform,
   ScrollView,
   TouchableOpacity,
   View,
@@ -82,8 +83,9 @@ function formatDdayValue(value: number): string {
 
 export default function AllScreen({ onNavigate }: Props) {
   const { width: screenWidth } = useWindowDimensions();
-  const cardSlot = screenWidth - (CAROUSEL_PEEK + CAROUSEL_GAP / 2) * 2;
-  const carouselOffset = (screenWidth - cardSlot) / 2;
+  const [containerWidth, setContainerWidth] = React.useState(screenWidth);
+  const cardSlot = containerWidth - (CAROUSEL_PEEK + CAROUSEL_GAP / 2) * 2;
+  const carouselOffset = (containerWidth - cardSlot) / 2;
 
   const [banners, setBanners] = React.useState<Banner[]>([]);
   const [bannersLoading, setBannersLoading] = React.useState(false);
@@ -250,12 +252,15 @@ export default function AllScreen({ onNavigate }: Props) {
   }, [menus, currentMealCategory]);
 
   return (
-    <ScrollView className="w-screen flex-1">
+    <ScrollView className="native:w-screen flex-1 web:w-full">
       <View className="min-h-screen bg-grey-02">
         <View className="bg-white py-5">
           <View className="items-center">
             {/* 배너 */}
-            <View style={{ width: screenWidth, overflow: 'hidden' }}>
+            <View
+              onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
+              style={{ width: Platform.OS === 'web' ? '100%' : screenWidth, overflow: 'hidden' }}
+            >
               <View style={{ marginLeft: carouselOffset }}>
                 {bannersLoading ? (
                   <Skeleton style={{ width: cardSlot, height: 200, borderRadius: 16 }} />
@@ -448,7 +453,7 @@ export default function AllScreen({ onNavigate }: Props) {
           <FireIcon />
           <Text className="text-title03 text-black">HOT 공지사항</Text>
         </View>
-        <Text className="px-4 text-caption02 text-grey-60">한달동안 가장 많은 조회 수</Text>
+        <Text className="px-4 text-caption02 text-grey-60">최근 일주일간 가장 많은 조회 수</Text>
         <View className="mx-4 mt-3 rounded-xl bg-white py-1">
           {hotNoticesLoading
             ? Array.from({ length: 6 }).map((_, i) => (
