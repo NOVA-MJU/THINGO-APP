@@ -17,8 +17,8 @@ import Svg, {
 export function ChatIcon() {
   return (
     <Svg width={40} height={40} viewBox="0 0 40 40" fill="none">
-      <G clipPath="url(#clip0)">
-        <G filter="url(#filter0)">
+      <G clipPath="url(#chat-clip)">
+        <G filter="url(#chat-filter)">
           <Path
             d="M20 4C10.6534 4 3 11.0993 3 19.9693C3 22.7586 3.75141 25.4699 5.17771 27.8422C5.94441 29.118 6.01579 30.9332 4.85979 33.3871C4 34.914 3.93331 35.7097 6.24021 35.9386C8.54711 36.1675 10.4953 35.763 13.1473 34.6079C15.2587 35.4667 17.6472 35.9386 20 35.9386C29.3466 35.9386 37 28.8376 37 19.9693C37 11.0993 29.3466 4 20 4Z"
             fill="white"
@@ -34,7 +34,7 @@ export function ChatIcon() {
         </G>
       </G>
       <Defs>
-        <Filter id="filter0" x={0} y={1} width={42} height={40} filterUnits="userSpaceOnUse">
+        <Filter id="chat-filter" x={0} y={1} width={42} height={40} filterUnits="userSpaceOnUse">
           <FeFlood floodOpacity={0} result="BackgroundImageFix" />
           <FeColorMatrix
             in="SourceAlpha"
@@ -49,7 +49,7 @@ export function ChatIcon() {
           <FeBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow" />
           <FeBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow" result="shape" />
         </Filter>
-        <ClipPath id="clip0">
+        <ClipPath id="chat-clip">
           <Rect width={40} height={40} fill="white" />
         </ClipPath>
       </Defs>

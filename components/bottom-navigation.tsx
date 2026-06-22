@@ -8,7 +8,7 @@ import { Text } from './ui/text';
 const TABS = [
   { key: 'home', label: '홈', Icon: HomeIcon, href: '/' },
   { key: 'map', label: '명지도', Icon: MapIcon, href: '/maps' },
-  { key: 'category', label: '카테고리', Icon: ExploreIcon, href: '/category' },
+  { key: 'category', label: '카테고리', Icon: ExploreIcon, href: '/categories' },
   { key: 'my', label: '마이', Icon: ProfileIcon, href: '/profile' },
 ] as const;
 
@@ -18,7 +18,7 @@ const AUTH_PATHS = ['/login', '/signup', '/forgot-password'];
 
 function getActiveKey(pathname: string): TabKey {
   if (pathname.startsWith('/maps')) return 'map';
-  if (pathname.startsWith('/category')) return 'category';
+  if (pathname.startsWith('/categories')) return 'category';
   if (pathname.startsWith('/profile') || AUTH_PATHS.some((p) => pathname.startsWith(p)))
     return 'my';
   return 'home';

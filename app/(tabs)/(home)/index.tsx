@@ -17,18 +17,14 @@ import { TabBar } from '@/components/ui/tab-bar';
 
 const { width } = Dimensions.get('window');
 const TABS = ['ALL', '학식', '게시판', '공지사항', '학사일정', '명대신문', '명대뉴스'];
-const TAB_PATHS = ['/', '/meal', '/board', '/notice', '/academic', '/newspaper', '/news'];
+const TAB_PATHS = ['/', '/meal', '/posts', '/notices', '/academic-calendar', '/newspaper', '/news'];
 
 export default function Screen() {
-  const { tab, boardCategory, refreshBoards } = useLocalSearchParams<{
+  const { tab } = useLocalSearchParams<{
     tab?: string | string[];
-    boardCategory?: string | string[];
-    refreshBoards?: string | string[];
   }>();
 
   const targetTab = Array.isArray(tab) ? tab[0] : tab;
-  const targetBoardCategory = Array.isArray(boardCategory) ? boardCategory[0] : boardCategory;
-  const boardRefreshKey = Array.isArray(refreshBoards) ? refreshBoards[0] : refreshBoards;
 
   const insets = useSafeAreaInsets();
   const scrollRef = React.useRef<ScrollView>(null);
@@ -105,14 +101,7 @@ export default function Screen() {
         <MealScreen />
 
         {/* 게시판 */}
-        <NoticeBoardScreen
-          initialCategory={
-            targetBoardCategory === 'free' || targetBoardCategory === 'info'
-              ? targetBoardCategory
-              : undefined
-          }
-          refreshKey={boardRefreshKey}
-        />
+        <NoticeBoardScreen />
 
         {/* 공지사항 */}
         <NoticeScreen />

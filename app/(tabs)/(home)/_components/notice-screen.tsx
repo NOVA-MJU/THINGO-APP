@@ -3,6 +3,7 @@ import { Pagination } from '@/components/ui/pagination';
 import { Text } from '@/components/ui/text';
 import { parseUTCDate } from '@/lib/utils';
 import { format } from 'date-fns';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
 import { ActivityIndicator, Linking, ScrollView, TouchableOpacity, View } from 'react-native';
 import { Footer } from '@/components/footer';
@@ -19,9 +20,14 @@ const CATEGORIES: { label: string; value: NoticeCategory }[] = [
 ];
 
 export default function NoticeScreen() {
+  const router = useRouter();
+  const params = useLocalSearchParams<{ category?: string; page?: string }>();
+
+  const categoryValue = (params.category as NoticeCategory) ?? 'all';
+  const currentPage = Number(params.page ?? '1');
+  const selectedCategory = CATEGORIES.find((c) => c.value === categoryValue)?.label ?? '전체';
+
   const scrollRef = React.useRef<ScrollView>(null);
-  const [selectedCategory, setSelectedCategory] = React.useState('전체');
-  const [currentPage, setCurrentPage] = React.useState(1);
   const [notices, setNotices] = React.useState<Notice[]>([]);
   const [totalPages, setTotalPages] = React.useState(1);
   const [loading, setLoading] = React.useState(false);
@@ -35,7 +41,7 @@ export default function NoticeScreen() {
   React.useEffect(() => {
     setLoading(true);
     getNotices({
-      category: CATEGORIES.find((c) => c.label === selectedCategory)?.value ?? 'all',
+      category: categoryValue,
       page: currentPage - 1,
       size: 10,
     })
@@ -45,15 +51,23 @@ export default function NoticeScreen() {
       })
       .catch(() => setNotices([]))
       .finally(() => setLoading(false));
-  }, [selectedCategory, currentPage]);
+  }, [categoryValue, currentPage]);
 
-  const handleCategorySelect = (category: string) => {
-    setSelectedCategory(category);
-    setCurrentPage(1);
+  const handleCategorySelect = (label: string) => {
+    const value = CATEGORIES.find((c) => c.label === label)?.value ?? 'all';
+    router.setParams({ category: value, page: '1' });
+  };
+
+  const handlePageChange = (page: number) => {
+    router.setParams({ page: String(page) });
   };
 
   return (
-    <ScrollView ref={scrollRef} className="native:w-screen flex-1 web:w-full">
+    <ScrollView
+      ref={scrollRef}
+      className="native:w-screen flex-1 web:w-full"
+      contentContainerStyle={{ flexGrow: 1 }}
+    >
       <View className="mt-4">
         <CategoryFilter
           categories={CATEGORIES.map((c) => c.label)}
@@ -87,7 +101,7 @@ export default function NoticeScreen() {
       <Pagination
         currentPage={currentPage}
         totalPages={totalPages}
-        onPageChange={setCurrentPage}
+        onPageChange={handlePageChange}
         className="mt-6"
       />
       <Footer className="mt-9" />
