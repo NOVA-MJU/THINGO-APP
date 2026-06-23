@@ -17,8 +17,9 @@ export default function Root({ children }: PropsWithChildren) {
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-        <title>{siteTitle}</title>
+
         <meta name="description" content={siteDescription} />
+
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content={siteTitle} />
         <meta property="og:title" content={siteTitle} />
@@ -41,7 +42,7 @@ export default function Root({ children }: PropsWithChildren) {
 
         {/* Add any additional <head> elements that you want globally available on web... */}
       </head>
-      <body>{children}</body>
+      <body className="bg-grey-02">{children}</body>
     </html>
   );
 }

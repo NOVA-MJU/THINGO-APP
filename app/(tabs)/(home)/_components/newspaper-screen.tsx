@@ -58,7 +58,7 @@ export default function NewspaperScreen() {
   return (
     <ScrollView
       ref={scrollRef}
-      className="w-screen flex-1 bg-grey-02"
+      className="native:w-screen flex-1 bg-grey-02 web:w-full"
       contentContainerClassName="flex-grow"
     >
       <View className="pt-4">

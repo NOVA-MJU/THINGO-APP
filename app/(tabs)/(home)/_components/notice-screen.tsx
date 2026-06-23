@@ -53,7 +53,7 @@ export default function NoticeScreen() {
   };
 
   return (
-    <ScrollView ref={scrollRef} className="w-screen flex-1">
+    <ScrollView ref={scrollRef} className="native:w-screen flex-1 web:w-full">
       <View className="mt-4">
         <CategoryFilter
           categories={CATEGORIES.map((c) => c.label)}

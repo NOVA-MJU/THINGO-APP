@@ -221,7 +221,7 @@ function NoticeBoardScreen({ initialCategory, refreshKey }: NoticeBoardScreenPro
   const showPagination = !loading && !error && totalElements > 0 && totalPages > 1;
 
   return (
-    <View className="w-screen flex-1 bg-white">
+    <View className="native:w-screen flex-1 bg-white web:w-full">
       <View className="bg-grey-02 pt-2">
         <View className="flex-row">
           <BoardTabButton

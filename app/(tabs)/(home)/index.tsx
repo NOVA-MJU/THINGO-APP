@@ -1,9 +1,9 @@
 import { HamburgerIcon, SearchIcon, ThingoLogoSmall } from '@/components/icons';
 import Sidebar from '@/components/sidebar';
 import { Text } from '@/components/ui/text';
-import { Link, useLocalSearchParams } from 'expo-router';
+import { Link, router, useLocalSearchParams } from 'expo-router';
 import * as React from 'react';
-import { Dimensions, Keyboard, ScrollView, TouchableOpacity, View } from 'react-native';
+import { Dimensions, Keyboard, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NoticeBoardScreen } from './_components/notice-board-page';
 import AllScreen from './_components/all-screen';
@@ -17,6 +17,7 @@ import { TabBar } from '@/components/ui/tab-bar';
 
 const { width } = Dimensions.get('window');
 const TABS = ['ALL', '학식', '게시판', '공지사항', '학사일정', '명대신문', '명대뉴스'];
+const TAB_PATHS = ['/', '/meal', '/board', '/notice', '/academic', '/newspaper', '/news'];
 
 export default function Screen() {
   const { tab, boardCategory, refreshBoards } = useLocalSearchParams<{
@@ -51,6 +52,11 @@ export default function Screen() {
     setCurrentTab(TABS[boardTabIndex]);
     scrollRef.current?.scrollTo({ x: width * boardTabIndex, animated: false });
   }, [targetTab]);
+
+  // web: 헤더·TabBar는 _layout.tsx 제공, AllScreen만 렌더링
+  if (Platform.OS === 'web') {
+    return <AllScreen onNavigate={(index) => router.replace(TAB_PATHS[index] as any)} />;
+  }
 
   return (
     <>
