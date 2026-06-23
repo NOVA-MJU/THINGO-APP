@@ -17,9 +17,9 @@ export default function Root({ children }: PropsWithChildren) {
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-        
+
         <meta name="description" content={siteDescription} />
-        
+
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content={siteTitle} />
         <meta property="og:title" content={siteTitle} />
