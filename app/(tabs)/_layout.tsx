@@ -6,7 +6,7 @@ export default function TabsLayout() {
     <Tabs screenOptions={{ headerShown: false }} tabBar={() => <BottomNavigation />}>
       <Tabs.Screen name="(home)" />
       <Tabs.Screen name="maps" />
-      <Tabs.Screen name="category" />
+      <Tabs.Screen name="categories" />
       <Tabs.Screen name="profile" />
       <Tabs.Screen name="(auth)" />
     </Tabs>

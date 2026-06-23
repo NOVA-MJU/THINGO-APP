@@ -5,18 +5,13 @@ import { Pagination } from '@/components/ui/pagination';
 import { Text } from '@/components/ui/text';
 import { cn, parseUTCDate } from '@/lib/utils';
 import { format } from 'date-fns';
-import { router } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ClipboardPen } from 'lucide-react-native';
 import * as React from 'react';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type BoardCategoryTab = 'info' | 'free';
-
-type NoticeBoardScreenProps = {
-  initialCategory?: BoardCategoryTab;
-  refreshKey?: string;
-};
 
 const BOARD_TABS: { key: BoardCategoryTab; label: string }[] = [
   { key: 'info', label: '정보 게시판' },
@@ -29,31 +24,6 @@ const CATEGORY_MAP: Record<BoardCategoryTab, Exclude<CommunityCategory, 'ALL'>> 
 };
 
 const ITEMS_PER_PAGE = 10;
-
-type BoardTabButtonProps = {
-  label: string;
-  isActive: boolean;
-  side: 'left' | 'right';
-  onPress: () => void;
-};
-
-function BoardTabButton({ label, isActive, side, onPress }: BoardTabButtonProps) {
-  return (
-    <Pressable
-      onPress={onPress}
-      className={cn(
-        'h-[39.3px] flex-1 items-center justify-center border-grey-10',
-        isActive ? 'border-t bg-white' : 'border-b bg-grey-02',
-        side === 'left' && (isActive ? 'rounded-tr-sm' : 'border-r'),
-        side === 'right' && (isActive ? 'rounded-tl-sm' : '')
-      )}
-    >
-      <Text className={cn(isActive ? 'text-body04 text-black' : 'text-body05 text-grey-40')}>
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
 
 function BoardHotBadge() {
   return (
@@ -160,13 +130,19 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
   );
 }
 
-function NoticeBoardScreen({ initialCategory, refreshKey }: NoticeBoardScreenProps) {
+function NoticeBoardScreen() {
+  const router = useRouter();
+  const { boardCategory, page, refreshBoards } = useLocalSearchParams<{
+    boardCategory?: string;
+    page?: string;
+    refreshBoards?: string;
+  }>();
+
+  const activeCategory: BoardCategoryTab = boardCategory === 'free' ? 'free' : 'info';
+  const currentPage = Number(page ?? '1');
+
   const { bottom } = useSafeAreaInsets();
   const scrollRef = React.useRef<ScrollView>(null);
-  const [activeCategory, setActiveCategory] = React.useState<BoardCategoryTab>(
-    initialCategory ?? 'info'
-  );
-  const [currentPage, setCurrentPage] = React.useState(1);
   const [boards, setBoards] = React.useState<Board[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
@@ -201,41 +177,47 @@ function NoticeBoardScreen({ initialCategory, refreshKey }: NoticeBoardScreenPro
 
   React.useEffect(() => {
     void loadBoards();
-  }, [loadBoards, refreshKey]);
-
-  React.useEffect(() => {
-    setCurrentPage(1);
-  }, [activeCategory]);
+  }, [loadBoards, refreshBoards]);
 
   React.useEffect(() => {
     scrollRef.current?.scrollTo({ y: 0, animated: false });
   }, [activeCategory, currentPage]);
 
-  React.useEffect(() => {
-    if (!initialCategory) return;
+  const handleCategoryChange = (tab: BoardCategoryTab) => {
+    router.setParams({ boardCategory: tab, page: '1' });
+  };
 
-    setActiveCategory(initialCategory);
-    setCurrentPage(1);
-  }, [initialCategory]);
+  const handlePageChange = (p: number) => {
+    router.setParams({ page: String(p) });
+  };
 
   const showPagination = !loading && !error && totalElements > 0 && totalPages > 1;
 
   return (
     <View className="native:w-screen flex-1 bg-white web:w-full">
-      <View className="bg-grey-02 pt-2">
-        <View className="flex-row">
-          <BoardTabButton
-            label={BOARD_TABS[0].label}
-            isActive={activeCategory === 'info'}
-            side="left"
-            onPress={() => setActiveCategory('info')}
-          />
-          <BoardTabButton
-            label={BOARD_TABS[1].label}
-            isActive={activeCategory === 'free'}
-            side="right"
-            onPress={() => setActiveCategory('free')}
-          />
+      <View className="bg-grey-02">
+        <View className="mt-2 flex-row">
+          {BOARD_TABS.map((tab) => (
+            <Pressable
+              key={tab.key}
+              onPress={() => handleCategoryChange(tab.key)}
+              className={cn(
+                'flex-1 border py-2',
+                activeCategory === tab.key
+                  ? 'rounded-t-sm border-grey-10 border-b-white bg-white'
+                  : 'border-grey-02 border-b-grey-10'
+              )}
+            >
+              <Text
+                className={cn(
+                  'text-center',
+                  activeCategory === tab.key ? 'text-body04 text-black' : 'text-body05 text-grey-40'
+                )}
+              >
+                {tab.label}
+              </Text>
+            </Pressable>
+          ))}
         </View>
       </View>
 
@@ -279,7 +261,7 @@ function NoticeBoardScreen({ initialCategory, refreshKey }: NoticeBoardScreenPro
                   <Pagination
                     currentPage={currentPage}
                     totalPages={totalPages}
-                    onPageChange={setCurrentPage}
+                    onPageChange={handlePageChange}
                     className="mb-7 mt-6"
                   />
                 )}

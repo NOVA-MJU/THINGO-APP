@@ -5,6 +5,7 @@ import { Pagination } from '@/components/ui/pagination';
 import { Text } from '@/components/ui/text';
 import { parseUTCDate } from '@/lib/utils';
 import { format } from 'date-fns';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
 import {
   ActivityIndicator,
@@ -22,9 +23,13 @@ const CATEGORIES: { label: string; value: NewsCategory }[] = [
 ];
 
 export default function NewspaperScreen() {
+  const router = useRouter();
+  const { category, page } = useLocalSearchParams<{ category?: string; page?: string }>();
+
+  const selectedCategory = CATEGORIES.find((c) => c.label === category)?.label ?? '전체';
+  const currentPage = Number(page ?? '1');
+
   const scrollRef = React.useRef<ScrollView>(null);
-  const [selectedCategory, setSelectedCategory] = React.useState('전체');
-  const [currentPage, setCurrentPage] = React.useState(1);
   const [articles, setArticles] = React.useState<NewsItem[]>([]);
   const [totalPages, setTotalPages] = React.useState(1);
   const [loading, setLoading] = React.useState(false);
@@ -50,9 +55,8 @@ export default function NewspaperScreen() {
       .finally(() => setLoading(false));
   }, [selectedCategory, currentPage]);
 
-  const handleCategorySelect = (category: string) => {
-    setSelectedCategory(category);
-    setCurrentPage(1);
+  const handleCategorySelect = (label: string) => {
+    router.setParams({ category: label, page: '1' });
   };
 
   return (
@@ -112,7 +116,7 @@ export default function NewspaperScreen() {
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
-          onPageChange={setCurrentPage}
+          onPageChange={(p) => router.setParams({ page: String(p) })}
         />
       </View>
       <Footer />

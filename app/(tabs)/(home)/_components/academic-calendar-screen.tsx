@@ -12,6 +12,7 @@ import { Pagination } from '@/components/ui/pagination';
 import { Text } from '@/components/ui/text';
 import { cn, parseUTCDate } from '@/lib/utils';
 import { format } from 'date-fns';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
 import {
   ActivityIndicator,
@@ -138,16 +139,29 @@ const today = new Date();
 const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
 export default function AcademicCalendarScreen() {
+  const router = useRouter();
+  const params = useLocalSearchParams<{
+    tab?: string;
+    year?: string;
+    month?: string;
+    filter?: string;
+    date?: string;
+    page?: string;
+  }>();
+
+  const currentTab = params.tab === 'notice' ? '학사공지' : '캘린더';
+  const currentYear = Number(params.year ?? today.getFullYear());
+  const currentMonth = Number(params.month ?? today.getMonth() + 1);
+  const selectedFilter = FILTER_OPTIONS.includes(params.filter ?? '')
+    ? (params.filter ?? '전체')
+    : '전체';
+  const selectedDate = params.date ?? todayStr;
+  const currentPage = Number(params.page ?? '1');
+
   const scrollRef = React.useRef<ScrollView>(null);
   const todayDayIndex = today.getDay();
-  const [currentTab, setCurrentTab] = React.useState('캘린더');
-  const [currentYear, setCurrentYear] = React.useState(today.getFullYear());
-  const [currentMonth, setCurrentMonth] = React.useState(today.getMonth() + 1);
-  const [selectedFilter, setSelectedFilter] = React.useState('전체');
-  const [selectedDate, setSelectedDate] = React.useState<string | null>(todayStr);
   const [calendarData, setCalendarData] = React.useState<CalendarData | null>(null);
   const [calendarLoading, setCalendarLoading] = React.useState(false);
-  const [currentPage, setCurrentPage] = React.useState(1);
   const [academicNotices, setAcademicNotices] = React.useState<Notice[]>([]);
   const [totalPages, setTotalPages] = React.useState(1);
   const [loading, setLoading] = React.useState(false);
@@ -159,10 +173,6 @@ export default function AcademicCalendarScreen() {
   React.useEffect(() => {
     if (currentTab !== '캘린더') return;
     setCalendarLoading(true);
-    const isToday = currentYear === today.getFullYear() && currentMonth === today.getMonth() + 1;
-    setSelectedDate(
-      isToday ? todayStr : `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`
-    );
     getCalendar(currentYear, currentMonth)
       .then(setCalendarData)
       .catch(() => setCalendarData(null))
@@ -189,28 +199,29 @@ export default function AcademicCalendarScreen() {
 
   // 이전 달로 이동
   function handlePrevMonth(): void {
-    if (currentMonth === 1) {
-      setCurrentYear((y) => y - 1);
-      setCurrentMonth(12);
-    } else {
-      setCurrentMonth((m) => m - 1);
-    }
+    const newYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+    const newMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+    const isToday = newYear === today.getFullYear() && newMonth === today.getMonth() + 1;
+    const newDate = isToday ? todayStr : `${newYear}-${String(newMonth).padStart(2, '0')}-01`;
+    router.setParams({ year: String(newYear), month: String(newMonth), date: newDate });
   }
 
   // 오늘이 속한 달로 초기화
   function handleResetMonth(): void {
-    setCurrentYear(today.getFullYear());
-    setCurrentMonth(today.getMonth() + 1);
+    router.setParams({
+      year: String(today.getFullYear()),
+      month: String(today.getMonth() + 1),
+      date: todayStr,
+    });
   }
 
   // 다음 달로 이동
   function handleNextMonth(): void {
-    if (currentMonth === 12) {
-      setCurrentYear((y) => y + 1);
-      setCurrentMonth(1);
-    } else {
-      setCurrentMonth((m) => m + 1);
-    }
+    const newYear = currentMonth === 12 ? currentYear + 1 : currentYear;
+    const newMonth = currentMonth === 12 ? 1 : currentMonth + 1;
+    const isToday = newYear === today.getFullYear() && newMonth === today.getMonth() + 1;
+    const newDate = isToday ? todayStr : `${newYear}-${String(newMonth).padStart(2, '0')}-01`;
+    router.setParams({ year: String(newYear), month: String(newMonth), date: newDate });
   }
 
   const calendarGrid = React.useMemo(
@@ -231,13 +242,13 @@ export default function AcademicCalendarScreen() {
             <Pressable
               key={index}
               onPress={() => {
-                setCurrentTab(label);
+                router.setParams({ tab: label === '학사공지' ? 'notice' : 'calendar', page: '1' });
               }}
               className={cn(
-                'flex-1 py-2',
+                'flex-1 border py-2',
                 currentTab === label
-                  ? 'rounded-t-sm border-e border-s border-t border-grey-10 bg-white'
-                  : 'border-b border-grey-10'
+                  ? 'rounded-t-sm border-grey-10 border-b-white bg-white'
+                  : 'border-grey-02 border-b-grey-10'
               )}
             >
               <Text
@@ -310,7 +321,7 @@ export default function AcademicCalendarScreen() {
                         <TouchableOpacity
                           key={di}
                           className="h-[60px] flex-1 gap-1 py-1"
-                          onPress={() => setSelectedDate(cell.fullDate)}
+                          onPress={() => router.setParams({ date: cell.fullDate })}
                         >
                           <Text
                             className={cn(
@@ -373,7 +384,7 @@ export default function AcademicCalendarScreen() {
                   {FILTER_OPTIONS.map((option) => (
                     <DropdownMenuItem
                       key={option}
-                      onPress={() => setSelectedFilter(option)}
+                      onPress={() => router.setParams({ filter: option })}
                       className={cn(selectedFilter === option && 'bg-blue-05')}
                     >
                       <Text
@@ -437,7 +448,7 @@ export default function AcademicCalendarScreen() {
             <Pagination
               currentPage={currentPage}
               totalPages={totalPages}
-              onPageChange={setCurrentPage}
+              onPageChange={(p) => router.setParams({ page: String(p) })}
             />
           </View>
         </View>

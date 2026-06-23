@@ -4,13 +4,16 @@ import { Pagination } from '@/components/ui/pagination';
 import { Text } from '@/components/ui/text';
 import { YoutubeEmbed } from '@/components/youtube-embed';
 import { formatTimeAgo } from '@/lib/utils';
-import { Link } from 'expo-router';
+import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
 import { ActivityIndicator, ScrollView, TouchableOpacity, View } from 'react-native';
 
 export default function NewsScreen() {
+  const router = useRouter();
+  const { page } = useLocalSearchParams<{ page?: string }>();
+  const currentPage = Number(page ?? '1');
+
   const scrollRef = React.useRef<ScrollView>(null);
-  const [currentPage, setCurrentPage] = React.useState(1);
   const [broadcasts, setBroadcasts] = React.useState<BroadcastItem[]>([]);
   const [totalPages, setTotalPages] = React.useState(1);
   const [loading, setLoading] = React.useState(false);
@@ -26,8 +29,8 @@ export default function NewsScreen() {
       .finally(() => setLoading(false));
   }, [currentPage]);
 
-  function handlePageChange(page: number) {
-    setCurrentPage(page);
+  function handlePageChange(p: number) {
+    router.setParams({ page: String(p) });
     scrollRef.current?.scrollTo({ y: 0, animated: true });
   }
 

@@ -9,8 +9,8 @@ import { Platform, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const TABS = ['ALL', '학식', '게시판', '공지사항', '학사일정', '명대신문', '명대뉴스'];
-const TAB_PATHS = ['/', '/meal', '/board', '/notice', '/academic', '/newspaper', '/news'];
-const TAB_SLUGS = ['', 'meal', 'board', 'notice', 'academic', 'newspaper', 'news'];
+const TAB_PATHS = ['/', '/meal', '/posts', '/notices', '/academic-calendar', '/newspaper', '/news'];
+const TAB_SLUGS = ['', 'meal', 'posts', 'notices', 'academic-calendar', 'newspaper', 'news'];
 
 function WebHomeLayout() {
   const pathname = usePathname();

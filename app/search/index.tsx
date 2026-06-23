@@ -21,8 +21,9 @@ import {
 import { parseUTCDate } from '@/lib/utils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { format } from 'date-fns';
-import { Link, router } from 'expo-router';
+import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
+import { YoutubeEmbed } from '@/components/youtube-embed';
 import { Image, FlatList, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -64,10 +65,14 @@ const SUGGESTED_SEARCHES_BY_MONTH: Record<number, string[]> = {
 };
 
 export default function SearchScreen() {
+  const router = useRouter();
+  const { q, tab } = useLocalSearchParams<{ q?: string; tab?: string }>();
+
+  const submittedQuery = q ?? '';
+  const currentTab = tab && TABS.includes(tab) ? tab : TABS[0];
+
   const insets = useSafeAreaInsets();
-  const [currentTab, setCurrentTab] = React.useState(TABS[0]);
-  const [query, setQuery] = React.useState('');
-  const [submittedQuery, setSubmittedQuery] = React.useState('');
+  const [query, setQuery] = React.useState(submittedQuery);
   const [recentSearches, setRecentSearches] = React.useState<string[]>([]);
   const [popularSearches, setPopularSearches] = React.useState<string[]>([]);
   const [results, setResults] = React.useState<SearchResults>(EMPTY_RESULTS);
@@ -124,7 +129,6 @@ export default function SearchScreen() {
     }
 
     setIsLoading(true);
-    setCurrentTab(TABS[0]);
     setIsAiSummaryLoading(true);
     setErrorMessage(null);
 
@@ -162,7 +166,7 @@ export default function SearchScreen() {
     if (!trimmed) return;
     addRecentSearch(trimmed);
     setQuery(trimmed);
-    setSubmittedQuery(trimmed);
+    router.setParams({ q: trimmed, tab: TABS[0] });
   }
 
   function addRecentSearch(keyword: string): void {
@@ -198,15 +202,23 @@ export default function SearchScreen() {
   }
 
   function onNoticeMorePress(): void {
-    setCurrentTab('공지사항');
+    router.setParams({ tab: '공지사항' });
   }
 
   function onCommunityMorePress(): void {
-    setCurrentTab('게시판');
+    router.setParams({ tab: '게시판' });
   }
 
   function onNewspaperMorePress(): void {
-    setCurrentTab('명대신문');
+    router.setParams({ tab: '명대신문' });
+  }
+
+  function onBroadcastMorePress(): void {
+    router.setParams({ tab: '명대뉴스' });
+  }
+
+  function onCalendarMorePress(): void {
+    router.setParams({ tab: '학사일정' });
   }
 
   function shouldShowSection(tabName: string) {
@@ -256,7 +268,7 @@ export default function SearchScreen() {
               <TouchableOpacity
                 onPress={() => {
                   setQuery('');
-                  setSubmittedQuery('');
+                  router.setParams({ q: '', tab: TABS[0] });
                 }}
               >
                 <CloseIcon />
@@ -350,7 +362,7 @@ export default function SearchScreen() {
               <TabBar
                 tabs={availableTabs}
                 currentTab={currentTab}
-                onTabPress={(i) => setCurrentTab(availableTabs[i])}
+                onTabPress={(i) => router.setParams({ tab: availableTabs[i] })}
               />
             )}
 
@@ -545,6 +557,28 @@ export default function SearchScreen() {
                   </View>
                 )}
 
+                {/* 학사일정 검색 결과*/}
+                {shouldShowSection('학사일정') && (
+                  <View className="py-5">
+                    <View className="flex-row items-center justify-between px-4">
+                      <Text className="text-body02 text-black">학사일정</Text>
+                      <TouchableOpacity onPress={() => onCalendarMorePress()}>
+                        <ArrowRightIcon size={20} className="text-grey-60" />
+                      </TouchableOpacity>
+                    </View>
+                    {getSectionItems(results.calendars).map((item) => (
+                      <View key={item.id} className="gap-[3px] border-b border-grey-02 px-4 py-2.5">
+                        <Text className="text-body05 text-black" numberOfLines={2}>
+                          {item.title}
+                        </Text>
+                        <Text className="text-caption04 text-grey-30">
+                          {formatSearchDate(item.date)}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
                 {/* 명대신문 검색 결과*/}
                 {shouldShowSection('명대신문') && (
                   <View className="py-5">
@@ -588,6 +622,42 @@ export default function SearchScreen() {
                           </TouchableOpacity>
                         </Link>
                       ))}
+                    </View>
+                  </View>
+                )}
+
+                {/* 명대뉴스 검색 결과*/}
+                {shouldShowSection('명대뉴스') && (
+                  <View className="py-5">
+                    <View className="flex-row items-center justify-between px-4">
+                      <Text className="text-body02 text-black">명대뉴스</Text>
+                      <TouchableOpacity onPress={() => onBroadcastMorePress()}>
+                        <ArrowRightIcon size={20} className="text-grey-60" />
+                      </TouchableOpacity>
+                    </View>
+                    <View className="mt-2 gap-4 px-4">
+                      {getSectionItems(results.broadcasts).map((item) => {
+                        const videoId = new URL(item.url).searchParams.get('v') ?? '';
+                        return (
+                          <View key={item.id}>
+                            <View className="overflow-hidden rounded-t-xl">
+                              <YoutubeEmbed videoId={videoId} height={192} />
+                            </View>
+                            <Link href={item.url as `https://${string}`} asChild>
+                              <TouchableOpacity>
+                                <View className="gap-0.5 rounded-b-xl bg-white px-4 py-2">
+                                  <Text className="text-body02 text-black" numberOfLines={2}>
+                                    {item.title}
+                                  </Text>
+                                  <Text className="text-caption04 text-grey-30" numberOfLines={1}>
+                                    {formatSearchDate(item.date)}
+                                  </Text>
+                                </View>
+                              </TouchableOpacity>
+                            </Link>
+                          </View>
+                        );
+                      })}
                     </View>
                   </View>
                 )}
