@@ -42,8 +42,8 @@ export function TabBar({ tabs, currentTab, onTabPress }: Props) {
             key={label}
             variant="ghost"
             className={clsx(
-              'rounded-none px-5 pb-2 pt-2.5',
-              currentTab === label && 'border-b-2 border-mju-primary'
+              'rounded-none border-b-2 px-5 pb-1.5 pt-2.5',
+              currentTab === label ? 'border-mju-primary' : 'border-transparent'
             )}
             onPress={() => onTabPress(index)}
             onLayout={(e) => {

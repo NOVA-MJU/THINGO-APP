@@ -1,26 +1,27 @@
-import { ArrowLeftIcon, LocationIcon, XIcon } from '@/components/icons';
+import { ArrowLeftIcon, SearchIcon, XIcon } from '@/components/icons';
 import { Text } from '@/components/ui/text';
+import { cn } from '@/lib/utils';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
 import { Image, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-type OperatingStatus = '운영중' | '운영종료' | '준비중';
-
-interface SearchResult {
-  id: string;
-  name: string;
-  status: OperatingStatus;
-  location: string;
-  distance: string;
-  imageUrl: string;
-}
+import {
+  searchMyeongjiPlaces,
+  type MapSearchResult,
+  type MapSearchResponse,
+} from '@/lib/maps/search';
+import { findPlaceById, type OperatingStatus } from '@/lib/maps/places';
 
 const STATUS_COLOR: Record<OperatingStatus, string> = {
-  운영중: 'text-green-500',
-  운영종료: 'text-red-400',
-  준비중: 'text-yellow-500',
+  '곧 운영 시작': 'text-blue-35',
+  운영중: 'text-[#34AA6F]',
+  '곧 운영 종료': 'text-[#EDAE26]',
+  '운영 종료': 'text-error',
+  '24시간 운영': 'text-blue-35',
+  휴무: 'text-grey-40',
 };
+
+const DUMMY_RECENT_SEARCHES = ['학생회관', '도서관', '프린터', '은행 ATM'];
 
 export default function MapsSearchScreen() {
   const inset = useSafeAreaInsets();
@@ -29,10 +30,26 @@ export default function MapsSearchScreen() {
   const [query, setQuery] = React.useState('');
   const [recentSearches, setRecentSearches] = React.useState(DUMMY_RECENT_SEARCHES);
 
+  const trimmedQuery = query.trim();
+  const searchResponse = React.useMemo(
+    () => (trimmedQuery ? searchMyeongjiPlaces(trimmedQuery) : null),
+    [trimmedQuery]
+  );
+
   React.useEffect(() => {
     const timer = setTimeout(() => inputRef.current?.focus(), 50);
     return () => clearTimeout(timer);
   }, []);
+
+  function addRecentSearch(keyword: string) {
+    const trimmedKeyword = keyword.trim();
+    if (!trimmedKeyword) return;
+
+    setRecentSearches((prev) => [
+      trimmedKeyword,
+      ...prev.filter((recentKeyword) => recentKeyword !== trimmedKeyword),
+    ]);
+  }
 
   function onClearRecentSearchHistoryPress() {
     setRecentSearches([]);
@@ -46,12 +63,51 @@ export default function MapsSearchScreen() {
     setRecentSearches((prev) => prev.filter((k) => k !== keyword));
   }
 
+  function onClearQueryPress() {
+    setQuery('');
+    inputRef.current?.focus();
+  }
+
+  function navigateToPlace(place: MapSearchResult) {
+    if (place.isBuilding) {
+      router.navigate({ pathname: '/maps', params: { placeId: place.id } });
+      return;
+    }
+
+    router.navigate({
+      pathname: '/maps',
+      params: {
+        placeId: place.parentBuildingInfo?.buildingId ?? place.id,
+        facilityId: place.id,
+        expanded: 'true',
+      },
+    });
+  }
+
+  function onSubmitSearch() {
+    addRecentSearch(trimmedQuery);
+    const routingTarget = searchResponse?.searchMetadata.routingTarget;
+    if (!searchResponse?.searchMetadata.exactMatch || !routingTarget) return;
+
+    router.navigate({
+      pathname: '/maps',
+      params: {
+        placeId: routingTarget.placeId,
+        exactMatch: 'true',
+      },
+    });
+  }
+
+  function onPlacePress(place: MapSearchResult) {
+    addRecentSearch(trimmedQuery || place.name);
+    navigateToPlace(place);
+  }
+
   return (
-    <View style={{ flex: 1, paddingTop: inset.top }}>
+    <View style={{ flex: 1, paddingTop: inset.top }} className="bg-white">
       <View className="h-[60px] pt-2">
-        {/* 검색바 행 */}
         <View className="flex-row gap-3 px-3 py-1.5">
-          <View className="flex-1 flex-row items-center gap-3 rounded-xl bg-grey-02 p-3">
+          <View className="flex-1 flex-row items-center gap-3 rounded-xl bg-grey-02 px-3 py-2.5">
             <TouchableOpacity onPress={router.back} hitSlop={8}>
               <ArrowLeftIcon className="text-grey-80" />
             </TouchableOpacity>
@@ -60,79 +116,165 @@ export default function MapsSearchScreen() {
               value={query}
               onChangeText={setQuery}
               placeholder="명지도 검색"
-              placeholderTextColor="#9ca3af"
+              placeholderTextColor="#AEB2B6"
               returnKeyType="search"
               multiline={false}
+              onSubmitEditing={onSubmitSearch}
               style={{ flex: 1, padding: 0, lineHeight: undefined }}
-              className="font-pretendard text-black outline-none"
+              className="text-body05 text-black outline-none"
             />
+            {query ? (
+              <TouchableOpacity onPress={onClearQueryPress} hitSlop={8}>
+                <XIcon size={16} className="text-grey-30" />
+              </TouchableOpacity>
+            ) : (
+              <SearchIcon size={20} className="text-grey-30" />
+            )}
           </View>
         </View>
       </View>
 
-      {query.trim() ? (
-        /* 검색 결과 */
-        <ScrollView contentContainerStyle={{ paddingBottom: inset.bottom }}>
-          {DUMMY_RESULTS.map((item) => (
-            <SearchResultItem key={item.id} item={item} />
-          ))}
-        </ScrollView>
+      {trimmedQuery ? (
+        <SearchResultList
+          query={trimmedQuery}
+          searchResponse={searchResponse}
+          onPlacePress={onPlacePress}
+          bottomPadding={inset.bottom}
+        />
       ) : (
-        /* 최근 검색어 */
-        <View className="mt-8 gap-2.5">
-          <View className="flex-row items-end justify-between px-4">
-            <Text className="text-body02 text-black">최근 검색어</Text>
-            <TouchableOpacity onPress={() => onClearRecentSearchHistoryPress()}>
-              <Text className="text-caption02 text-grey-60">전체 삭제</Text>
-            </TouchableOpacity>
-          </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
-          >
-            {recentSearches.map((keyword) => (
-              <View key={keyword} className="flex-row rounded-full border border-grey-10">
-                <TouchableOpacity onPress={() => onRecentSearchPress(keyword)}>
-                  <Text className="my-1.5 me-[3px] ms-3 text-body05 text-grey-40">{keyword}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => onDeleteRecentSearchPress(keyword)}>
-                  <XIcon size={12} className="my-[10.5px] me-[11px] ms-[3px] text-grey-20" />
-                </TouchableOpacity>
-              </View>
-            ))}
-          </ScrollView>
-        </View>
+        <RecentSearches
+          recentSearches={recentSearches}
+          onClearRecentSearchHistoryPress={onClearRecentSearchHistoryPress}
+          onRecentSearchPress={onRecentSearchPress}
+          onDeleteRecentSearchPress={onDeleteRecentSearchPress}
+        />
       )}
     </View>
   );
 }
 
-function SearchResultItem({ item }: { item: SearchResult }) {
+function RecentSearches({
+  recentSearches,
+  onClearRecentSearchHistoryPress,
+  onRecentSearchPress,
+  onDeleteRecentSearchPress,
+}: {
+  recentSearches: string[];
+  onClearRecentSearchHistoryPress: () => void;
+  onRecentSearchPress: (keyword: string) => void;
+  onDeleteRecentSearchPress: (keyword: string) => void;
+}) {
   return (
-    <TouchableOpacity activeOpacity={0.7}>
+    <View className="mt-8 gap-2.5">
+      <View className="flex-row items-end justify-between px-4">
+        <Text className="text-body02 text-black">최근 검색어</Text>
+        {recentSearches.length > 0 && (
+          <TouchableOpacity onPress={onClearRecentSearchHistoryPress} hitSlop={6}>
+            <Text className="text-caption02 text-grey-60">전체 삭제</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {recentSearches.length > 0 ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
+        >
+          {recentSearches.map((keyword) => (
+            <View key={keyword} className="flex-row rounded-full border border-grey-10 bg-white">
+              <TouchableOpacity onPress={() => onRecentSearchPress(keyword)}>
+                <Text className="my-1.5 me-[3px] ms-3 text-body05 text-grey-60">{keyword}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => onDeleteRecentSearchPress(keyword)} hitSlop={4}>
+                <XIcon size={12} className="my-[10.5px] me-[11px] ms-[3px] text-grey-20" />
+              </TouchableOpacity>
+            </View>
+          ))}
+        </ScrollView>
+      ) : (
+        <Text className="px-4 text-body05 text-grey-40">최근 검색어가 없습니다.</Text>
+      )}
+    </View>
+  );
+}
+
+function SearchResultList({
+  query,
+  searchResponse,
+  onPlacePress,
+  bottomPadding,
+}: {
+  query: string;
+  searchResponse: MapSearchResponse | null;
+  onPlacePress: (place: MapSearchResult) => void;
+  bottomPadding: number;
+}) {
+  const results = searchResponse?.searchResults ?? [];
+  const directTargetPlace = findPlaceById(searchResponse?.searchMetadata.routingTarget?.placeId);
+
+  if (searchResponse?.searchMetadata.exactMatch && directTargetPlace) {
+    return (
+      <View className="px-4 pt-6">
+        <View className="rounded-xl bg-blue-02 px-4 py-5">
+          <Text className="text-body04 text-blue-35">{directTargetPlace.name}</Text>
+          <Text className="mt-1 text-body05 text-grey-80">
+            엔터를 누르면 지도에서 건물 요약을 바로 볼 수 있어요.
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (results.length === 0) {
+    return (
+      <View className="px-4 pt-6">
+        <View className="rounded-xl bg-grey-02 px-4 py-5">
+          <Text className="text-body05 text-grey-80">{`'${query}'을(를) 찾을 수 없습니다.`}</Text>
+          <Text className="mt-1 text-caption02 text-grey-40">
+            장소명, 건물명, 카테고리로 다시 검색해보세요.
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView contentContainerStyle={{ paddingBottom: bottomPadding + 16 }}>
+      <View className="py-2">
+        {results.map((item) => (
+          <SearchResultItem key={item.id} item={item} onPress={() => onPlacePress(item)} />
+        ))}
+      </View>
+    </ScrollView>
+  );
+}
+
+function SearchResultItem({ item, onPress }: { item: MapSearchResult; onPress: () => void }) {
+  return (
+    <TouchableOpacity activeOpacity={0.75} onPress={onPress}>
       <View className="flex-row items-center gap-3 px-4 py-3">
-        {/* 이미지 */}
         <Image
-          source={{ uri: item.imageUrl }}
+          source={{ uri: item.imageUrl ?? `https://picsum.photos/seed/${item.id}/120/120` }}
           className="bg-grey-05 h-[60px] w-[60px] rounded-lg"
         />
 
-        {/* 텍스트 영역 */}
-        <View className="flex-1 gap-1">
-          {/* 장소명 */}
+        <View className="min-w-0 flex-1 gap-1">
           <View className="flex-row items-center gap-1.5">
-            <LocationIcon size={14} className="text-grey-40" />
-            <Text className="text-body02 font-semibold text-black">{item.name}</Text>
+            <View className="rounded bg-blue-05 p-1">
+              <item.Icon size={16} className={item.iconClassName} />
+            </View>
+            <Text className="flex-1 text-body02 text-black" numberOfLines={1}>
+              {item.name}
+            </Text>
           </View>
 
-          {/* 운영 상태 + 위치 + 거리 */}
           <View className="flex-row items-center gap-2">
-            <Text className={`text-caption02 font-medium ${STATUS_COLOR[item.status]}`}>
+            <Text className={cn('text-caption02 font-medium', STATUS_COLOR[item.status])}>
               {item.status}
             </Text>
             <View className="h-2.5 w-px bg-grey-10" />
-            <Text className="flex-1 text-caption02 text-grey-40" numberOfLines={1}>
+            <Text className="min-w-0 flex-1 text-caption02 text-grey-40" numberOfLines={1}>
               {item.location}
             </Text>
             <Text className="text-caption02 text-grey-40">{item.distance}</Text>
@@ -142,168 +284,3 @@ function SearchResultItem({ item }: { item: SearchResult }) {
     </TouchableOpacity>
   );
 }
-
-const DUMMY_RECENT_SEARCHES = ['인문대학', '도서관', '학생회관', '공학관'];
-
-const DUMMY_RESULTS: SearchResult[] = [
-  {
-    id: '1',
-    name: '학생식당',
-    status: '운영중',
-    location: '학생회관 1층',
-    distance: '120m',
-    imageUrl: 'https://picsum.photos/seed/1/120/120',
-  },
-  {
-    id: '2',
-    name: '교직원식당',
-    status: '운영종료',
-    location: '학생회관 2층',
-    distance: '125m',
-    imageUrl: 'https://picsum.photos/seed/2/120/120',
-  },
-  {
-    id: '3',
-    name: '카페 온',
-    status: '운영중',
-    location: '인문대학 1층',
-    distance: '340m',
-    imageUrl: 'https://picsum.photos/seed/3/120/120',
-  },
-  {
-    id: '4',
-    name: '편의점 CU',
-    status: '운영중',
-    location: '공학관 지하 1층',
-    distance: '510m',
-    imageUrl: 'https://picsum.photos/seed/4/120/120',
-  },
-  {
-    id: '5',
-    name: '도서관 카페',
-    status: '준비중',
-    location: '중앙도서관 1층',
-    distance: '680m',
-    imageUrl: 'https://picsum.photos/seed/5/120/120',
-  },
-  {
-    id: '6',
-    name: '스타벅스',
-    status: '운영중',
-    location: '본관 1층',
-    distance: '210m',
-    imageUrl: 'https://picsum.photos/seed/6/120/120',
-  },
-  {
-    id: '7',
-    name: '복사실',
-    status: '운영중',
-    location: '사회과학대학 지하 1층',
-    distance: '290m',
-    imageUrl: 'https://picsum.photos/seed/7/120/120',
-  },
-  {
-    id: '8',
-    name: '헬스장',
-    status: '운영중',
-    location: '체육관 2층',
-    distance: '430m',
-    imageUrl: 'https://picsum.photos/seed/8/120/120',
-  },
-  {
-    id: '9',
-    name: '우체국',
-    status: '운영종료',
-    location: '행정관 1층',
-    distance: '370m',
-    imageUrl: 'https://picsum.photos/seed/9/120/120',
-  },
-  {
-    id: '10',
-    name: '은행 ATM',
-    status: '운영중',
-    location: '학생회관 지하 1층',
-    distance: '130m',
-    imageUrl: 'https://picsum.photos/seed/10/120/120',
-  },
-  {
-    id: '11',
-    name: '문구점',
-    status: '운영중',
-    location: '공학관 1층',
-    distance: '490m',
-    imageUrl: 'https://picsum.photos/seed/11/120/120',
-  },
-  {
-    id: '12',
-    name: '약국',
-    status: '운영중',
-    location: '후문 앞',
-    distance: '760m',
-    imageUrl: 'https://picsum.photos/seed/12/120/120',
-  },
-  {
-    id: '13',
-    name: '세탁소',
-    status: '준비중',
-    location: '기숙사 1층',
-    distance: '820m',
-    imageUrl: 'https://picsum.photos/seed/13/120/120',
-  },
-  {
-    id: '14',
-    name: '인쇄실',
-    status: '운영중',
-    location: '도서관 3층',
-    distance: '650m',
-    imageUrl: 'https://picsum.photos/seed/14/120/120',
-  },
-  {
-    id: '15',
-    name: '동아리방',
-    status: '운영중',
-    location: '학생회관 3층',
-    distance: '140m',
-    imageUrl: 'https://picsum.photos/seed/15/120/120',
-  },
-  {
-    id: '16',
-    name: '푸드코트',
-    status: '운영종료',
-    location: '학생회관 지하 1층',
-    distance: '135m',
-    imageUrl: 'https://picsum.photos/seed/16/120/120',
-  },
-  {
-    id: '17',
-    name: '세미나실',
-    status: '준비중',
-    location: '경영대학 4층',
-    distance: '580m',
-    imageUrl: 'https://picsum.photos/seed/17/120/120',
-  },
-  {
-    id: '18',
-    name: '자전거 보관소',
-    status: '운영중',
-    location: '정문 옆',
-    distance: '950m',
-    imageUrl: 'https://picsum.photos/seed/18/120/120',
-  },
-  {
-    id: '19',
-    name: '매점',
-    status: '운영중',
-    location: '예술대학 1층',
-    distance: '720m',
-    imageUrl: 'https://picsum.photos/seed/19/120/120',
-  },
-  {
-    id: '20',
-    name: '휴게실',
-    status: '운영중',
-    location: '자연과학대학 2층',
-    distance: '410m',
-    imageUrl: 'https://picsum.photos/seed/20/120/120',
-  },
-];

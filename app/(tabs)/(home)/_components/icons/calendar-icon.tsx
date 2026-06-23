@@ -19,11 +19,11 @@ import Svg, {
 export function CalendarIcon() {
   return (
     <Svg width={40} height={40} viewBox="0 0 40 40" fill="none">
-      <G clipPath="url(#clip0)">
-        <G filter="url(#filter0)">
+      <G clipPath="url(#calendar-clip)">
+        <G filter="url(#calendar-filter)">
           <Path
             d="M4 12C4 8.68629 6.68629 6 10 6H30C33.3137 6 36 8.68629 36 12V15H4V12Z"
-            fill="url(#paint0)"
+            fill="url(#calendar-paint0)"
           />
           <Path d="M36 15H4V14H36V15Z" fill="#2587FF" />
           <Path
@@ -77,7 +77,14 @@ export function CalendarIcon() {
         </G>
       </G>
       <Defs>
-        <Filter id="filter0" x={1} y={0} width={40} height={42} filterUnits="userSpaceOnUse">
+        <Filter
+          id="calendar-filter"
+          x={1}
+          y={0}
+          width={40}
+          height={42}
+          filterUnits="userSpaceOnUse"
+        >
           <FeFlood floodOpacity={0} result="BackgroundImageFix" />
           <FeColorMatrix
             in="SourceAlpha"
@@ -93,7 +100,7 @@ export function CalendarIcon() {
           <FeBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow" result="shape" />
         </Filter>
         <LinearGradient
-          id="paint0"
+          id="calendar-paint0"
           x1={4}
           y1={10.5}
           x2={36}
@@ -103,7 +110,7 @@ export function CalendarIcon() {
           <Stop stopColor="#3B96FF" />
           <Stop offset={1} stopColor="#2587FF" />
         </LinearGradient>
-        <ClipPath id="clip0">
+        <ClipPath id="calendar-clip">
           <Rect width={40} height={40} fill="white" />
         </ClipPath>
       </Defs>

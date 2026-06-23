@@ -100,7 +100,15 @@ type SearchPageResponse = {
   totalPages: number;
 };
 
-type SearchDetailType = 'NOTICE' | 'COMMUNITY' | 'MJU_CALENDAR' | 'NEWS' | 'BROADCAST';
+type SearchDetailType =
+  | 'NOTICE'
+  | 'MJU_CALENDAR'
+  | 'DEPARTMENT_NOTICE'
+  | 'STUDENT_COUNCIL_NOTICE'
+  | 'DEPARTMENT_SCHEDULE'
+  | 'COMMUNITY'
+  | 'NEWS'
+  | 'BROADCAST';
 
 type AiSummaryResponse = {
   query: string;
@@ -116,8 +124,11 @@ type AiSummaryResponse = {
 const SEARCH_PAGE_SIZE = 20;
 const SEARCH_DETAIL_TYPES: SearchDetailType[] = [
   'NOTICE',
+  'DEPARTMENT_NOTICE',
+  'STUDENT_COUNCIL_NOTICE',
   'COMMUNITY',
   'MJU_CALENDAR',
+  'DEPARTMENT_SCHEDULE',
   'NEWS',
   'BROADCAST',
 ];

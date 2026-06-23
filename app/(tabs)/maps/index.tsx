@@ -1,30 +1,19 @@
 import { SearchIcon, ThingoLogoSmall } from '@/components/icons';
 import { NaverMap, NaverMapHandle } from '@/components/naver-map';
+import { Text } from '@/components/ui/text';
+import { findPlaceById, PLACES } from '@/lib/maps/places';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import * as Location from 'expo-location';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
 import { Alert, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { Text } from '@/components/ui/text';
-import SheetHandle from './_components/sheets/sheet-handle';
 import { MoreIcon, StarIcon } from './_components/icons';
-import CategoryList from './_components/sheets/category-list';
-import { CATEGORIES } from './_constants/category-data';
-import PlaceList from './_components/sheets/place-list';
-import PlaceDetail from './_components/sheets/place-detail';
 import BusInfoSheet from './_components/sheets/bus-info';
-
-const MARKERS = [
-  { id: '1', latitude: 37.58036, longitude: 126.92343 },
-  { id: '2', latitude: 37.57951, longitude: 126.922684 },
-  { id: '3', latitude: 37.580226, longitude: 126.922582 },
-  { id: '4', latitude: 37.580131, longitude: 126.921645 },
-  { id: '5', latitude: 37.580793, longitude: 126.923835 },
-  { id: '6', latitude: 37.580746, longitude: 126.92448 },
-  { id: '7', latitude: 37.580102, longitude: 126.924266 },
-  { id: '8', latitude: 37.580815, longitude: 126.923101 },
-];
+import CategoryList from './_components/sheets/category-list';
+import PlaceDetailSheet from './_components/sheets/place-detail';
+import SheetHandle from './_components/sheets/sheet-handle';
+import { CATEGORIES } from './_constants/category-data';
 
 const QUICK_CHIP_IDS = ['bus', 'daedong', 'printer', 'lounge', 'bank'];
 
@@ -38,22 +27,75 @@ const SNAP_POINTS = ['10%', '50%', '100%'];
 
 export default function MapsScreen() {
   const router = useRouter();
+  const { exactMatch, expanded, facilityId, placeId } = useLocalSearchParams<{
+    exactMatch?: string;
+    expanded?: string;
+    facilityId?: string;
+    placeId?: string;
+  }>();
   const insets = useSafeAreaInsets();
-  const [, setSelectedMarkerId] = React.useState<string | null>(null);
+  const [selectedPlaceId, setSelectedPlaceId] = React.useState<string | null>(null);
+  const [selectedFacilityId, setSelectedFacilityId] = React.useState<string | null>(null);
+  const [selectedSheetMode, setSelectedSheetMode] = React.useState<'category' | 'bus'>('category');
   const mapRef = React.useRef<NaverMapHandle>(null);
   const bottomSheetRef = React.useRef<BottomSheet>(null);
+  const selectedPlace = findPlaceById(selectedPlaceId);
+  const selectedFacility = findPlaceById(selectedFacilityId);
+
+  const markers = React.useMemo(
+    () =>
+      PLACES.map((place) => ({
+        id: place.id,
+        latitude: place.latitude,
+        longitude: place.longitude,
+        title: selectedPlaceId === place.id ? place.name : undefined,
+      })),
+    [selectedPlaceId]
+  );
+
+  React.useEffect(() => {
+    const nextPlace = findPlaceById(placeId);
+    if (!nextPlace) return;
+
+    setSelectedSheetMode('category');
+    setSelectedPlaceId(nextPlace.id);
+    setSelectedFacilityId(Array.isArray(facilityId) ? facilityId[0] : (facilityId ?? null));
+    mapRef.current?.animateCameraTo(nextPlace.latitude, nextPlace.longitude, 17);
+    bottomSheetRef.current?.snapToIndex(expanded === 'true' ? 2 : 1);
+  }, [expanded, exactMatch, facilityId, placeId]);
 
   function onMarkerPress(id: string) {
-    setSelectedMarkerId(id);
-    bottomSheetRef.current?.snapToIndex(0);
+    const nextPlace = findPlaceById(id);
+    if (!nextPlace) return;
+
+    setSelectedSheetMode('category');
+    setSelectedPlaceId(nextPlace.id);
+    setSelectedFacilityId(null);
+    mapRef.current?.animateCameraTo(nextPlace.latitude, nextPlace.longitude, 17);
+    bottomSheetRef.current?.snapToIndex(1);
   }
 
   function onBottomSheetClose() {
-    setSelectedMarkerId(null);
+    setSelectedSheetMode('category');
+    setSelectedPlaceId(null);
+    setSelectedFacilityId(null);
   }
 
   function onSearchButtonPress() {
     router.push('/maps/search');
+  }
+
+  function onQuickChipPress(chipId: string) {
+    if (chipId === 'bus') {
+      setSelectedPlaceId(null);
+      setSelectedFacilityId(null);
+      setSelectedSheetMode('bus');
+      bottomSheetRef.current?.snapToIndex(1);
+      return;
+    }
+
+    setSelectedSheetMode('category');
+    bottomSheetRef.current?.snapToIndex(1);
   }
 
   async function onCurrentLocationPress() {
@@ -69,14 +111,31 @@ export default function MapsScreen() {
     }
 
     try {
-      const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
       mapRef.current?.animateCameraTo(location.coords.latitude, location.coords.longitude, 16);
     } catch {
       Alert.alert('위치 오류', '현재 위치를 가져올 수 없습니다.');
     }
   }
 
-  function handleMoreCategories() {}
+  function handleMoreCategories() {
+    setSelectedSheetMode('category');
+    bottomSheetRef.current?.snapToIndex(1);
+  }
+
+  function renderBottomSheetContent() {
+    if (selectedPlace) {
+      return <PlaceDetailSheet place={selectedPlace} selectedFacility={selectedFacility} />;
+    }
+
+    if (selectedSheetMode === 'bus') {
+      return <BusInfoSheet />;
+    }
+
+    return <CategoryList />;
+  }
 
   return (
     <View style={{ flex: 1 }}>
@@ -85,7 +144,7 @@ export default function MapsScreen() {
         initialLatitude={37.579711}
         initialLongitude={126.923186}
         initialZoom={16}
-        markers={MARKERS}
+        markers={markers}
         onMarkerPress={onMarkerPress}
       />
 
@@ -151,6 +210,7 @@ export default function MapsScreen() {
                 }}
               >
                 <TouchableOpacity
+                  onPress={() => onQuickChipPress(chip.id)}
                   className="flex-row items-center gap-0.5 py-1.5 pe-2 ps-1.5"
                   hitSlop={2}
                 >
@@ -198,7 +258,7 @@ export default function MapsScreen() {
             elevation: 5,
           }}
         >
-          <Text style={{ fontSize: 22 }}>◎</Text>
+          <Text style={{ fontSize: 22 }}>⌖</Text>
         </TouchableOpacity>
       )}
 
@@ -212,12 +272,7 @@ export default function MapsScreen() {
         topInset={insets.top}
         onClose={onBottomSheetClose}
       >
-        <BottomSheetScrollView>
-          {/* <PlaceList /> */}
-          {/* <PlaceDetail /> */}
-          {/* <CategoryList /> */}
-          <BusInfoSheet />
-        </BottomSheetScrollView>
+        <BottomSheetScrollView>{renderBottomSheetContent()}</BottomSheetScrollView>
       </BottomSheet>
     </View>
   );
