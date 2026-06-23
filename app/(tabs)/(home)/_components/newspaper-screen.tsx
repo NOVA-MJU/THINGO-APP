@@ -88,7 +88,7 @@ export default function NewspaperScreen() {
                 <Text className="text-body02 text-black" numberOfLines={1}>
                   {article.title}
                 </Text>
-                <Text className="mt-0.5 flex-1 text-body05 text-black" numberOfLines={2}>
+                <Text className="mt-0.5 text-body05 text-black" numberOfLines={2}>
                   {article.summary}
                 </Text>
                 <Text className="mt-0.5 text-caption01 text-grey-30" numberOfLines={1}>

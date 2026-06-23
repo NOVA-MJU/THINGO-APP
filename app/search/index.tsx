@@ -246,7 +246,9 @@ export default function SearchScreen() {
     >
       <View className="flex-1">
         <View className="flex-row items-center gap-3 pb-2 pe-5 ps-3 pt-3.5">
-          <TouchableOpacity onPress={() => router.back()}>
+          <TouchableOpacity
+            onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+          >
             <ArrowLeft className="text-black" />
           </TouchableOpacity>
 
@@ -599,7 +601,8 @@ export default function SearchScreen() {
                                     ? { uri: item.imageUrl }
                                     : require('@/assets/news-default-thumbnail.jpg')
                                 }
-                                className="w-25 aspect-square rounded-sm border border-grey-10"
+                                className="rounded-sm border border-grey-10"
+                                style={{ width: 100, height: 100 }}
                               />
                               <View className="flex-1">
                                 <Text className="text-body02 text-black" numberOfLines={1}>
