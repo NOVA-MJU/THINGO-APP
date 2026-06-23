@@ -132,17 +132,6 @@ const SEARCH_DETAIL_TYPES: SearchDetailType[] = [
   'NEWS',
   'BROADCAST',
 ];
-const SEARCH_API_BASE_URL = getSearchApiBaseUrl();
-
-function getSearchApiBaseUrl() {
-  const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL?.replace(/\/$/, '') ?? '';
-
-  if (!baseUrl) return '/api/v2';
-  if (baseUrl.endsWith('/api/v2')) return baseUrl;
-  if (baseUrl.endsWith('/api/v1')) return baseUrl.replace(/\/api\/v1$/, '/api/v2');
-
-  return `${baseUrl}/api/v2`;
-}
 
 function stripHighlight(value?: string | null) {
   return (value ?? '').replace(/<[^>]*>/g, '').trim();
@@ -182,18 +171,15 @@ function emptySearchResults(): SearchResults {
 }
 
 async function searchDetail(keyword: string, type: SearchDetailType): Promise<SearchResponse[]> {
-  const { data } = await client.get<ApiResponse<SearchPageResponse>>(
-    `${SEARCH_API_BASE_URL}/search/detail`,
-    {
-      params: {
-        keyword,
-        type,
-        page: 0,
-        size: SEARCH_PAGE_SIZE,
-        order: 'relevance',
-      },
-    }
-  );
+  const { data } = await client.get<ApiResponse<SearchPageResponse>>('/search/detail', {
+    params: {
+      keyword,
+      type,
+      page: 0,
+      size: SEARCH_PAGE_SIZE,
+      order: 'relevance',
+    },
+  });
 
   return data.data.content;
 }
@@ -274,12 +260,9 @@ export async function getSearchAutocomplete(keyword: string): Promise<string[]> 
   const trimmedKeyword = keyword.trim();
   if (!trimmedKeyword) return [];
 
-  const { data } = await client.get<ApiResponse<string[]>>(
-    `${SEARCH_API_BASE_URL}/search/suggest`,
-    {
-      params: { keyword: trimmedKeyword },
-    }
-  );
+  const { data } = await client.get<ApiResponse<string[]>>('/search/suggest', {
+    params: { keyword: trimmedKeyword },
+  });
 
   return data.data;
 }
