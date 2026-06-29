@@ -14,14 +14,31 @@ export interface Marker {
   title?: string;
 }
 
+export interface BusStopMarkerData {
+  id: string;
+  latitude: number;
+  longitude: number;
+}
+
 interface Props {
   initialLatitude?: number;
   initialLongitude?: number;
   initialZoom?: number;
   markers?: Marker[];
+  busStopMarkers?: BusStopMarkerData[];
+  onMarkerPress?: (id: string) => void;
+  onBusStopMarkerPress?: (id: string) => void;
 }
 
-function MapContent({ initialLatitude, initialLongitude, initialZoom, markers }: Required<Props>) {
+function MapContent({
+  initialLatitude,
+  initialLongitude,
+  initialZoom,
+  markers,
+  busStopMarkers,
+  onMarkerPress,
+  onBusStopMarkerPress,
+}: Required<Props>) {
   const navermaps = useNavermaps();
 
   return (
@@ -34,6 +51,14 @@ function MapContent({ initialLatitude, initialLongitude, initialZoom, markers }:
           key={marker.id}
           position={new navermaps.LatLng(marker.latitude, marker.longitude)}
           title={marker.title}
+          onClick={() => onMarkerPress(marker.id)}
+        />
+      ))}
+      {busStopMarkers.map((marker) => (
+        <NaverMarker
+          key={marker.id}
+          position={new navermaps.LatLng(marker.latitude, marker.longitude)}
+          onClick={() => onBusStopMarkerPress(marker.id)}
         />
       ))}
     </RNaverMap>
@@ -45,6 +70,9 @@ export function NaverMap({
   initialLongitude = 126.978,
   initialZoom = 14,
   markers = [],
+  busStopMarkers = [],
+  onMarkerPress,
+  onBusStopMarkerPress,
 }: Props) {
   return (
     <NavermapsProvider ncpKeyId={process.env.EXPO_PUBLIC_NAVER_MAP_CLIENT_ID ?? ''}>
@@ -54,6 +82,9 @@ export function NaverMap({
           initialLongitude={initialLongitude}
           initialZoom={initialZoom}
           markers={markers}
+          busStopMarkers={busStopMarkers}
+          onMarkerPress={onMarkerPress ?? (() => {})}
+          onBusStopMarkerPress={onBusStopMarkerPress ?? (() => {})}
         />
       </Container>
     </NavermapsProvider>
