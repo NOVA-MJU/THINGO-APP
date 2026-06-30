@@ -6,7 +6,7 @@ import { useAuth } from '@/context/auth-context';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as React from 'react';
 import { ActivityIndicator, ScrollView, TouchableOpacity, View } from 'react-native';
-import { BusIcon, FavoriteIcon } from '../icons';
+import { BusIcon, FavoriteIcon } from '@/components/icons/map';
 
 interface Props {
   station: BusStopStation;

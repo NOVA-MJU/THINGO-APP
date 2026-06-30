@@ -1,4 +1,4 @@
-import BusIcon from '@/app/(tabs)/maps/_components/icons/bus';
+import BusIcon from '@/components/icons/map/bus';
 import { View } from 'react-native';
 
 export default function BusStopMarker() {

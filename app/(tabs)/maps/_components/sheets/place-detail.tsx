@@ -2,7 +2,7 @@ import { ArrowDownIcon, ArrowRightIcon } from '@/components/icons';
 import { Text } from '@/components/ui/text';
 import type { MyeongjiPlace, OperatingStatus } from '@/lib/maps/places';
 import { Image, ScrollView, TouchableOpacity, View } from 'react-native';
-import { FavoriteIcon, InfoIcon, MapIcon } from '../icons';
+import { FavoriteIcon, InfoIcon, MapIcon } from '@/components/icons/map';
 
 const STATUS_COLOR: Record<OperatingStatus, string> = {
   '곧 운영 시작': 'text-blue-35',

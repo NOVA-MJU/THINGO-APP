@@ -9,12 +9,12 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
 import { Alert, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MoreIcon, StarIcon } from './_components/icons';
 import BusInfoSheet from './_components/sheets/bus-info';
 import CategoryList from './_components/sheets/category-list';
 import PlaceDetailSheet from './_components/sheets/place-detail';
 import SheetHandle from './_components/sheets/sheet-handle';
-import { CATEGORIES } from './_constants/category-data';
+import CATEGORIES from './_constants/category-data';
+import { MoreIcon, StarIcon } from '@/components/icons/map';
 
 const QUICK_CHIP_IDS = ['bus', 'daedong', 'printer', 'lounge', 'bank'];
 
