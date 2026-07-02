@@ -1,8 +1,9 @@
 import { ScrollViewStyleReset } from 'expo-router/html';
 import { type PropsWithChildren } from 'react';
 
-const siteTitle = 'Thingo';
-const siteDescription = '명지대생을 위한 공지, 일정, 식단, 지도, 커뮤니티 통합 플랫폼입니다.';
+const siteTitle = '명지대학교 통합 정보 탐색 플랫폼, 띵고 Thingo';
+const siteDescription =
+  '명지대학교의 모든 정보를 내 손 안에. 번거로운 탐색은 끝, 필요한 소식을 가장 빠르게 확인해보세요!';
 const siteUrl = 'https://thingo.kr';
 const openGraphImage = `${siteUrl}/open-graph.png`;
 

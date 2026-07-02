@@ -1,6 +1,6 @@
 import { Text } from '@/components/ui/text';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
-import { BuildingIcon, FavoriteIcon } from '../icons';
+import { BuildingIcon, FavoriteIcon } from '@/components/icons/map';
 
 export default function PlaceListSheet() {
   return (

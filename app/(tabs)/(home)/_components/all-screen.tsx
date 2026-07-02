@@ -34,13 +34,15 @@ import {
   type CalendarEvent,
 } from '@/api/calendar';
 import { formatTimeAgo } from '@/lib/utils';
-import { MyeongjiMapIcon } from './icons/myeongji-map-icon';
-import { DiningIcon } from './icons/dining-icon';
-import { CalendarIcon } from './icons/calendar-icon';
-import { MegaphoneIcon } from './icons/megaphone-icon';
-import { ChatIcon } from './icons/chat-icon';
-import { FireIcon } from './icons/fire-icon';
-import { StarIcon } from './icons/star-icon';
+import {
+  MyeongjiMapIcon,
+  DiningIcon,
+  CalendarIcon,
+  MegaphoneIcon,
+  ChatIcon,
+  FireIcon,
+  StarIcon,
+} from '@/components/icons/home';
 import { ArrowRightIcon, ChatBubbleIcon, HeartIcon } from '@/components/icons';
 import Svg, { Defs, LinearGradient as SvgLinearGradient, Rect, Stop } from 'react-native-svg';
 

@@ -1,6 +1,7 @@
 import { SearchIcon, ThingoLogoSmall } from '@/components/icons';
 import { NaverMap, NaverMapHandle } from '@/components/naver-map';
 import { Text } from '@/components/ui/text';
+import { BUS_STOPS, type BusStopStation } from '@/lib/maps/bus-stops';
 import { findPlaceById, PLACES } from '@/lib/maps/places';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import * as Location from 'expo-location';
@@ -8,12 +9,12 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
 import { Alert, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MoreIcon, StarIcon } from './_components/icons';
 import BusInfoSheet from './_components/sheets/bus-info';
-import CategoryList from './_components/sheets/category-list';
+import CategoryList from './_components/sheets/sheet-category';
 import PlaceDetailSheet from './_components/sheets/place-detail';
 import SheetHandle from './_components/sheets/sheet-handle';
-import { CATEGORIES } from './_constants/category-data';
+import CATEGORIES from './_constants/category-data';
+import { MoreIcon, StarIcon } from '@/components/icons/map';
 
 const QUICK_CHIP_IDS = ['bus', 'daedong', 'printer', 'lounge', 'bank'];
 
@@ -37,6 +38,7 @@ export default function MapsScreen() {
   const [selectedPlaceId, setSelectedPlaceId] = React.useState<string | null>(null);
   const [selectedFacilityId, setSelectedFacilityId] = React.useState<string | null>(null);
   const [selectedSheetMode, setSelectedSheetMode] = React.useState<'category' | 'bus'>('category');
+  const [selectedStation, setSelectedStation] = React.useState<BusStopStation | null>(null);
   const mapRef = React.useRef<NaverMapHandle>(null);
   const bottomSheetRef = React.useRef<BottomSheet>(null);
   const selectedPlace = findPlaceById(selectedPlaceId);
@@ -75,21 +77,39 @@ export default function MapsScreen() {
     bottomSheetRef.current?.snapToIndex(1);
   }
 
-  function onBottomSheetClose() {
-    setSelectedSheetMode('category');
-    setSelectedPlaceId(null);
-    setSelectedFacilityId(null);
-  }
+  // function onBottomSheetClose() {
+  //   setSelectedSheetMode('category');
+  //   setSelectedPlaceId(null);
+  //   setSelectedFacilityId(null);
+  // }
 
+  // 검색 버튼 클릭
   function onSearchButtonPress() {
     router.push('/maps/search');
   }
 
+  // 버스 정류장 마커 클릭
+  function onBusStopMarkerPress(id: string) {
+    const busStop = BUS_STOPS.find((s) => s.id === id);
+    if (!busStop) return;
+
+    setSelectedPlaceId(null);
+    setSelectedFacilityId(null);
+    setSelectedSheetMode('bus');
+    setSelectedStation(busStop.station);
+    mapRef.current?.animateCameraTo(busStop.latitude, busStop.longitude);
+    bottomSheetRef.current?.snapToIndex(1);
+  }
+
   function onQuickChipPress(chipId: string) {
+    // 버스 정류장 칩 클릭
     if (chipId === 'bus') {
       setSelectedPlaceId(null);
       setSelectedFacilityId(null);
       setSelectedSheetMode('bus');
+      setSelectedStation('A');
+      const stationA = BUS_STOPS.find((s) => s.station === 'A');
+      if (stationA) mapRef.current?.animateCameraTo(stationA.latitude, stationA.longitude);
       bottomSheetRef.current?.snapToIndex(1);
       return;
     }
@@ -98,6 +118,7 @@ export default function MapsScreen() {
     bottomSheetRef.current?.snapToIndex(1);
   }
 
+  // 현위치 찾기 버튼 클릭 (native 전용)
   async function onCurrentLocationPress() {
     if (Platform.OS === 'web') return;
 
@@ -120,8 +141,11 @@ export default function MapsScreen() {
     }
   }
 
+  // 더보기 버튼 클릭
   function handleMoreCategories() {
     setSelectedSheetMode('category');
+    setSelectedPlaceId(null);
+    setSelectedFacilityId(null);
     bottomSheetRef.current?.snapToIndex(1);
   }
 
@@ -130,22 +154,25 @@ export default function MapsScreen() {
       return <PlaceDetailSheet place={selectedPlace} selectedFacility={selectedFacility} />;
     }
 
-    if (selectedSheetMode === 'bus') {
-      return <BusInfoSheet />;
+    if (selectedSheetMode === 'bus' && selectedStation) {
+      return <BusInfoSheet station={selectedStation} />;
     }
 
-    return <CategoryList />;
+    return <CategoryList onChipPress={onQuickChipPress} />;
   }
 
   return (
     <View style={{ flex: 1 }}>
+      {/* 네이버 지도 */}
       <NaverMap
         ref={mapRef}
         initialLatitude={37.579711}
         initialLongitude={126.923186}
         initialZoom={16}
         markers={markers}
+        busStopMarkers={BUS_STOPS}
         onMarkerPress={onMarkerPress}
+        onBusStopMarkerPress={onBusStopMarkerPress}
       />
 
       {/* 플로팅 헤더 */}
@@ -270,7 +297,7 @@ export default function MapsScreen() {
         // enablePanDownToClose
         handleComponent={SheetHandle}
         topInset={insets.top}
-        onClose={onBottomSheetClose}
+        // onClose={onBottomSheetClose}
       >
         <BottomSheetScrollView>{renderBottomSheetContent()}</BottomSheetScrollView>
       </BottomSheet>

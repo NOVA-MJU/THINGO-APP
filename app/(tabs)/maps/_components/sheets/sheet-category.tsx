@@ -1,12 +1,12 @@
 import { Text } from '@/components/ui/text';
-import { cn } from '@/lib/utils';
-import { useState } from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
-import { CATEGORIES } from '../../_constants/category-data';
+import CATEGORIES from '../../_constants/category-data';
 
-export default function CategoryListSheet() {
-  const [selectedId, setSelectedId] = useState<string>('daedong');
+interface CategoryListSheetProps {
+  onChipPress?: (chipId: string) => void;
+}
 
+export default function CategoryListSheet({ onChipPress }: CategoryListSheetProps) {
   return (
     <ScrollView>
       <View className="gap-2">
@@ -16,15 +16,11 @@ export default function CategoryListSheet() {
             <Text className="text-body02 text-black">{category.label}</Text>
             <View className="mt-2 flex-row flex-wrap gap-2">
               {category.chips.map((chip) => {
-                const isSelected = selectedId === chip.id;
                 return (
                   <TouchableOpacity
                     key={chip.id}
-                    onPress={() => setSelectedId(chip.id)}
-                    className={cn(
-                      'flex-row items-center gap-0.5 rounded-full border py-1.5 pe-2 ps-1.5',
-                      isSelected ? 'border-blue-10 bg-blue-02' : 'border-white bg-white'
-                    )}
+                    onPress={() => onChipPress?.(chip.id)}
+                    className="flex-row items-center gap-0.5 rounded-full border border-white bg-white py-1.5 pe-2 ps-1.5"
                     style={{
                       shadowColor: '#17171B',
                       shadowOffset: { width: 0, height: 1 },
