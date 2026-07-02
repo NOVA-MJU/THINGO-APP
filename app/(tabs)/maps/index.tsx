@@ -10,7 +10,7 @@ import * as React from 'react';
 import { Alert, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BusInfoSheet from './_components/sheets/bus-info';
-import CategoryList from './_components/sheets/category-list';
+import CategoryList from './_components/sheets/sheet-category';
 import PlaceDetailSheet from './_components/sheets/place-detail';
 import SheetHandle from './_components/sheets/sheet-handle';
 import CATEGORIES from './_constants/category-data';
@@ -77,16 +77,18 @@ export default function MapsScreen() {
     bottomSheetRef.current?.snapToIndex(1);
   }
 
-  function onBottomSheetClose() {
-    setSelectedSheetMode('category');
-    setSelectedPlaceId(null);
-    setSelectedFacilityId(null);
-  }
+  // function onBottomSheetClose() {
+  //   setSelectedSheetMode('category');
+  //   setSelectedPlaceId(null);
+  //   setSelectedFacilityId(null);
+  // }
 
+  // 검색 버튼 클릭
   function onSearchButtonPress() {
     router.push('/maps/search');
   }
 
+  // 버스 정류장 마커 클릭
   function onBusStopMarkerPress(id: string) {
     const busStop = BUS_STOPS.find((s) => s.id === id);
     if (!busStop) return;
@@ -95,15 +97,19 @@ export default function MapsScreen() {
     setSelectedFacilityId(null);
     setSelectedSheetMode('bus');
     setSelectedStation(busStop.station);
+    mapRef.current?.animateCameraTo(busStop.latitude, busStop.longitude);
     bottomSheetRef.current?.snapToIndex(1);
   }
 
   function onQuickChipPress(chipId: string) {
+    // 버스 정류장 칩 클릭
     if (chipId === 'bus') {
       setSelectedPlaceId(null);
       setSelectedFacilityId(null);
       setSelectedSheetMode('bus');
       setSelectedStation('A');
+      const stationA = BUS_STOPS.find((s) => s.station === 'A');
+      if (stationA) mapRef.current?.animateCameraTo(stationA.latitude, stationA.longitude);
       bottomSheetRef.current?.snapToIndex(1);
       return;
     }
@@ -112,6 +118,7 @@ export default function MapsScreen() {
     bottomSheetRef.current?.snapToIndex(1);
   }
 
+  // 현위치 찾기 버튼 클릭 (native 전용)
   async function onCurrentLocationPress() {
     if (Platform.OS === 'web') return;
 
@@ -134,8 +141,11 @@ export default function MapsScreen() {
     }
   }
 
+  // 더보기 버튼 클릭
   function handleMoreCategories() {
     setSelectedSheetMode('category');
+    setSelectedPlaceId(null);
+    setSelectedFacilityId(null);
     bottomSheetRef.current?.snapToIndex(1);
   }
 
@@ -148,7 +158,7 @@ export default function MapsScreen() {
       return <BusInfoSheet station={selectedStation} />;
     }
 
-    return <CategoryList />;
+    return <CategoryList onChipPress={onQuickChipPress} />;
   }
 
   return (
@@ -287,7 +297,7 @@ export default function MapsScreen() {
         // enablePanDownToClose
         handleComponent={SheetHandle}
         topInset={insets.top}
-        onClose={onBottomSheetClose}
+        // onClose={onBottomSheetClose}
       >
         <BottomSheetScrollView>{renderBottomSheetContent()}</BottomSheetScrollView>
       </BottomSheet>

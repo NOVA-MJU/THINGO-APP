@@ -74,6 +74,8 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
           width={20}
           height={28}
           caption={{ text: marker.title ?? '' }}
+          // 마커 글씨가 지도의 글씨를 가리지 않도록 함
+          isHideCollidedSymbols={!!marker.title}
           onTap={() => onMarkerPress?.(marker.id)}
         />
       ))}
