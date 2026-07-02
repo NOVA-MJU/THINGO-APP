@@ -3,6 +3,7 @@ import {
   NaverMapMarkerOverlay,
   NaverMapViewRef,
 } from '@mj-studio/react-native-naver-map';
+import BusStopMarker from '@/app/(tabs)/maps/_components/markers/bus-stop-marker';
 import * as React from 'react';
 import { StyleSheet } from 'react-native';
 
@@ -13,12 +14,20 @@ export interface Marker {
   title?: string;
 }
 
+export interface BusStopMarkerData {
+  id: string;
+  latitude: number;
+  longitude: number;
+}
+
 interface Props {
   initialLatitude?: number;
   initialLongitude?: number;
   initialZoom?: number;
   markers?: Marker[];
+  busStopMarkers?: BusStopMarkerData[];
   onMarkerPress?: (id: string) => void;
+  onBusStopMarkerPress?: (id: string) => void;
 }
 
 export interface NaverMapHandle {
@@ -31,7 +40,9 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
     initialLongitude = 126.978,
     initialZoom = 14,
     markers = [],
+    busStopMarkers = [],
     onMarkerPress,
+    onBusStopMarkerPress,
   },
   ref
 ) {
@@ -65,6 +76,18 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
           caption={{ text: marker.title ?? '' }}
           onTap={() => onMarkerPress?.(marker.id)}
         />
+      ))}
+      {busStopMarkers.map((marker) => (
+        <NaverMapMarkerOverlay
+          key={marker.id}
+          latitude={marker.latitude}
+          longitude={marker.longitude}
+          width={32}
+          height={32}
+          onTap={() => onBusStopMarkerPress?.(marker.id)}
+        >
+          <BusStopMarker />
+        </NaverMapMarkerOverlay>
       ))}
     </NaverMapView>
   );

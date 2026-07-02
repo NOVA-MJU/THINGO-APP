@@ -1,6 +1,7 @@
 import { SearchIcon, ThingoLogoSmall } from '@/components/icons';
 import { NaverMap, NaverMapHandle } from '@/components/naver-map';
 import { Text } from '@/components/ui/text';
+import { BUS_STOPS, type BusStopStation } from '@/lib/maps/bus-stops';
 import { findPlaceById, PLACES } from '@/lib/maps/places';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import * as Location from 'expo-location';
@@ -37,6 +38,7 @@ export default function MapsScreen() {
   const [selectedPlaceId, setSelectedPlaceId] = React.useState<string | null>(null);
   const [selectedFacilityId, setSelectedFacilityId] = React.useState<string | null>(null);
   const [selectedSheetMode, setSelectedSheetMode] = React.useState<'category' | 'bus'>('category');
+  const [selectedStation, setSelectedStation] = React.useState<BusStopStation | null>(null);
   const mapRef = React.useRef<NaverMapHandle>(null);
   const bottomSheetRef = React.useRef<BottomSheet>(null);
   const selectedPlace = findPlaceById(selectedPlaceId);
@@ -85,11 +87,23 @@ export default function MapsScreen() {
     router.push('/maps/search');
   }
 
+  function onBusStopMarkerPress(id: string) {
+    const busStop = BUS_STOPS.find((s) => s.id === id);
+    if (!busStop) return;
+
+    setSelectedPlaceId(null);
+    setSelectedFacilityId(null);
+    setSelectedSheetMode('bus');
+    setSelectedStation(busStop.station);
+    bottomSheetRef.current?.snapToIndex(1);
+  }
+
   function onQuickChipPress(chipId: string) {
     if (chipId === 'bus') {
       setSelectedPlaceId(null);
       setSelectedFacilityId(null);
       setSelectedSheetMode('bus');
+      setSelectedStation('A');
       bottomSheetRef.current?.snapToIndex(1);
       return;
     }
@@ -130,8 +144,8 @@ export default function MapsScreen() {
       return <PlaceDetailSheet place={selectedPlace} selectedFacility={selectedFacility} />;
     }
 
-    if (selectedSheetMode === 'bus') {
-      return <BusInfoSheet />;
+    if (selectedSheetMode === 'bus' && selectedStation) {
+      return <BusInfoSheet station={selectedStation} />;
     }
 
     return <CategoryList />;
@@ -139,13 +153,16 @@ export default function MapsScreen() {
 
   return (
     <View style={{ flex: 1 }}>
+      {/* 네이버 지도 */}
       <NaverMap
         ref={mapRef}
         initialLatitude={37.579711}
         initialLongitude={126.923186}
         initialZoom={16}
         markers={markers}
+        busStopMarkers={BUS_STOPS}
         onMarkerPress={onMarkerPress}
+        onBusStopMarkerPress={onBusStopMarkerPress}
       />
 
       {/* 플로팅 헤더 */}
