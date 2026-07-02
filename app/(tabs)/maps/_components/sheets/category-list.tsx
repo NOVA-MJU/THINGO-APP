@@ -2,7 +2,7 @@ import { Text } from '@/components/ui/text';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
-import { CATEGORIES } from '../../_constants/category-data';
+import CATEGORIES from '../../_constants/category-data';
 
 export default function CategoryListSheet() {
   const [selectedId, setSelectedId] = useState<string>('daedong');

@@ -27,7 +27,7 @@ import {
   StudyRoomIcon,
   TerraceIcon,
   TruckIcon,
-} from '../_components/icons';
+} from '@/components/icons/map';
 
 export interface Chip {
   id: string;
@@ -42,7 +42,7 @@ export interface Category {
   chips: Chip[];
 }
 
-export const CATEGORIES: Category[] = [
+const CATEGORIES: Category[] = [
   {
     id: 'food',
     label: '식사 (F&B)',
@@ -99,3 +99,5 @@ export const CATEGORIES: Category[] = [
     ],
   },
 ];
+
+export default CATEGORIES;

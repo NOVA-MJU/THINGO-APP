@@ -8,7 +8,7 @@ import {
   LoungeIcon,
   PrinterIcon,
   StudyRoomIcon,
-} from '@/app/(tabs)/maps/_components/icons';
+} from '@/components/icons/map';
 
 export type PlaceKind = 'building' | 'facility' | 'external';
 
