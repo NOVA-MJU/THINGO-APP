@@ -4,17 +4,17 @@ import {
   NaverMapViewRef,
 } from '@mj-studio/react-native-naver-map';
 import BusStopMarker from '@/app/(tabs)/maps/_components/markers/bus-stop-marker';
+import BuildingMarker from '@/app/(tabs)/maps/_components/markers/building-marker';
 import * as React from 'react';
 import { StyleSheet } from 'react-native';
 
-export interface Marker {
+export interface BusStopMarkerData {
   id: string;
   latitude: number;
   longitude: number;
-  title?: string;
 }
 
-export interface BusStopMarkerData {
+export interface BuildingMarkerData {
   id: string;
   latitude: number;
   longitude: number;
@@ -24,10 +24,10 @@ interface Props {
   initialLatitude?: number;
   initialLongitude?: number;
   initialZoom?: number;
-  markers?: Marker[];
   busStopMarkers?: BusStopMarkerData[];
-  onMarkerPress?: (id: string) => void;
+  buildingMarkers?: BuildingMarkerData[];
   onBusStopMarkerPress?: (id: string) => void;
+  onBuildingMarkerPress?: (id: string) => void;
 }
 
 export interface NaverMapHandle {
@@ -39,10 +39,10 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
     initialLatitude = 37.5665,
     initialLongitude = 126.978,
     initialZoom = 14,
-    markers = [],
     busStopMarkers = [],
-    onMarkerPress,
+    buildingMarkers = [],
     onBusStopMarkerPress,
+    onBuildingMarkerPress,
   },
   ref
 ) {
@@ -65,20 +65,6 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
         zoom: initialZoom,
       }}
     >
-      {markers.map((marker) => (
-        <NaverMapMarkerOverlay
-          key={marker.id}
-          latitude={marker.latitude}
-          longitude={marker.longitude}
-          image={{ symbol: 'blue' }}
-          width={20}
-          height={28}
-          caption={{ text: marker.title ?? '' }}
-          // 마커 글씨가 지도의 글씨를 가리지 않도록 함
-          isHideCollidedSymbols={!!marker.title}
-          onTap={() => onMarkerPress?.(marker.id)}
-        />
-      ))}
       {busStopMarkers.map((marker) => (
         <NaverMapMarkerOverlay
           key={marker.id}
@@ -89,6 +75,18 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
           onTap={() => onBusStopMarkerPress?.(marker.id)}
         >
           <BusStopMarker />
+        </NaverMapMarkerOverlay>
+      ))}
+      {buildingMarkers.map((marker) => (
+        <NaverMapMarkerOverlay
+          key={marker.id}
+          latitude={marker.latitude}
+          longitude={marker.longitude}
+          width={24}
+          height={24}
+          onTap={() => onBuildingMarkerPress?.(marker.id)}
+        >
+          <BuildingMarker id={marker.id} />
         </NaverMapMarkerOverlay>
       ))}
     </NaverMapView>

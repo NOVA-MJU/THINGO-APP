@@ -257,103 +257,107 @@ export default function AllScreen({ onNavigate }: Props) {
     <ScrollView className="native:w-screen flex-1 web:w-full">
       <View className="min-h-screen bg-grey-02">
         <View className="bg-white py-5">
-          <View className="items-center">
-            {/* 배너 */}
-            <View
-              onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
-              style={{ width: Platform.OS === 'web' ? '100%' : screenWidth, overflow: 'hidden' }}
-            >
-              <View style={{ marginLeft: carouselOffset }}>
-                {bannersLoading ? (
-                  <Skeleton style={{ width: cardSlot, height: 200, borderRadius: 16 }} />
-                ) : (
-                  <Carousel
-                    width={cardSlot}
-                    height={200}
-                    style={{ overflow: 'visible' }}
-                    data={banners}
-                    loop
-                    autoPlay
-                    autoPlayInterval={3000}
-                    onSnapToItem={setCurrentBannerIndex}
-                    renderItem={({ item, index }: { item: Banner; index: number }) => (
-                      <Link href={item.linkUrl as `https://${string}`} asChild>
-                        <TouchableOpacity
-                          style={{
-                            flex: 1,
-                            marginHorizontal: CAROUSEL_GAP / 2,
-                            borderRadius: 16,
-                            overflow: 'hidden',
-                          }}
-                        >
-                          <Image
-                            source={{ uri: item.imageUrl }}
-                            className="absolute bottom-0 left-0 right-0 top-0 z-0"
-                            resizeMode="cover"
-                          />
-
-                          <View
+          {(bannersLoading || banners.length > 0) && (
+            <View className="items-center">
+              {/* 배너 */}
+              <View
+                onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
+                style={{ width: Platform.OS === 'web' ? '100%' : screenWidth, overflow: 'hidden' }}
+              >
+                <View style={{ marginLeft: carouselOffset }}>
+                  {bannersLoading ? (
+                    <Skeleton style={{ width: cardSlot, height: 200, borderRadius: 16 }} />
+                  ) : (
+                    <Carousel
+                      width={cardSlot}
+                      height={200}
+                      style={{ overflow: 'visible' }}
+                      data={banners}
+                      loop
+                      autoPlay
+                      autoPlayInterval={3000}
+                      onSnapToItem={setCurrentBannerIndex}
+                      renderItem={({ item, index }: { item: Banner; index: number }) => (
+                        <Link href={item.linkUrl as `https://${string}`} asChild>
+                          <TouchableOpacity
                             style={{
-                              position: 'absolute',
-                              top: 0,
-                              left: 0,
-                              right: 0,
-                              bottom: 0,
-                              zIndex: 10,
+                              flex: 1,
+                              marginHorizontal: CAROUSEL_GAP / 2,
+                              borderRadius: 16,
+                              overflow: 'hidden',
                             }}
                           >
-                            <Svg width="100%" height="100%">
-                              <Defs>
-                                <SvgLinearGradient id="hotGrad" x1="0" y1="0" x2="0" y2="1">
-                                  <Stop offset="0" stopColor="#5DABFF" stopOpacity="0" />
-                                  <Stop offset="1" stopColor="#5DABFF" stopOpacity="0.85" />
-                                </SvgLinearGradient>
-                              </Defs>
-                              <Rect width="100%" height="100%" fill="url(#hotGrad)" />
-                            </Svg>
-                          </View>
+                            <Image
+                              source={{ uri: item.imageUrl }}
+                              className="absolute bottom-0 left-0 right-0 top-0 z-0"
+                              resizeMode="cover"
+                            />
 
-                          <View className="absolute bottom-0 left-0 right-0 top-0 z-20 justify-between p-4">
-                            <View className="self-end rounded-full bg-bg px-2 py-0.5">
-                              <Text className="text-caption02 text-white">
-                                {index + 1}/{banners.length}
-                              </Text>
+                            <View
+                              style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                zIndex: 10,
+                              }}
+                            >
+                              <Svg width="100%" height="100%">
+                                <Defs>
+                                  <SvgLinearGradient id="hotGrad" x1="0" y1="0" x2="0" y2="1">
+                                    <Stop offset="0" stopColor="#5DABFF" stopOpacity="0" />
+                                    <Stop offset="1" stopColor="#5DABFF" stopOpacity="0.85" />
+                                  </SvgLinearGradient>
+                                </Defs>
+                                <Rect width="100%" height="100%" fill="url(#hotGrad)" />
+                              </Svg>
                             </View>
-                            <View className="p-2">
-                              <View className="self-start rounded-md bg-blue-05 px-1 py-0.5">
-                                <Text className="text-caption01 text-blue-35">{item.category}</Text>
+
+                            <View className="absolute bottom-0 left-0 right-0 top-0 z-20 justify-between p-4">
+                              <View className="self-end rounded-full bg-bg px-2 py-0.5">
+                                <Text className="text-caption02 text-white">
+                                  {index + 1}/{banners.length}
+                                </Text>
                               </View>
-                              {/* TODO: 텍스트 스타일 적용해야함 */}
-                              <Text
-                                className="mt-3 text-[20px] font-bold text-white"
-                                numberOfLines={2}
-                              >
-                                {item.title}
-                              </Text>
-                              <Text className="mt-0.5 text-body04 text-blue-05" numberOfLines={1}>
-                                {item.oneLineIntro}
-                              </Text>
+                              <View className="p-2">
+                                <View className="self-start rounded-md bg-blue-05 px-1 py-0.5">
+                                  <Text className="text-caption01 text-blue-35">
+                                    {item.category}
+                                  </Text>
+                                </View>
+                                {/* TODO: 텍스트 스타일 적용해야함 */}
+                                <Text
+                                  className="mt-3 text-[20px] font-bold text-white"
+                                  numberOfLines={2}
+                                >
+                                  {item.title}
+                                </Text>
+                                <Text className="mt-0.5 text-body04 text-blue-05" numberOfLines={1}>
+                                  {item.oneLineIntro}
+                                </Text>
+                              </View>
                             </View>
-                          </View>
-                        </TouchableOpacity>
-                      </Link>
-                    )}
-                  />
-                )}
+                          </TouchableOpacity>
+                        </Link>
+                      )}
+                    />
+                  )}
+                </View>
               </View>
+              {/* 배너 인디케이터 */}
+              {!bannersLoading && (
+                <View className="mt-2 flex-row items-center gap-2">
+                  {banners.map((_, i) => (
+                    <View
+                      key={i}
+                      className={`h-1 w-1 rounded-full ${i === currentBannerIndex ? 'bg-blue-20' : 'bg-grey-20'}`}
+                    />
+                  ))}
+                </View>
+              )}
             </View>
-            {/* 배너 인디케이터 */}
-            {!bannersLoading && (
-              <View className="mt-2 flex-row items-center gap-2">
-                {banners.map((_, i) => (
-                  <View
-                    key={i}
-                    className={`h-1 w-1 rounded-full ${i === currentBannerIndex ? 'bg-blue-20' : 'bg-grey-20'}`}
-                  />
-                ))}
-              </View>
-            )}
-          </View>
+          )}
 
           <View className="mt-3 flex-row gap-4 px-4">
             {/* 퀵 메뉴 */}
