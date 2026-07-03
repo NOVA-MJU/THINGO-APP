@@ -24,12 +24,14 @@ const config: ExpoConfig = {
     },
   },
   android: {
+    package: 'com.nova.thingo',
+    googleServicesFile: './google-services.json',
+
     adaptiveIcon: {
       foregroundImage: './assets/images/adaptive-icon.png',
       backgroundColor: '#1778ff',
     },
     permissions: ['READ_MEDIA_IMAGES', 'READ_EXTERNAL_STORAGE', 'WRITE_EXTERNAL_STORAGE'],
-    package: 'com.nova.thingo',
   },
   web: {
     bundler: 'metro',
@@ -37,6 +39,7 @@ const config: ExpoConfig = {
   },
   plugins: [
     'expo-router',
+    'expo-notifications',
     [
       '@mj-studio/react-native-naver-map',
       {

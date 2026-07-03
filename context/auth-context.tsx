@@ -1,6 +1,10 @@
 import { logout as logoutApi } from '@/api/auth';
 import { getMemberInfo, type MemberInfo } from '@/api/members';
 import { clearTokens, hasSessionFlag } from '@/api/token';
+import {
+  registerCurrentDeviceForPush,
+  unregisterCurrentDeviceForPush,
+} from '@/lib/push-notifications';
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 type AuthContextValue = {
@@ -31,8 +35,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })();
   }, []);
 
+  useEffect(() => {
+    if (!user) return;
+
+    void registerCurrentDeviceForPush().catch(() => {});
+  }, [user]);
+
   const logout = useCallback(async () => {
     try {
+      await unregisterCurrentDeviceForPush().catch(() => {});
       await logoutApi();
     } finally {
       await clearTokens();
