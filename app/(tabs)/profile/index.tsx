@@ -90,7 +90,7 @@ export default function ProfileScreen() {
           <Text className="mt-10 text-title03 text-grey-80">나의 활동</Text>
           <TouchableOpacity
             className="mt-3 flex-row items-center gap-6 rounded-xl bg-white p-6"
-            onPress={() => router.push('/profile/maps')}
+            onPress={() => router.push('/profile/maps' as never)}
           >
             <Text className="flex-1 text-body04 text-grey-80">명지도 즐겨찾기</Text>
             <Text className="text-body04 text-grey-40">- 개</Text>
@@ -118,6 +118,13 @@ export default function ProfileScreen() {
           >
             <Text className="flex-1 text-body04 text-grey-80">찜한 글</Text>
             <Text className="text-body04 text-grey-40">{stats?.likedPostCount ?? '-'}개</Text>
+            <ArrowRightIcon size={20} className="text-grey-30" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="mt-3 flex-row items-center gap-6 rounded-xl bg-white p-6"
+            onPress={() => router.push('/profile/keyword-alarms' as never)}
+          >
+            <Text className="flex-1 text-body04 text-grey-80">키워드 알림 설정</Text>
             <ArrowRightIcon size={20} className="text-grey-30" />
           </TouchableOpacity>
           <Text className="mt-10 text-title03 text-grey-80">정보</Text>
