@@ -122,9 +122,7 @@ export default function NotificationsScreen() {
             </View>
           }
           ListFooterComponent={
-            notificationsQuery.isFetchingNextPage ? (
-              <ActivityIndicator className="py-5" />
-            ) : null
+            notificationsQuery.isFetchingNextPage ? <ActivityIndicator className="py-5" /> : null
           }
           refreshControl={
             <RefreshControl
