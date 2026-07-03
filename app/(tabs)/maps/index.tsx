@@ -1,11 +1,11 @@
-import { getBuildingDetail, getBuildings } from '@/api/maps';
+import { getBuildingDetail, getBuildings, getCategoryPins } from '@/api/maps';
 import { SearchIcon, ThingoLogoSmall } from '@/components/icons';
 import { NaverMap, NaverMapHandle } from '@/components/naver-map';
 import { Text } from '@/components/ui/text';
 import { BUS_STOPS, type BusStopStation } from '@/lib/maps/bus-stops';
 import { findPlaceById } from '@/lib/maps/places';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
@@ -14,10 +14,18 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BuildingDetailSheet from './_components/sheets/sheet-building-detail';
 import BusInfoSheet from './_components/sheets/bus-info';
 import CategoryList from './_components/sheets/sheet-category';
+import DaedongPlaceListSheet from './_components/sheets/sheet-daedong-place-list';
 import PlaceDetailSheet from './_components/sheets/place-detail';
+import PlaceListSheet from './_components/sheets/sheet-place-list';
 import SheetHandle from './_components/sheets/sheet-handle';
 import CATEGORIES from './_constants/category-data';
-import { CurrentLocationIcon, MoreIcon, StarIcon } from '@/components/icons/map';
+import {
+  BuildingIcon,
+  CurrentLocationIcon,
+  MoreIcon,
+  RestaurantIcon,
+  StarIcon,
+} from '@/components/icons/map';
 
 const QUICK_CHIP_IDS = ['bus', 'daedong', 'printer', 'lounge', 'bank'];
 
@@ -44,10 +52,12 @@ export default function MapsScreen() {
   const [selectedPlaceId, setSelectedPlaceId] = React.useState<string | null>(null);
   const [selectedFacilityId, setSelectedFacilityId] = React.useState<string | null>(null);
   const [selectedBuildingId, setSelectedBuildingId] = React.useState<number | null>(null);
-  const [selectedSheetMode, setSelectedSheetMode] = React.useState<'category' | 'bus' | 'building'>(
-    'category'
-  );
+  const [selectedSheetMode, setSelectedSheetMode] = React.useState<
+    'category' | 'bus' | 'building' | 'places'
+  >('category');
+  const [selectedCategoryCode, setSelectedCategoryCode] = React.useState<string | null>(null);
   const [selectedStation, setSelectedStation] = React.useState<BusStopStation | null>(null);
+  const [bottomSheetIndex, setBottomSheetIndex] = React.useState(0);
   const mapRef = React.useRef<NaverMapHandle>(null);
   const bottomSheetRef = React.useRef<BottomSheet>(null);
   const selectedPlace = findPlaceById(selectedPlaceId);
@@ -64,7 +74,31 @@ export default function MapsScreen() {
     queryKey: ['map-building-detail', selectedBuildingId],
     queryFn: () => getBuildingDetail(selectedBuildingId!, CAMPUS_LATITUDE, CAMPUS_LONGITUDE),
     enabled: selectedBuildingId !== null,
+    placeholderData: keepPreviousData,
   });
+
+  // 칩 클릭 시 장소/건물 목록 조회
+  const { data: categoryPins = [] } = useQuery({
+    queryKey: ['map-category-pins', selectedCategoryCode, CAMPUS_LATITUDE, CAMPUS_LONGITUDE],
+    queryFn: () => getCategoryPins(selectedCategoryCode!, CAMPUS_LATITUDE, CAMPUS_LONGITUDE),
+    enabled: selectedCategoryCode !== null,
+    placeholderData: keepPreviousData,
+  });
+
+  // 건물 상세 조회가 완료되면 그때 시트를 건물 상세로 교체 (조회 중에는 기존 시트 유지)
+  React.useEffect(() => {
+    if (selectedBuildingId === null || !selectedBuildingDetail) return;
+
+    setSelectedSheetMode('building');
+  }, [selectedBuildingId, selectedBuildingDetail]);
+
+  // 시트가 접혀있던 경우, 건물 상세 콘텐츠 렌더링이 끝난 뒤에 시트를 펼친다
+  React.useEffect(() => {
+    if (selectedSheetMode !== 'building' || !selectedBuildingDetail) return;
+    if (bottomSheetIndex !== 0) return;
+
+    bottomSheetRef.current?.snapToIndex(1);
+  }, [selectedSheetMode, selectedBuildingDetail, bottomSheetIndex]);
 
   // 캠퍼스 건물 마커
   const buildingMarkers = React.useMemo(
@@ -77,11 +111,34 @@ export default function MapsScreen() {
     [buildings]
   );
 
+  // 칩 조회 결과 마커
+  const categoryMarkers = React.useMemo(
+    () =>
+      categoryPins.map((pin) => ({
+        id: String(pin.id),
+        latitude: pin.latitude,
+        longitude: pin.longitude,
+      })),
+    [categoryPins]
+  );
+
+  // 칩 조회 결과 마커에 표시할 아이콘 (선택된 칩의 아이콘 사용, 대동명지도는 RestaurantIcon 고정)
+  const categoryMarkerIcon = React.useMemo(() => {
+    if (selectedCategoryCode === 'daedong') return RestaurantIcon;
+
+    for (const category of CATEGORIES) {
+      const chip = category.chips.find((c) => c.id === selectedCategoryCode);
+      if (chip) return chip.Icon;
+    }
+    return BuildingIcon;
+  }, [selectedCategoryCode]);
+
   React.useEffect(() => {
     const nextPlace = findPlaceById(placeId);
     if (!nextPlace) return;
 
     setSelectedSheetMode('category');
+    setSelectedCategoryCode(null);
     setSelectedPlaceId(nextPlace.id);
     setSelectedFacilityId(Array.isArray(facilityId) ? facilityId[0] : (facilityId ?? null));
     setSelectedBuildingId(null);
@@ -89,17 +146,24 @@ export default function MapsScreen() {
     bottomSheetRef.current?.snapToIndex(expanded === 'true' ? 2 : 1);
   }, [expanded, exactMatch, facilityId, placeId]);
 
-  // 캠퍼스 건물 마커 클릭
+  // 캠퍼스 건물 마커 클릭 (상세 조회가 끝나면 아래 useEffect에서 시트를 교체)
   function onBuildingMarkerPress(id: string) {
     const building = buildings.find((b) => String(b.id) === id);
     if (!building) return;
 
     setSelectedPlaceId(null);
     setSelectedFacilityId(null);
-    setSelectedSheetMode('building');
+    setSelectedCategoryCode(null);
     setSelectedBuildingId(building.id);
-    mapRef.current?.animateCameraTo(building.latitude, building.longitude, 17);
-    bottomSheetRef.current?.snapToIndex(1);
+    mapRef.current?.animateCameraTo(building.latitude, building.longitude);
+  }
+
+  // 칩 조회 결과 마커 클릭
+  function onCategoryPlaceMarkerPress(id: string) {
+    const pin = categoryPins.find((p) => String(p.id) === id);
+    if (!pin) return;
+
+    mapRef.current?.animateCameraTo(pin.latitude, pin.longitude);
   }
 
   // 버스 정류장 마커 클릭
@@ -110,6 +174,7 @@ export default function MapsScreen() {
     setSelectedPlaceId(null);
     setSelectedFacilityId(null);
     setSelectedBuildingId(null);
+    setSelectedCategoryCode(null);
     setSelectedSheetMode('bus');
     setSelectedStation(busStop.station);
     mapRef.current?.animateCameraTo(busStop.latitude, busStop.longitude);
@@ -121,12 +186,14 @@ export default function MapsScreen() {
     router.push('/maps/search');
   }
 
+  // 칩 클릭 동작 정의
   function onQuickChipPress(chipId: string) {
     // 버스 정류장 칩 클릭
     if (chipId === 'bus') {
       setSelectedPlaceId(null);
       setSelectedFacilityId(null);
       setSelectedBuildingId(null);
+      setSelectedCategoryCode(null);
       setSelectedSheetMode('bus');
       setSelectedStation('A');
       const stationA = BUS_STOPS.find((s) => s.station === 'A');
@@ -135,8 +202,12 @@ export default function MapsScreen() {
       return;
     }
 
+    // 그 외 칩 클릭 시 해당 카테고리의 장소/건물 목록 조회
+    setSelectedPlaceId(null);
+    setSelectedFacilityId(null);
     setSelectedBuildingId(null);
-    setSelectedSheetMode('category');
+    setSelectedSheetMode('places');
+    setSelectedCategoryCode(chipId);
     bottomSheetRef.current?.snapToIndex(1);
   }
 
@@ -169,6 +240,7 @@ export default function MapsScreen() {
     setSelectedPlaceId(null);
     setSelectedFacilityId(null);
     setSelectedBuildingId(null);
+    setSelectedCategoryCode(null);
     bottomSheetRef.current?.snapToIndex(1);
   }
 
@@ -186,6 +258,13 @@ export default function MapsScreen() {
       return <BuildingDetailSheet building={selectedBuildingDetail} />;
     }
 
+    if (selectedSheetMode === 'places' && selectedCategoryCode) {
+      if (selectedCategoryCode === 'daedong') {
+        return <DaedongPlaceListSheet places={categoryPins} />;
+      }
+      return <PlaceListSheet places={categoryPins} />;
+    }
+
     return <CategoryList onChipPress={onQuickChipPress} />;
   }
 
@@ -198,9 +277,12 @@ export default function MapsScreen() {
         initialLongitude={CAMPUS_LONGITUDE}
         initialZoom={16}
         busStopMarkers={BUS_STOPS}
-        buildingMarkers={buildingMarkers}
+        buildingMarkers={selectedCategoryCode ? [] : buildingMarkers}
+        placeMarkers={selectedCategoryCode ? categoryMarkers : []}
+        placeMarkerIcon={categoryMarkerIcon}
         onBusStopMarkerPress={onBusStopMarkerPress}
         onBuildingMarkerPress={onBuildingMarkerPress}
+        onPlaceMarkerPress={onCategoryPlaceMarkerPress}
       />
 
       {/* 플로팅 헤더 */}
@@ -319,6 +401,7 @@ export default function MapsScreen() {
         snapPoints={SNAP_POINTS}
         handleComponent={SheetHandle}
         topInset={insets.top}
+        onChange={setBottomSheetIndex}
       >
         <BottomSheetScrollView>{renderBottomSheetContent()}</BottomSheetScrollView>
       </BottomSheet>

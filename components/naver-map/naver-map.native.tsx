@@ -5,7 +5,9 @@ import {
 } from '@mj-studio/react-native-naver-map';
 import BusStopMarker from '@/app/(tabs)/maps/_components/markers/bus-stop-marker';
 import BuildingMarker from '@/app/(tabs)/maps/_components/markers/building-marker';
+import PlaceMarker from '@/app/(tabs)/maps/_components/markers/place-marker';
 import * as React from 'react';
+import type { ComponentType } from 'react';
 import { StyleSheet } from 'react-native';
 
 export interface BusStopMarkerData {
@@ -20,14 +22,23 @@ export interface BuildingMarkerData {
   longitude: number;
 }
 
+export interface PlaceMarkerData {
+  id: string;
+  latitude: number;
+  longitude: number;
+}
+
 interface Props {
   initialLatitude?: number;
   initialLongitude?: number;
   initialZoom?: number;
   busStopMarkers?: BusStopMarkerData[];
   buildingMarkers?: BuildingMarkerData[];
+  placeMarkers?: PlaceMarkerData[];
+  placeMarkerIcon?: ComponentType<{ size?: number; className?: string }>;
   onBusStopMarkerPress?: (id: string) => void;
   onBuildingMarkerPress?: (id: string) => void;
+  onPlaceMarkerPress?: (id: string) => void;
 }
 
 export interface NaverMapHandle {
@@ -41,8 +52,11 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
     initialZoom = 14,
     busStopMarkers = [],
     buildingMarkers = [],
+    placeMarkers = [],
+    placeMarkerIcon,
     onBusStopMarkerPress,
     onBuildingMarkerPress,
+    onPlaceMarkerPress,
   },
   ref
 ) {
@@ -89,6 +103,19 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
           <BuildingMarker id={marker.id} />
         </NaverMapMarkerOverlay>
       ))}
+      {placeMarkerIcon &&
+        placeMarkers.map((marker) => (
+          <NaverMapMarkerOverlay
+            key={marker.id}
+            latitude={marker.latitude}
+            longitude={marker.longitude}
+            width={32}
+            height={32}
+            onTap={() => onPlaceMarkerPress?.(marker.id)}
+          >
+            <PlaceMarker Icon={placeMarkerIcon} />
+          </NaverMapMarkerOverlay>
+        ))}
     </NaverMapView>
   );
 });

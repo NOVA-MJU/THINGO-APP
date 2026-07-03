@@ -65,11 +65,43 @@ export type MapBuildingDetail = {
   floors: MapBuildingFloor[];
 };
 
+export type MapCategoryPin = {
+  id: number;
+  type: MapPlaceType;
+  name: string;
+  categoryCode: string;
+  iconKey: string | null;
+  imageUrl: string | null;
+  classroomCode: string | null;
+  location: string | null;
+  favorite: boolean;
+  operatingStatus: string | null;
+  distanceMeters: number | null;
+  latitude: number;
+  longitude: number;
+};
+
 type ApiResponse<T> = {
   status: string;
   data: T;
   timestamp: string;
 };
+
+// 칩 클릭 시 장소/건물 목록 조회
+export async function getCategoryPins(
+  code: string,
+  lat?: number,
+  lng?: number,
+  page = 0,
+  size = 20
+): Promise<MapCategoryPin[]> {
+  const { data } = await client.get<ApiResponse<MapCategoryPin[]>>(
+    `/map/categories/${code}/pins`,
+    { params: { lat, lng, page, size } }
+  );
+
+  return data.data;
+}
 
 // 캠퍼스 건물 목록 조회
 export async function getBuildings(lat: number, lng: number): Promise<MapBuilding[]> {
