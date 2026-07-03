@@ -95,10 +95,9 @@ export async function getCategoryPins(
   page = 0,
   size = 20
 ): Promise<MapCategoryPin[]> {
-  const { data } = await client.get<ApiResponse<MapCategoryPin[]>>(
-    `/map/categories/${code}/pins`,
-    { params: { lat, lng, page, size } }
-  );
+  const { data } = await client.get<ApiResponse<MapCategoryPin[]>>(`/map/categories/${code}/pins`, {
+    params: { lat, lng, page, size },
+  });
 
   return data.data;
 }
