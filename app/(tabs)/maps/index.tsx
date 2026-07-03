@@ -12,9 +12,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BusInfoSheet from './_components/sheets/bus-info';
 import CategoryList from './_components/sheets/sheet-category';
 import PlaceDetailSheet from './_components/sheets/place-detail';
+import MapSearchSummary from './_components/sheets/map-search-summary';
 import SheetHandle from './_components/sheets/sheet-handle';
 import CATEGORIES from './_constants/category-data';
 import { MoreIcon, StarIcon } from '@/components/icons/map';
+import { useMapSearchSelection } from '@/context/map-search-selection';
 
 const QUICK_CHIP_IDS = ['bus', 'daedong', 'printer', 'lounge', 'bank'];
 
@@ -34,6 +36,7 @@ export default function MapsScreen() {
     facilityId?: string;
     placeId?: string;
   }>();
+  const { selectedSearchResult, clearSearchResult } = useMapSearchSelection();
   const insets = useSafeAreaInsets();
   const [selectedPlaceId, setSelectedPlaceId] = React.useState<string | null>(null);
   const [selectedFacilityId, setSelectedFacilityId] = React.useState<string | null>(null);
@@ -43,16 +46,38 @@ export default function MapsScreen() {
   const bottomSheetRef = React.useRef<BottomSheet>(null);
   const selectedPlace = findPlaceById(selectedPlaceId);
   const selectedFacility = findPlaceById(selectedFacilityId);
+  const selectedCamera = React.useMemo(
+    () =>
+      selectedSearchResult
+        ? {
+            latitude: selectedSearchResult.latitude,
+            longitude: selectedSearchResult.longitude,
+            zoom: 17,
+          }
+        : undefined,
+    [selectedSearchResult]
+  );
 
   const markers = React.useMemo(
-    () =>
-      PLACES.map((place) => ({
+    () => [
+      ...PLACES.map((place) => ({
         id: place.id,
         latitude: place.latitude,
         longitude: place.longitude,
         title: selectedPlaceId === place.id ? place.name : undefined,
       })),
-    [selectedPlaceId]
+      ...(selectedSearchResult
+        ? [
+            {
+              id: `search:${selectedSearchResult.type}:${selectedSearchResult.id}`,
+              latitude: selectedSearchResult.latitude,
+              longitude: selectedSearchResult.longitude,
+              title: selectedSearchResult.name,
+            },
+          ]
+        : []),
+    ],
+    [selectedPlaceId, selectedSearchResult]
   );
 
   React.useEffect(() => {
@@ -60,17 +85,46 @@ export default function MapsScreen() {
     if (!nextPlace) return;
 
     setSelectedSheetMode('category');
+    clearSearchResult();
     setSelectedPlaceId(nextPlace.id);
     setSelectedFacilityId(Array.isArray(facilityId) ? facilityId[0] : (facilityId ?? null));
     mapRef.current?.animateCameraTo(nextPlace.latitude, nextPlace.longitude, 17);
     bottomSheetRef.current?.snapToIndex(expanded === 'true' ? 2 : 1);
-  }, [expanded, exactMatch, facilityId, placeId]);
+  }, [clearSearchResult, expanded, exactMatch, facilityId, placeId]);
+
+  React.useEffect(() => {
+    if (!selectedSearchResult) return;
+
+    setSelectedPlaceId(null);
+    setSelectedFacilityId(null);
+    setSelectedSheetMode('category');
+    mapRef.current?.animateCameraTo(
+      selectedSearchResult.latitude,
+      selectedSearchResult.longitude,
+      17
+    );
+    bottomSheetRef.current?.snapToIndex(1);
+  }, [selectedSearchResult]);
 
   function onMarkerPress(id: string) {
+    if (
+      selectedSearchResult &&
+      id === `search:${selectedSearchResult.type}:${selectedSearchResult.id}`
+    ) {
+      mapRef.current?.animateCameraTo(
+        selectedSearchResult.latitude,
+        selectedSearchResult.longitude,
+        17
+      );
+      bottomSheetRef.current?.snapToIndex(1);
+      return;
+    }
+
     const nextPlace = findPlaceById(id);
     if (!nextPlace) return;
 
     setSelectedSheetMode('category');
+    clearSearchResult();
     setSelectedPlaceId(nextPlace.id);
     setSelectedFacilityId(null);
     mapRef.current?.animateCameraTo(nextPlace.latitude, nextPlace.longitude, 17);
@@ -95,6 +149,7 @@ export default function MapsScreen() {
 
     setSelectedPlaceId(null);
     setSelectedFacilityId(null);
+    clearSearchResult();
     setSelectedSheetMode('bus');
     setSelectedStation(busStop.station);
     mapRef.current?.animateCameraTo(busStop.latitude, busStop.longitude);
@@ -106,6 +161,7 @@ export default function MapsScreen() {
     if (chipId === 'bus') {
       setSelectedPlaceId(null);
       setSelectedFacilityId(null);
+      clearSearchResult();
       setSelectedSheetMode('bus');
       setSelectedStation('A');
       const stationA = BUS_STOPS.find((s) => s.station === 'A');
@@ -114,6 +170,9 @@ export default function MapsScreen() {
       return;
     }
 
+    setSelectedPlaceId(null);
+    setSelectedFacilityId(null);
+    clearSearchResult();
     setSelectedSheetMode('category');
     bottomSheetRef.current?.snapToIndex(1);
   }
@@ -146,10 +205,15 @@ export default function MapsScreen() {
     setSelectedSheetMode('category');
     setSelectedPlaceId(null);
     setSelectedFacilityId(null);
+    clearSearchResult();
     bottomSheetRef.current?.snapToIndex(1);
   }
 
   function renderBottomSheetContent() {
+    if (selectedSearchResult) {
+      return <MapSearchSummary item={selectedSearchResult} />;
+    }
+
     if (selectedPlace) {
       return <PlaceDetailSheet place={selectedPlace} selectedFacility={selectedFacility} />;
     }
@@ -169,6 +233,7 @@ export default function MapsScreen() {
         initialLatitude={37.579711}
         initialLongitude={126.923186}
         initialZoom={16}
+        camera={selectedCamera}
         markers={markers}
         busStopMarkers={BUS_STOPS}
         onMarkerPress={onMarkerPress}
