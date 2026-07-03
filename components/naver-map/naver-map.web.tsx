@@ -79,11 +79,9 @@ const MapContent = React.forwardRef<NaverMapHandle, MapContentProps>(function Ma
         return;
       }
 
-      map.morph(
-        new navermaps.LatLng(nextCamera.latitude, nextCamera.longitude),
-        nextCamera.zoom,
-        { duration: 500 }
-      );
+      map.morph(new navermaps.LatLng(nextCamera.latitude, nextCamera.longitude), nextCamera.zoom, {
+        duration: 500,
+      });
     },
     [navermaps]
   );
