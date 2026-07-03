@@ -1,39 +1,91 @@
+import {
+  getMapSearchResults,
+  getMapSearchSuggestions,
+  MAP_SEARCH_PAGE_SIZE,
+  type MapSearchItem,
+  type MapSearchSuggestion,
+} from '@/api/maps';
 import { ArrowLeftIcon, SearchIcon, XIcon } from '@/components/icons';
 import { Text } from '@/components/ui/text';
+import { formatMapDistance, getOperatingStatusClassName } from '@/lib/maps/format';
+import { getMapIcon, getMapIconClassName } from '@/lib/maps/icons';
 import { cn } from '@/lib/utils';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
-import { Image, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  searchMyeongjiPlaces,
-  type MapSearchResult,
-  type MapSearchResponse,
-} from '@/lib/maps/search';
-import { findPlaceById, type OperatingStatus } from '@/lib/maps/places';
-
-const STATUS_COLOR: Record<OperatingStatus, string> = {
-  '곧 운영 시작': 'text-blue-35',
-  운영중: 'text-[#34AA6F]',
-  '곧 운영 종료': 'text-[#EDAE26]',
-  '운영 종료': 'text-error',
-  '24시간 운영': 'text-blue-35',
-  휴무: 'text-grey-40',
-};
+  ActivityIndicator,
+  FlatList,
+  Image,
+  Keyboard,
+  ScrollView,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useMapSearchSelection } from '@/context/map-search-selection';
 
 const DUMMY_RECENT_SEARCHES = ['학생회관', '도서관', '프린터', '은행 ATM'];
+const AUTOCOMPLETE_DEBOUNCE_MS = 250;
+
+type SearchCoordinates = {
+  latitude: number;
+  longitude: number;
+};
+
+function useDebouncedValue<T>(value: T, delay: number) {
+  const [debouncedValue, setDebouncedValue] = React.useState(value);
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(timer);
+  }, [delay, value]);
+
+  return debouncedValue;
+}
 
 export default function MapsSearchScreen() {
   const inset = useSafeAreaInsets();
   const router = useRouter();
+  const { selectSearchResult } = useMapSearchSelection();
   const inputRef = React.useRef<TextInput>(null);
   const [query, setQuery] = React.useState('');
+  const [submittedKeyword, setSubmittedKeyword] = React.useState('');
   const [recentSearches, setRecentSearches] = React.useState(DUMMY_RECENT_SEARCHES);
+  const [coordinates, setCoordinates] = React.useState<SearchCoordinates | null>(null);
 
   const trimmedQuery = query.trim();
-  const searchResponse = React.useMemo(
-    () => (trimmedQuery ? searchMyeongjiPlaces(trimmedQuery) : null),
-    [trimmedQuery]
+  const debouncedQuery = useDebouncedValue(trimmedQuery, AUTOCOMPLETE_DEBOUNCE_MS);
+  const isEditing = !!trimmedQuery && trimmedQuery !== submittedKeyword;
+
+  const suggestionsQuery = useQuery({
+    queryKey: ['map-search-suggestions', debouncedQuery],
+    queryFn: () => getMapSearchSuggestions({ keyword: debouncedQuery }),
+    enabled: !!debouncedQuery && debouncedQuery === trimmedQuery && isEditing,
+    staleTime: 30_000,
+  });
+
+  const searchQuery = useInfiniteQuery({
+    queryKey: ['map-search', submittedKeyword, coordinates?.latitude, coordinates?.longitude],
+    queryFn: ({ pageParam }) =>
+      getMapSearchResults({
+        keyword: submittedKeyword,
+        lat: coordinates?.latitude,
+        lng: coordinates?.longitude,
+        page: pageParam,
+        size: MAP_SEARCH_PAGE_SIZE,
+      }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, pages) =>
+      lastPage.length < MAP_SEARCH_PAGE_SIZE ? undefined : pages.length,
+    enabled: !!submittedKeyword,
+  });
+
+  const searchResults = React.useMemo(
+    () => searchQuery.data?.pages.flat() ?? [],
+    [searchQuery.data]
   );
 
   React.useEffect(() => {
@@ -41,66 +93,55 @@ export default function MapsSearchScreen() {
     return () => clearTimeout(timer);
   }, []);
 
+  React.useEffect(() => {
+    let active = true;
+
+    async function loadLastKnownLocation() {
+      try {
+        const permission = await Location.getForegroundPermissionsAsync();
+        if (permission.status !== 'granted') return;
+
+        const location = await Location.getLastKnownPositionAsync();
+        if (!active || !location) return;
+
+        setCoordinates({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        });
+      } catch {
+        // 위치를 사용할 수 없어도 검색은 거리 정보 없이 정상 동작합니다.
+      }
+    }
+
+    void loadLastKnownLocation();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   function addRecentSearch(keyword: string) {
+    setRecentSearches((prev) => [keyword, ...prev.filter((recent) => recent !== keyword)]);
+  }
+
+  function runSearch(keyword: string) {
     const trimmedKeyword = keyword.trim();
     if (!trimmedKeyword) return;
 
-    setRecentSearches((prev) => [
-      trimmedKeyword,
-      ...prev.filter((recentKeyword) => recentKeyword !== trimmedKeyword),
-    ]);
-  }
-
-  function onClearRecentSearchHistoryPress() {
-    setRecentSearches([]);
-  }
-
-  function onRecentSearchPress(keyword: string) {
-    setQuery(keyword);
-  }
-
-  function onDeleteRecentSearchPress(keyword: string) {
-    setRecentSearches((prev) => prev.filter((k) => k !== keyword));
+    setQuery(trimmedKeyword);
+    setSubmittedKeyword(trimmedKeyword);
+    addRecentSearch(trimmedKeyword);
+    Keyboard.dismiss();
   }
 
   function onClearQueryPress() {
     setQuery('');
+    setSubmittedKeyword('');
     inputRef.current?.focus();
   }
 
-  function navigateToPlace(place: MapSearchResult) {
-    if (place.isBuilding) {
-      router.navigate({ pathname: '/maps', params: { placeId: place.id } });
-      return;
-    }
-
-    router.navigate({
-      pathname: '/maps',
-      params: {
-        placeId: place.parentBuildingInfo?.buildingId ?? place.id,
-        facilityId: place.id,
-        expanded: 'true',
-      },
-    });
-  }
-
-  function onSubmitSearch() {
-    addRecentSearch(trimmedQuery);
-    const routingTarget = searchResponse?.searchMetadata.routingTarget;
-    if (!searchResponse?.searchMetadata.exactMatch || !routingTarget) return;
-
-    router.navigate({
-      pathname: '/maps',
-      params: {
-        placeId: routingTarget.placeId,
-        exactMatch: 'true',
-      },
-    });
-  }
-
-  function onPlacePress(place: MapSearchResult) {
-    addRecentSearch(trimmedQuery || place.name);
-    navigateToPlace(place);
+  function onSearchResultPress(item: MapSearchItem) {
+    selectSearchResult(item);
+    router.back();
   }
 
   return (
@@ -119,7 +160,7 @@ export default function MapsSearchScreen() {
               placeholderTextColor="#AEB2B6"
               returnKeyType="search"
               multiline={false}
-              onSubmitEditing={onSubmitSearch}
+              onSubmitEditing={() => runSearch(query)}
               style={{ flex: 1, padding: 0, lineHeight: undefined }}
               className="text-body05 text-black outline-none"
             />
@@ -134,19 +175,39 @@ export default function MapsSearchScreen() {
         </View>
       </View>
 
-      {trimmedQuery ? (
-        <SearchResultList
-          query={trimmedQuery}
-          searchResponse={searchResponse}
-          onPlacePress={onPlacePress}
-          bottomPadding={inset.bottom}
-        />
-      ) : (
+      {!trimmedQuery ? (
         <RecentSearches
           recentSearches={recentSearches}
-          onClearRecentSearchHistoryPress={onClearRecentSearchHistoryPress}
-          onRecentSearchPress={onRecentSearchPress}
-          onDeleteRecentSearchPress={onDeleteRecentSearchPress}
+          onClear={() => setRecentSearches([])}
+          onPress={runSearch}
+          onDelete={(keyword) =>
+            setRecentSearches((prev) => prev.filter((recent) => recent !== keyword))
+          }
+        />
+      ) : isEditing ? (
+        <SuggestionList
+          query={trimmedQuery}
+          suggestions={suggestionsQuery.data ?? []}
+          isPending={debouncedQuery !== trimmedQuery || suggestionsQuery.isPending}
+          isError={suggestionsQuery.isError}
+          onPress={(suggestion) => runSearch(suggestion.name)}
+        />
+      ) : (
+        <SearchResultList
+          query={submittedKeyword}
+          results={searchResults}
+          bottomPadding={inset.bottom}
+          isPending={searchQuery.isPending}
+          isError={searchQuery.isError}
+          isFetchingNextPage={searchQuery.isFetchingNextPage}
+          hasNextPage={searchQuery.hasNextPage}
+          onEndReached={() => {
+            if (searchQuery.hasNextPage && !searchQuery.isFetchingNextPage) {
+              void searchQuery.fetchNextPage();
+            }
+          }}
+          onRetry={() => void searchQuery.refetch()}
+          onPress={onSearchResultPress}
         />
       )}
     </View>
@@ -155,21 +216,21 @@ export default function MapsSearchScreen() {
 
 function RecentSearches({
   recentSearches,
-  onClearRecentSearchHistoryPress,
-  onRecentSearchPress,
-  onDeleteRecentSearchPress,
+  onClear,
+  onPress,
+  onDelete,
 }: {
   recentSearches: string[];
-  onClearRecentSearchHistoryPress: () => void;
-  onRecentSearchPress: (keyword: string) => void;
-  onDeleteRecentSearchPress: (keyword: string) => void;
+  onClear: () => void;
+  onPress: (keyword: string) => void;
+  onDelete: (keyword: string) => void;
 }) {
   return (
     <View className="mt-8 gap-2.5">
       <View className="flex-row items-end justify-between px-4">
         <Text className="text-body02 text-black">최근 검색어</Text>
         {recentSearches.length > 0 && (
-          <TouchableOpacity onPress={onClearRecentSearchHistoryPress} hitSlop={6}>
+          <TouchableOpacity onPress={onClear} hitSlop={6}>
             <Text className="text-caption02 text-grey-60">전체 삭제</Text>
           </TouchableOpacity>
         )}
@@ -183,10 +244,10 @@ function RecentSearches({
         >
           {recentSearches.map((keyword) => (
             <View key={keyword} className="flex-row rounded-full border border-grey-10 bg-white">
-              <TouchableOpacity onPress={() => onRecentSearchPress(keyword)}>
+              <TouchableOpacity onPress={() => onPress(keyword)}>
                 <Text className="my-1.5 me-[3px] ms-3 text-body05 text-grey-60">{keyword}</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => onDeleteRecentSearchPress(keyword)} hitSlop={4}>
+              <TouchableOpacity onPress={() => onDelete(keyword)} hitSlop={4}>
                 <XIcon size={12} className="my-[10.5px] me-[11px] ms-[3px] text-grey-20" />
               </TouchableOpacity>
             </View>
@@ -199,70 +260,152 @@ function RecentSearches({
   );
 }
 
-function SearchResultList({
+function SuggestionList({
   query,
-  searchResponse,
-  onPlacePress,
-  bottomPadding,
+  suggestions,
+  isPending,
+  isError,
+  onPress,
 }: {
   query: string;
-  searchResponse: MapSearchResponse | null;
-  onPlacePress: (place: MapSearchResult) => void;
-  bottomPadding: number;
+  suggestions: MapSearchSuggestion[];
+  isPending: boolean;
+  isError: boolean;
+  onPress: (suggestion: MapSearchSuggestion) => void;
 }) {
-  const results = searchResponse?.searchResults ?? [];
-  const directTargetPlace = findPlaceById(searchResponse?.searchMetadata.routingTarget?.placeId);
+  if (isPending) {
+    return <LoadingState />;
+  }
 
-  if (searchResponse?.searchMetadata.exactMatch && directTargetPlace) {
+  if (isError) {
+    return <MessageState message="검색어 제안을 불러올 수 없습니다." />;
+  }
+
+  if (suggestions.length === 0) {
     return (
-      <View className="px-4 pt-6">
-        <View className="rounded-xl bg-blue-02 px-4 py-5">
-          <Text className="text-body04 text-blue-35">{directTargetPlace.name}</Text>
-          <Text className="mt-1 text-body05 text-grey-80">
-            엔터를 누르면 지도에서 건물 요약을 바로 볼 수 있어요.
-          </Text>
-        </View>
+      <MessageState
+        message={`'${query}'에 대한 제안이 없습니다.`}
+        description="키보드의 검색 버튼을 눌러 전체 결과를 확인해보세요."
+      />
+    );
+  }
+
+  return (
+    <FlatList
+      className="flex-1"
+      data={suggestions}
+      keyboardShouldPersistTaps="handled"
+      keyExtractor={(item) => `${item.type}:${item.id}`}
+      renderItem={({ item }) => {
+        const Icon = getMapIcon(item.iconKey, item.categoryCode);
+        return (
+          <TouchableOpacity onPress={() => onPress(item)} activeOpacity={0.7}>
+            <View className="flex-row items-center gap-3 px-4 py-3">
+              <View className="rounded-lg bg-blue-05 p-2">
+                <Icon size={20} className={getMapIconClassName(item.categoryCode)} />
+              </View>
+              <Text className="min-w-0 flex-1 text-body04 text-black" numberOfLines={1}>
+                {item.name}
+              </Text>
+              <Text className="text-caption02 text-grey-40">
+                {item.type === 'BUILDING' ? '건물' : '장소'}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        );
+      }}
+    />
+  );
+}
+
+function SearchResultList({
+  query,
+  results,
+  bottomPadding,
+  isPending,
+  isError,
+  isFetchingNextPage,
+  hasNextPage,
+  onEndReached,
+  onRetry,
+  onPress,
+}: {
+  query: string;
+  results: MapSearchItem[];
+  bottomPadding: number;
+  isPending: boolean;
+  isError: boolean;
+  isFetchingNextPage: boolean;
+  hasNextPage: boolean;
+  onEndReached: () => void;
+  onRetry: () => void;
+  onPress: (item: MapSearchItem) => void;
+}) {
+  if (isPending) return <LoadingState />;
+
+  if (isError) {
+    return (
+      <View className="items-center gap-3 px-4 pt-8">
+        <Text className="text-body05 text-grey-60">검색 결과를 불러올 수 없습니다.</Text>
+        <TouchableOpacity onPress={onRetry} className="rounded-lg bg-blue-05 px-4 py-2">
+          <Text className="text-body05 text-blue-35">다시 시도</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
   if (results.length === 0) {
     return (
-      <View className="px-4 pt-6">
-        <View className="rounded-xl bg-grey-02 px-4 py-5">
-          <Text className="text-body05 text-grey-80">{`'${query}'을(를) 찾을 수 없습니다.`}</Text>
-          <Text className="mt-1 text-caption02 text-grey-40">
-            장소명, 건물명, 카테고리로 다시 검색해보세요.
-          </Text>
-        </View>
-      </View>
+      <MessageState
+        message={`'${query}'을(를) 찾을 수 없습니다.`}
+        description="장소명, 건물명, 카테고리로 다시 검색해보세요."
+      />
     );
   }
 
   return (
-    <ScrollView contentContainerStyle={{ paddingBottom: bottomPadding + 16 }}>
-      <View className="py-2">
-        {results.map((item) => (
-          <SearchResultItem key={item.id} item={item} onPress={() => onPlacePress(item)} />
-        ))}
-      </View>
-    </ScrollView>
+    <FlatList
+      className="flex-1"
+      data={results}
+      keyboardShouldPersistTaps="handled"
+      keyExtractor={(item) => `${item.type}:${item.id}`}
+      contentContainerStyle={{ paddingTop: 8, paddingBottom: bottomPadding + 16 }}
+      onEndReached={hasNextPage ? onEndReached : undefined}
+      onEndReachedThreshold={0.4}
+      renderItem={({ item }) => <SearchResultItem item={item} onPress={() => onPress(item)} />}
+      ListFooterComponent={
+        isFetchingNextPage ? (
+          <View className="items-center py-4">
+            <ActivityIndicator />
+          </View>
+        ) : null
+      }
+    />
   );
 }
 
-function SearchResultItem({ item, onPress }: { item: MapSearchResult; onPress: () => void }) {
+function SearchResultItem({ item, onPress }: { item: MapSearchItem; onPress: () => void }) {
+  const Icon = getMapIcon(item.iconKey, item.categoryCode);
+  const subtitle = item.classroomCode || item.location;
+
   return (
     <TouchableOpacity activeOpacity={0.75} onPress={onPress}>
       <View className="flex-row items-center gap-3 px-4 py-3">
-        <Image
-          source={{ uri: item.imageUrl ?? `https://picsum.photos/seed/${item.id}/120/120` }}
-          className="bg-grey-05 h-[60px] w-[60px] rounded-lg"
-        />
+        {item.imageUrl ? (
+          <Image
+            source={{ uri: item.imageUrl }}
+            className="bg-grey-05 h-[60px] w-[60px] rounded-lg"
+          />
+        ) : (
+          <View className="h-[60px] w-[60px] items-center justify-center rounded-lg bg-blue-05">
+            <Icon size={28} className={getMapIconClassName(item.categoryCode)} />
+          </View>
+        )}
 
         <View className="min-w-0 flex-1 gap-1">
           <View className="flex-row items-center gap-1.5">
             <View className="rounded bg-blue-05 p-1">
-              <item.Icon size={16} className={item.iconClassName} />
+              <Icon size={16} className={getMapIconClassName(item.categoryCode)} />
             </View>
             <Text className="flex-1 text-body02 text-black" numberOfLines={1}>
               {item.name}
@@ -270,17 +413,50 @@ function SearchResultItem({ item, onPress }: { item: MapSearchResult; onPress: (
           </View>
 
           <View className="flex-row items-center gap-2">
-            <Text className={cn('text-caption02 font-medium', STATUS_COLOR[item.status])}>
-              {item.status}
-            </Text>
-            <View className="h-2.5 w-px bg-grey-10" />
-            <Text className="min-w-0 flex-1 text-caption02 text-grey-40" numberOfLines={1}>
-              {item.location}
-            </Text>
-            <Text className="text-caption02 text-grey-40">{item.distance}</Text>
+            {item.operatingStatus && (
+              <Text
+                className={cn(
+                  'text-caption02 font-medium',
+                  getOperatingStatusClassName(item.operatingStatus)
+                )}
+                numberOfLines={1}
+              >
+                {item.operatingStatus}
+              </Text>
+            )}
+            {item.operatingStatus && subtitle && <View className="h-2.5 w-px bg-grey-10" />}
+            {subtitle && (
+              <Text className="min-w-0 flex-1 text-caption02 text-grey-40" numberOfLines={1}>
+                {subtitle}
+              </Text>
+            )}
+            {item.distanceMeters != null && (
+              <Text className="text-caption02 text-grey-40">
+                {formatMapDistance(item.distanceMeters)}
+              </Text>
+            )}
           </View>
         </View>
       </View>
     </TouchableOpacity>
+  );
+}
+
+function LoadingState() {
+  return (
+    <View className="items-center py-8">
+      <ActivityIndicator />
+    </View>
+  );
+}
+
+function MessageState({ message, description }: { message: string; description?: string }) {
+  return (
+    <View className="px-4 pt-6">
+      <View className="rounded-xl bg-grey-02 px-4 py-5">
+        <Text className="text-body05 text-grey-80">{message}</Text>
+        {description && <Text className="mt-1 text-caption02 text-grey-40">{description}</Text>}
+      </View>
+    </View>
   );
 }
