@@ -32,6 +32,11 @@ interface Props {
   initialLatitude?: number;
   initialLongitude?: number;
   initialZoom?: number;
+  camera?: {
+    latitude: number;
+    longitude: number;
+    zoom?: number;
+  };
   busStopMarkers?: BusStopMarkerData[];
   buildingMarkers?: BuildingMarkerData[];
   placeMarkers?: PlaceMarkerData[];
@@ -45,11 +50,18 @@ export interface NaverMapHandle {
   animateCameraTo: (latitude: number, longitude: number, zoom?: number) => void;
 }
 
+type PendingCamera = {
+  latitude: number;
+  longitude: number;
+  zoom: number;
+};
+
 export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMap(
   {
     initialLatitude = 37.5665,
     initialLongitude = 126.978,
     initialZoom = 14,
+    camera,
     busStopMarkers = [],
     buildingMarkers = [],
     placeMarkers = [],
@@ -61,12 +73,36 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
   ref
 ) {
   const mapRef = React.useRef<NaverMapViewRef>(null);
+  const isInitializedRef = React.useRef(false);
+  const pendingCameraRef = React.useRef<PendingCamera | null>(null);
 
-  React.useImperativeHandle(ref, () => ({
-    animateCameraTo: (latitude, longitude, zoom = 16) => {
-      mapRef.current?.animateCameraTo({ latitude, longitude, zoom, duration: 500 });
-    },
-  }));
+  React.useImperativeHandle(
+    ref,
+    () => ({
+      animateCameraTo: (latitude, longitude, zoom = 16) => {
+        if (!isInitializedRef.current) {
+          pendingCameraRef.current = { latitude, longitude, zoom };
+          return;
+        }
+
+        mapRef.current?.animateCameraTo({ latitude, longitude, zoom, duration: 500 });
+      },
+    }),
+    []
+  );
+
+  function onInitialized() {
+    isInitializedRef.current = true;
+
+    const pendingCamera = pendingCameraRef.current;
+    if (!pendingCamera) return;
+
+    pendingCameraRef.current = null;
+    mapRef.current?.animateCameraTo({
+      ...pendingCamera,
+      duration: 500,
+    });
+  }
 
   return (
     <NaverMapView
@@ -78,6 +114,9 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
         longitude: initialLongitude,
         zoom: initialZoom,
       }}
+      camera={camera}
+      animationDuration={500}
+      onInitialized={onInitialized}
     >
       {busStopMarkers.map((marker) => (
         <NaverMapMarkerOverlay

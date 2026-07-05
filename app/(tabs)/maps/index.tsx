@@ -16,6 +16,7 @@ import BusInfoSheet from './_components/sheets/bus-info';
 import CategoryList from './_components/sheets/sheet-category';
 import DaedongPlaceListSheet from './_components/sheets/sheet-daedong-place-list';
 import PlaceDetailSheet from './_components/sheets/place-detail';
+import MapSearchSummary from './_components/sheets/map-search-summary';
 import PlaceListSheet from './_components/sheets/sheet-place-list';
 import SheetHandle from './_components/sheets/sheet-handle';
 import CATEGORIES from './_constants/category-data';
@@ -26,6 +27,8 @@ import {
   RestaurantIcon,
   StarIcon,
 } from '@/components/icons/map';
+import { useMapSearchSelection } from '@/context/map-search-selection';
+import { getMapIcon } from '@/lib/maps/icons';
 
 const QUICK_CHIP_IDS = ['bus', 'daedong', 'printer', 'lounge', 'bank'];
 
@@ -48,6 +51,7 @@ export default function MapsScreen() {
     facilityId?: string;
     placeId?: string;
   }>();
+  const { selectedSearchResult, clearSearchResult } = useMapSearchSelection();
   const insets = useSafeAreaInsets();
   const [selectedPlaceId, setSelectedPlaceId] = React.useState<string | null>(null);
   const [selectedFacilityId, setSelectedFacilityId] = React.useState<string | null>(null);
@@ -62,6 +66,40 @@ export default function MapsScreen() {
   const bottomSheetRef = React.useRef<BottomSheet>(null);
   const selectedPlace = findPlaceById(selectedPlaceId);
   const selectedFacility = findPlaceById(selectedFacilityId);
+  const selectedCamera = React.useMemo(
+    () =>
+      selectedSearchResult
+        ? {
+            latitude: selectedSearchResult.latitude,
+            longitude: selectedSearchResult.longitude,
+            zoom: 17,
+          }
+        : undefined,
+    [selectedSearchResult]
+  );
+
+  // 검색 결과 마커 (place marker 스타일 재사용)
+  const searchResultMarkers = React.useMemo(
+    () =>
+      selectedSearchResult
+        ? [
+            {
+              id: `search:${selectedSearchResult.type}:${selectedSearchResult.id}`,
+              latitude: selectedSearchResult.latitude,
+              longitude: selectedSearchResult.longitude,
+            },
+          ]
+        : [],
+    [selectedSearchResult]
+  );
+
+  const searchResultMarkerIcon = React.useMemo(
+    () =>
+      selectedSearchResult
+        ? getMapIcon(selectedSearchResult.iconKey, selectedSearchResult.categoryCode)
+        : undefined,
+    [selectedSearchResult]
+  );
 
   // 캠퍼스 건물 목록 조회
   const { data: buildings = [] } = useQuery({
@@ -138,13 +176,30 @@ export default function MapsScreen() {
     if (!nextPlace) return;
 
     setSelectedSheetMode('category');
+    clearSearchResult();
     setSelectedCategoryCode(null);
     setSelectedPlaceId(nextPlace.id);
     setSelectedFacilityId(Array.isArray(facilityId) ? facilityId[0] : (facilityId ?? null));
     setSelectedBuildingId(null);
     mapRef.current?.animateCameraTo(nextPlace.latitude, nextPlace.longitude, 17);
     bottomSheetRef.current?.snapToIndex(expanded === 'true' ? 2 : 1);
-  }, [expanded, exactMatch, facilityId, placeId]);
+  }, [clearSearchResult, expanded, exactMatch, facilityId, placeId]);
+
+  React.useEffect(() => {
+    if (!selectedSearchResult) return;
+
+    setSelectedPlaceId(null);
+    setSelectedFacilityId(null);
+    setSelectedBuildingId(null);
+    setSelectedCategoryCode(null);
+    setSelectedSheetMode('category');
+    mapRef.current?.animateCameraTo(
+      selectedSearchResult.latitude,
+      selectedSearchResult.longitude,
+      17
+    );
+    bottomSheetRef.current?.snapToIndex(1);
+  }, [selectedSearchResult]);
 
   // 캠퍼스 건물 마커 클릭 (상세 조회가 끝나면 아래 useEffect에서 시트를 교체)
   function onBuildingMarkerPress(id: string) {
@@ -153,13 +208,27 @@ export default function MapsScreen() {
 
     setSelectedPlaceId(null);
     setSelectedFacilityId(null);
+    clearSearchResult();
     setSelectedCategoryCode(null);
     setSelectedBuildingId(building.id);
     mapRef.current?.animateCameraTo(building.latitude, building.longitude);
   }
 
-  // 칩 조회 결과 마커 클릭
-  function onCategoryPlaceMarkerPress(id: string) {
+  // 검색 결과 및 칩 조회 결과 마커 클릭
+  function onPlaceMarkerPress(id: string) {
+    if (
+      selectedSearchResult &&
+      id === `search:${selectedSearchResult.type}:${selectedSearchResult.id}`
+    ) {
+      mapRef.current?.animateCameraTo(
+        selectedSearchResult.latitude,
+        selectedSearchResult.longitude,
+        17
+      );
+      bottomSheetRef.current?.snapToIndex(1);
+      return;
+    }
+
     const pin = categoryPins.find((p) => String(p.id) === id);
     if (!pin) return;
 
@@ -173,6 +242,7 @@ export default function MapsScreen() {
 
     setSelectedPlaceId(null);
     setSelectedFacilityId(null);
+    clearSearchResult();
     setSelectedBuildingId(null);
     setSelectedCategoryCode(null);
     setSelectedSheetMode('bus');
@@ -192,6 +262,7 @@ export default function MapsScreen() {
     if (chipId === 'bus') {
       setSelectedPlaceId(null);
       setSelectedFacilityId(null);
+      clearSearchResult();
       setSelectedBuildingId(null);
       setSelectedCategoryCode(null);
       setSelectedSheetMode('bus');
@@ -205,6 +276,7 @@ export default function MapsScreen() {
     // 그 외 칩 클릭 시 해당 카테고리의 장소/건물 목록 조회
     setSelectedPlaceId(null);
     setSelectedFacilityId(null);
+    clearSearchResult();
     setSelectedBuildingId(null);
     setSelectedSheetMode('places');
     setSelectedCategoryCode(chipId);
@@ -239,6 +311,7 @@ export default function MapsScreen() {
     setSelectedSheetMode('category');
     setSelectedPlaceId(null);
     setSelectedFacilityId(null);
+    clearSearchResult();
     setSelectedBuildingId(null);
     setSelectedCategoryCode(null);
     bottomSheetRef.current?.snapToIndex(1);
@@ -246,6 +319,10 @@ export default function MapsScreen() {
 
   // 바텀 시트 렌더링
   function renderBottomSheetContent() {
+    if (selectedSearchResult) {
+      return <MapSearchSummary item={selectedSearchResult} />;
+    }
+
     if (selectedPlace) {
       return <PlaceDetailSheet place={selectedPlace} selectedFacility={selectedFacility} />;
     }
@@ -276,13 +353,16 @@ export default function MapsScreen() {
         initialLatitude={CAMPUS_LATITUDE}
         initialLongitude={CAMPUS_LONGITUDE}
         initialZoom={16}
+        camera={selectedCamera}
         busStopMarkers={BUS_STOPS}
-        buildingMarkers={selectedCategoryCode ? [] : buildingMarkers}
-        placeMarkers={selectedCategoryCode ? categoryMarkers : []}
-        placeMarkerIcon={categoryMarkerIcon}
+        buildingMarkers={selectedSearchResult || selectedCategoryCode ? [] : buildingMarkers}
+        placeMarkers={
+          selectedSearchResult ? searchResultMarkers : selectedCategoryCode ? categoryMarkers : []
+        }
+        placeMarkerIcon={selectedSearchResult ? searchResultMarkerIcon : categoryMarkerIcon}
         onBusStopMarkerPress={onBusStopMarkerPress}
         onBuildingMarkerPress={onBuildingMarkerPress}
-        onPlaceMarkerPress={onCategoryPlaceMarkerPress}
+        onPlaceMarkerPress={onPlaceMarkerPress}
       />
 
       {/* 플로팅 헤더 */}
