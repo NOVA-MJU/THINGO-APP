@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 
-// 바텀 시트 핸들
+// 바텀 시트용 상단 핸들
 export default function SheetHandle() {
   return (
     <View className="items-center py-4">

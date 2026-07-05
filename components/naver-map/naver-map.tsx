@@ -1,2 +1,7 @@
 export { NaverMap } from './naver-map.native';
-export type { BusStopMarkerData, Marker, NaverMapHandle } from './naver-map.native';
+export type {
+  BuildingMarkerData,
+  BusStopMarkerData,
+  NaverMapHandle,
+  UserLocationData,
+} from './naver-map.native';
