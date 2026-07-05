@@ -7,14 +7,19 @@ import {
   useNavermaps,
 } from 'react-naver-maps';
 
-export interface Marker {
+export interface BusStopMarkerData {
   id: string;
   latitude: number;
   longitude: number;
-  title?: string;
 }
 
-export interface BusStopMarkerData {
+export interface BuildingMarkerData {
+  id: string;
+  latitude: number;
+  longitude: number;
+}
+
+export interface PlaceMarkerData {
   id: string;
   latitude: number;
   longitude: number;
@@ -31,10 +36,12 @@ interface Props {
   initialLongitude?: number;
   initialZoom?: number;
   camera?: Camera;
-  markers?: Marker[];
   busStopMarkers?: BusStopMarkerData[];
-  onMarkerPress?: (id: string) => void;
+  buildingMarkers?: BuildingMarkerData[];
+  placeMarkers?: PlaceMarkerData[];
   onBusStopMarkerPress?: (id: string) => void;
+  onBuildingMarkerPress?: (id: string) => void;
+  onPlaceMarkerPress?: (id: string) => void;
 }
 
 export interface NaverMapHandle {
@@ -46,10 +53,12 @@ type MapContentProps = {
   initialLongitude: number;
   initialZoom: number;
   camera?: Camera;
-  markers: Marker[];
   busStopMarkers: BusStopMarkerData[];
-  onMarkerPress: (id: string) => void;
+  buildingMarkers: BuildingMarkerData[];
+  placeMarkers: PlaceMarkerData[];
   onBusStopMarkerPress: (id: string) => void;
+  onBuildingMarkerPress: (id: string) => void;
+  onPlaceMarkerPress: (id: string) => void;
 };
 
 type PendingCamera = Required<Camera>;
@@ -60,10 +69,12 @@ const MapContent = React.forwardRef<NaverMapHandle, MapContentProps>(function Ma
     initialLongitude,
     initialZoom,
     camera,
-    markers,
     busStopMarkers,
-    onMarkerPress,
+    buildingMarkers,
+    placeMarkers,
     onBusStopMarkerPress,
+    onBuildingMarkerPress,
+    onPlaceMarkerPress,
   },
   ref
 ) {
@@ -120,19 +131,25 @@ const MapContent = React.forwardRef<NaverMapHandle, MapContentProps>(function Ma
       defaultZoom={initialZoom}
       onInit={onInit}
     >
-      {markers.map((marker) => (
-        <NaverMarker
-          key={marker.id}
-          position={new navermaps.LatLng(marker.latitude, marker.longitude)}
-          title={marker.title}
-          onClick={() => onMarkerPress(marker.id)}
-        />
-      ))}
       {busStopMarkers.map((marker) => (
         <NaverMarker
           key={marker.id}
           position={new navermaps.LatLng(marker.latitude, marker.longitude)}
           onClick={() => onBusStopMarkerPress(marker.id)}
+        />
+      ))}
+      {buildingMarkers.map((marker) => (
+        <NaverMarker
+          key={marker.id}
+          position={new navermaps.LatLng(marker.latitude, marker.longitude)}
+          onClick={() => onBuildingMarkerPress(marker.id)}
+        />
+      ))}
+      {placeMarkers.map((marker) => (
+        <NaverMarker
+          key={marker.id}
+          position={new navermaps.LatLng(marker.latitude, marker.longitude)}
+          onClick={() => onPlaceMarkerPress(marker.id)}
         />
       ))}
     </RNaverMap>
@@ -145,10 +162,12 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
     initialLongitude = 126.978,
     initialZoom = 14,
     camera,
-    markers = [],
     busStopMarkers = [],
-    onMarkerPress,
+    buildingMarkers = [],
+    placeMarkers = [],
     onBusStopMarkerPress,
+    onBuildingMarkerPress,
+    onPlaceMarkerPress,
   },
   ref
 ) {
@@ -161,10 +180,12 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
           initialLongitude={initialLongitude}
           initialZoom={initialZoom}
           camera={camera}
-          markers={markers}
           busStopMarkers={busStopMarkers}
-          onMarkerPress={onMarkerPress ?? (() => {})}
+          buildingMarkers={buildingMarkers}
+          placeMarkers={placeMarkers}
           onBusStopMarkerPress={onBusStopMarkerPress ?? (() => {})}
+          onBuildingMarkerPress={onBuildingMarkerPress ?? (() => {})}
+          onPlaceMarkerPress={onPlaceMarkerPress ?? (() => {})}
         />
       </Container>
     </NavermapsProvider>

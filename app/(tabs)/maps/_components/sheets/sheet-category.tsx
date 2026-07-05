@@ -6,6 +6,7 @@ interface CategoryListSheetProps {
   onChipPress?: (chipId: string) => void;
 }
 
+// 카테고리 칩 목록 표시 시트
 export default function CategoryListSheet({ onChipPress }: CategoryListSheetProps) {
   return (
     <ScrollView>
