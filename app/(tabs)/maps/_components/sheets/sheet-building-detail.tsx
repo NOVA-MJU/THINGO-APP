@@ -43,6 +43,7 @@ import {
 } from '@/components/icons/map';
 import type { MapBuildingDetail } from '@/api/maps';
 import { cn } from '@/lib/utils';
+import { useToggleMapFavorite } from '@/hooks/useToggleMapFavorite';
 
 type MapIconComponent = React.ComponentType<{ size?: number; className?: string }>;
 
@@ -94,6 +95,7 @@ function resolveMapIcon(iconKey: string | null): MapIconComponent {
 // 명지대학교 캠퍼스 건물 전용 상세 보기 시트
 export default function BuildingDetailSheet({ building }: { building: MapBuildingDetail }) {
   const [selectedCategoryCode, setSelectedCategoryCode] = React.useState<string | null>(null);
+  const toggleFavorite = useToggleMapFavorite();
 
   const HeaderIcon = resolveMapIcon(building.iconKey);
   const statusLabel = building.operatingStatus ?? '운영 정보가 없습니다';
@@ -112,7 +114,7 @@ export default function BuildingDetailSheet({ building }: { building: MapBuildin
               <Text className="text-body05 text-grey-80">{building.classroomCode}</Text>
             )}
           </View>
-          <TouchableOpacity hitSlop={4}>
+          <TouchableOpacity hitSlop={4} onPress={() => toggleFavorite(building.id)}>
             <FavoriteIcon size={28} active={building.favorite} />
           </TouchableOpacity>
         </View>

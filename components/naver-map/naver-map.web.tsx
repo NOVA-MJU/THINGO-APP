@@ -31,6 +31,12 @@ type Camera = {
   zoom?: number;
 };
 
+export interface UserLocationData {
+  latitude: number;
+  longitude: number;
+  heading?: number;
+}
+
 interface Props {
   initialLatitude?: number;
   initialLongitude?: number;
@@ -39,6 +45,7 @@ interface Props {
   busStopMarkers?: BusStopMarkerData[];
   buildingMarkers?: BuildingMarkerData[];
   placeMarkers?: PlaceMarkerData[];
+  userLocation?: UserLocationData | null;
   onBusStopMarkerPress?: (id: string) => void;
   onBuildingMarkerPress?: (id: string) => void;
   onPlaceMarkerPress?: (id: string) => void;
@@ -56,6 +63,7 @@ type MapContentProps = {
   busStopMarkers: BusStopMarkerData[];
   buildingMarkers: BuildingMarkerData[];
   placeMarkers: PlaceMarkerData[];
+  userLocation?: UserLocationData | null;
   onBusStopMarkerPress: (id: string) => void;
   onBuildingMarkerPress: (id: string) => void;
   onPlaceMarkerPress: (id: string) => void;
@@ -72,6 +80,7 @@ const MapContent = React.forwardRef<NaverMapHandle, MapContentProps>(function Ma
     busStopMarkers,
     buildingMarkers,
     placeMarkers,
+    userLocation,
     onBusStopMarkerPress,
     onBuildingMarkerPress,
     onPlaceMarkerPress,
@@ -152,6 +161,13 @@ const MapContent = React.forwardRef<NaverMapHandle, MapContentProps>(function Ma
           onClick={() => onPlaceMarkerPress(marker.id)}
         />
       ))}
+      {userLocation && (
+        <NaverMarker
+          position={new navermaps.LatLng(userLocation.latitude, userLocation.longitude)}
+          clickable={false}
+          zIndex={10}
+        />
+      )}
     </RNaverMap>
   );
 });
@@ -165,6 +181,7 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
     busStopMarkers = [],
     buildingMarkers = [],
     placeMarkers = [],
+    userLocation,
     onBusStopMarkerPress,
     onBuildingMarkerPress,
     onPlaceMarkerPress,
@@ -183,6 +200,7 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
           busStopMarkers={busStopMarkers}
           buildingMarkers={buildingMarkers}
           placeMarkers={placeMarkers}
+          userLocation={userLocation}
           onBusStopMarkerPress={onBusStopMarkerPress ?? (() => {})}
           onBuildingMarkerPress={onBuildingMarkerPress ?? (() => {})}
           onPlaceMarkerPress={onPlaceMarkerPress ?? (() => {})}

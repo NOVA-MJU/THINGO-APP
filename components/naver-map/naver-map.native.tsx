@@ -28,6 +28,12 @@ export interface PlaceMarkerData {
   longitude: number;
 }
 
+export interface UserLocationData {
+  latitude: number;
+  longitude: number;
+  heading?: number;
+}
+
 interface Props {
   initialLatitude?: number;
   initialLongitude?: number;
@@ -41,6 +47,7 @@ interface Props {
   buildingMarkers?: BuildingMarkerData[];
   placeMarkers?: PlaceMarkerData[];
   placeMarkerIcon?: ComponentType<{ size?: number; className?: string }>;
+  userLocation?: UserLocationData | null;
   onBusStopMarkerPress?: (id: string) => void;
   onBuildingMarkerPress?: (id: string) => void;
   onPlaceMarkerPress?: (id: string) => void;
@@ -66,6 +73,7 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
     buildingMarkers = [],
     placeMarkers = [],
     placeMarkerIcon,
+    userLocation,
     onBusStopMarkerPress,
     onBuildingMarkerPress,
     onPlaceMarkerPress,
@@ -117,6 +125,15 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
       camera={camera}
       animationDuration={500}
       onInitialized={onInitialized}
+      locationOverlay={{
+        isVisible: !!userLocation,
+        position: userLocation ?? undefined,
+        bearing: userLocation?.heading ?? 0,
+        image: require('@/assets/map-marker-overlay.png'),
+        imageWidth: 26,
+        imageHeight: 36,
+        anchor: { x: 0.5, y: 0.636 },
+      }}
     >
       {busStopMarkers.map((marker) => (
         <NaverMapMarkerOverlay

@@ -1,15 +1,22 @@
 import { MapCategoryPin } from '@/api/maps';
 import { FavoriteIcon, MyeongwolIcon, RestaurantIcon } from '@/components/icons/map';
 import { Text } from '@/components/ui/text';
+import { useToggleMapFavorite } from '@/hooks/useToggleMapFavorite';
 import { Fragment } from 'react';
 import { Image, ScrollView, TouchableOpacity, View } from 'react-native';
 
 interface DaedongPlaceListSheetProps {
   places: MapCategoryPin[];
+  onPlacePress?: (place: MapCategoryPin) => void;
 }
 
 // 대동명지도 목록 표시 시트
-export default function DaedongPlaceListSheet({ places }: DaedongPlaceListSheetProps) {
+export default function DaedongPlaceListSheet({
+  places,
+  onPlacePress,
+}: DaedongPlaceListSheetProps) {
+  const toggleFavorite = useToggleMapFavorite();
+
   return (
     <ScrollView>
       <View className="flex-row items-center px-4">
@@ -29,7 +36,12 @@ export default function DaedongPlaceListSheet({ places }: DaedongPlaceListSheetP
         places.map((place, index) => (
           <Fragment key={place.id}>
             {index > 0 && <View className="m-4 h-[1.5px] bg-grey-02" />}
-            <View className="px-4">
+            <TouchableOpacity
+              className="px-4"
+              activeOpacity={0.7}
+              disabled={!onPlacePress}
+              onPress={() => onPlacePress?.(place)}
+            >
               <View className="flex-row items-center gap-3.5">
                 <View className="rounded bg-blue-05 p-2">
                   <RestaurantIcon size={28} className="text-blue-15" />
@@ -42,7 +54,7 @@ export default function DaedongPlaceListSheet({ places }: DaedongPlaceListSheetP
                     </Text>
                   )}
                 </View>
-                <TouchableOpacity hitSlop={4}>
+                <TouchableOpacity hitSlop={4} onPress={() => toggleFavorite(place.id)}>
                   <FavoriteIcon size={28} active={place.favorite} />
                 </TouchableOpacity>
               </View>
@@ -66,7 +78,7 @@ export default function DaedongPlaceListSheet({ places }: DaedongPlaceListSheetP
                   resizeMode="cover"
                 />
               )}
-            </View>
+            </TouchableOpacity>
           </Fragment>
         ))
       )}

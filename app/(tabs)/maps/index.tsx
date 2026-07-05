@@ -1,9 +1,14 @@
-import { getBuildingDetail, getBuildings, getCategoryPins } from '@/api/maps';
+import {
+  getBuildingDetail,
+  getBuildings,
+  getCategoryPins,
+  getPlaceDetail,
+  type MapCategoryPin,
+} from '@/api/maps';
 import { SearchIcon, ThingoLogoSmall } from '@/components/icons';
-import { NaverMap, NaverMapHandle } from '@/components/naver-map';
+import { NaverMap, NaverMapHandle, UserLocationData } from '@/components/naver-map';
 import { Text } from '@/components/ui/text';
 import { BUS_STOPS, type BusStopStation } from '@/lib/maps/bus-stops';
-import { findPlaceById } from '@/lib/maps/places';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import * as Location from 'expo-location';
@@ -15,7 +20,7 @@ import BuildingDetailSheet from './_components/sheets/sheet-building-detail';
 import BusInfoSheet from './_components/sheets/bus-info';
 import CategoryList from './_components/sheets/sheet-category';
 import DaedongPlaceListSheet from './_components/sheets/sheet-daedong-place-list';
-import PlaceDetailSheet from './_components/sheets/place-detail';
+import PlaceDetailSheet from './_components/sheets/sheet-place-detail';
 import MapSearchSummary from './_components/sheets/map-search-summary';
 import PlaceListSheet from './_components/sheets/sheet-place-list';
 import SheetHandle from './_components/sheets/sheet-handle';
@@ -45,27 +50,25 @@ const SNAP_POINTS = ['10%', '50%', '100%'];
 
 export default function MapsScreen() {
   const router = useRouter();
-  const { exactMatch, expanded, facilityId, placeId } = useLocalSearchParams<{
+  const { exactMatch, expanded, placeId } = useLocalSearchParams<{
     exactMatch?: string;
     expanded?: string;
-    facilityId?: string;
     placeId?: string;
   }>();
   const { selectedSearchResult, clearSearchResult } = useMapSearchSelection();
   const insets = useSafeAreaInsets();
-  const [selectedPlaceId, setSelectedPlaceId] = React.useState<string | null>(null);
-  const [selectedFacilityId, setSelectedFacilityId] = React.useState<string | null>(null);
+  const [selectedPlaceId, setSelectedPlaceId] = React.useState<number | null>(null);
   const [selectedBuildingId, setSelectedBuildingId] = React.useState<number | null>(null);
   const [selectedSheetMode, setSelectedSheetMode] = React.useState<
-    'category' | 'bus' | 'building' | 'places'
+    'category' | 'bus' | 'building' | 'place' | 'places'
   >('category');
   const [selectedCategoryCode, setSelectedCategoryCode] = React.useState<string | null>(null);
   const [selectedStation, setSelectedStation] = React.useState<BusStopStation | null>(null);
   const [bottomSheetIndex, setBottomSheetIndex] = React.useState(0);
+  const [userLocation, setUserLocation] = React.useState<UserLocationData | null>(null);
   const mapRef = React.useRef<NaverMapHandle>(null);
   const bottomSheetRef = React.useRef<BottomSheet>(null);
-  const selectedPlace = findPlaceById(selectedPlaceId);
-  const selectedFacility = findPlaceById(selectedFacilityId);
+  const locationSubscriptionRef = React.useRef<Location.LocationSubscription | null>(null);
   const selectedCamera = React.useMemo(
     () =>
       selectedSearchResult
@@ -115,6 +118,14 @@ export default function MapsScreen() {
     placeholderData: keepPreviousData,
   });
 
+  // 장소(비건물) 상세 조회
+  const { data: selectedPlaceDetail } = useQuery({
+    queryKey: ['map-place-detail', selectedPlaceId],
+    queryFn: () => getPlaceDetail(selectedPlaceId!, CAMPUS_LATITUDE, CAMPUS_LONGITUDE),
+    enabled: selectedPlaceId !== null,
+    placeholderData: keepPreviousData,
+  });
+
   // 칩 클릭 시 장소/건물 목록 조회
   const { data: categoryPins = [] } = useQuery({
     queryKey: ['map-category-pins', selectedCategoryCode, CAMPUS_LATITUDE, CAMPUS_LONGITUDE],
@@ -137,6 +148,26 @@ export default function MapsScreen() {
 
     bottomSheetRef.current?.snapToIndex(1);
   }, [selectedSheetMode, selectedBuildingDetail, bottomSheetIndex]);
+
+  // 장소 상세 조회가 완료되면 그때 시트를 장소 상세로 교체하고 지도를 이동시킨다
+  React.useEffect(() => {
+    if (selectedPlaceId === null || !selectedPlaceDetail) return;
+
+    setSelectedSheetMode('place');
+    mapRef.current?.animateCameraTo(
+      selectedPlaceDetail.latitude,
+      selectedPlaceDetail.longitude,
+      17
+    );
+  }, [selectedPlaceId, selectedPlaceDetail]);
+
+  // 시트가 접혀있던 경우, 장소 상세 콘텐츠 렌더링이 끝난 뒤에 시트를 펼친다
+  React.useEffect(() => {
+    if (selectedSheetMode !== 'place' || !selectedPlaceDetail) return;
+    if (bottomSheetIndex !== 0) return;
+
+    bottomSheetRef.current?.snapToIndex(1);
+  }, [selectedSheetMode, selectedPlaceDetail, bottomSheetIndex]);
 
   // 캠퍼스 건물 마커
   const buildingMarkers = React.useMemo(
@@ -172,24 +203,22 @@ export default function MapsScreen() {
   }, [selectedCategoryCode]);
 
   React.useEffect(() => {
-    const nextPlace = findPlaceById(placeId);
-    if (!nextPlace) return;
+    const rawPlaceId = Array.isArray(placeId) ? placeId[0] : placeId;
+    const numericPlaceId = rawPlaceId ? Number(rawPlaceId) : NaN;
+    if (Number.isNaN(numericPlaceId)) return;
 
     setSelectedSheetMode('category');
     clearSearchResult();
     setSelectedCategoryCode(null);
-    setSelectedPlaceId(nextPlace.id);
-    setSelectedFacilityId(Array.isArray(facilityId) ? facilityId[0] : (facilityId ?? null));
     setSelectedBuildingId(null);
-    mapRef.current?.animateCameraTo(nextPlace.latitude, nextPlace.longitude, 17);
+    setSelectedPlaceId(numericPlaceId);
     bottomSheetRef.current?.snapToIndex(expanded === 'true' ? 2 : 1);
-  }, [clearSearchResult, expanded, exactMatch, facilityId, placeId]);
+  }, [clearSearchResult, expanded, exactMatch, placeId]);
 
   React.useEffect(() => {
     if (!selectedSearchResult) return;
 
     setSelectedPlaceId(null);
-    setSelectedFacilityId(null);
     setSelectedBuildingId(null);
     setSelectedCategoryCode(null);
     setSelectedSheetMode('category');
@@ -207,11 +236,25 @@ export default function MapsScreen() {
     if (!building) return;
 
     setSelectedPlaceId(null);
-    setSelectedFacilityId(null);
     clearSearchResult();
     setSelectedCategoryCode(null);
     setSelectedBuildingId(building.id);
     mapRef.current?.animateCameraTo(building.latitude, building.longitude);
+  }
+
+  // 칩 조회 결과 핀 선택 (건물 핀이면 건물 상세, 그 외는 장소 상세로 조회) - 마커 클릭과 리스트 항목 클릭에서 공통으로 사용
+  function selectCategoryPin(pin: MapCategoryPin) {
+    clearSearchResult();
+    mapRef.current?.animateCameraTo(pin.latitude, pin.longitude);
+
+    if (pin.type === 'BUILDING') {
+      setSelectedPlaceId(null);
+      setSelectedBuildingId(pin.id);
+      return;
+    }
+
+    setSelectedBuildingId(null);
+    setSelectedPlaceId(pin.id);
   }
 
   // 검색 결과 및 칩 조회 결과 마커 클릭
@@ -232,7 +275,7 @@ export default function MapsScreen() {
     const pin = categoryPins.find((p) => String(p.id) === id);
     if (!pin) return;
 
-    mapRef.current?.animateCameraTo(pin.latitude, pin.longitude);
+    selectCategoryPin(pin);
   }
 
   // 버스 정류장 마커 클릭
@@ -241,7 +284,6 @@ export default function MapsScreen() {
     if (!busStop) return;
 
     setSelectedPlaceId(null);
-    setSelectedFacilityId(null);
     clearSearchResult();
     setSelectedBuildingId(null);
     setSelectedCategoryCode(null);
@@ -261,7 +303,6 @@ export default function MapsScreen() {
     // 버스 정류장 칩 클릭
     if (chipId === 'bus') {
       setSelectedPlaceId(null);
-      setSelectedFacilityId(null);
       clearSearchResult();
       setSelectedBuildingId(null);
       setSelectedCategoryCode(null);
@@ -275,13 +316,45 @@ export default function MapsScreen() {
 
     // 그 외 칩 클릭 시 해당 카테고리의 장소/건물 목록 조회
     setSelectedPlaceId(null);
-    setSelectedFacilityId(null);
     clearSearchResult();
     setSelectedBuildingId(null);
     setSelectedSheetMode('places');
     setSelectedCategoryCode(chipId);
     bottomSheetRef.current?.snapToIndex(1);
   }
+
+  // 사용자 위치 추적 시작 (native 전용, 지도의 현위치 오버레이 표시용)
+  async function startWatchingUserLocation() {
+    if (Platform.OS === 'web' || locationSubscriptionRef.current) return;
+
+    const servicesEnabled = await Location.hasServicesEnabledAsync();
+    if (!servicesEnabled) return;
+
+    locationSubscriptionRef.current = await Location.watchPositionAsync(
+      { accuracy: Location.Accuracy.High, timeInterval: 2000, distanceInterval: 5 },
+      (location) => {
+        setUserLocation({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+          heading: location.coords.heading ?? undefined,
+        });
+      }
+    );
+  }
+
+  // 이미 위치 권한이 허용된 경우, 화면 진입 시 바로 위치 추적 시작
+  React.useEffect(() => {
+    if (Platform.OS === 'web') return;
+
+    Location.getForegroundPermissionsAsync().then(({ status }) => {
+      if (status === 'granted') startWatchingUserLocation();
+    });
+
+    return () => {
+      locationSubscriptionRef.current?.remove();
+      locationSubscriptionRef.current = null;
+    };
+  }, []);
 
   // 현위치 찾기 버튼 클릭 (native 전용)
   async function onCurrentLocationPress() {
@@ -295,6 +368,8 @@ export default function MapsScreen() {
       Alert.alert('위치 서비스 비활성화', '기기의 위치 서비스를 켜주세요.');
       return;
     }
+
+    startWatchingUserLocation();
 
     try {
       const location = await Location.getCurrentPositionAsync({
@@ -310,7 +385,6 @@ export default function MapsScreen() {
   function handleMoreCategories() {
     setSelectedSheetMode('category');
     setSelectedPlaceId(null);
-    setSelectedFacilityId(null);
     clearSearchResult();
     setSelectedBuildingId(null);
     setSelectedCategoryCode(null);
@@ -323,10 +397,6 @@ export default function MapsScreen() {
       return <MapSearchSummary item={selectedSearchResult} />;
     }
 
-    if (selectedPlace) {
-      return <PlaceDetailSheet place={selectedPlace} selectedFacility={selectedFacility} />;
-    }
-
     if (selectedSheetMode === 'bus' && selectedStation) {
       return <BusInfoSheet station={selectedStation} />;
     }
@@ -335,11 +405,15 @@ export default function MapsScreen() {
       return <BuildingDetailSheet building={selectedBuildingDetail} />;
     }
 
+    if (selectedSheetMode === 'place' && selectedPlaceDetail) {
+      return <PlaceDetailSheet place={selectedPlaceDetail} />;
+    }
+
     if (selectedSheetMode === 'places' && selectedCategoryCode) {
       if (selectedCategoryCode === 'daedong') {
-        return <DaedongPlaceListSheet places={categoryPins} />;
+        return <DaedongPlaceListSheet places={categoryPins} onPlacePress={selectCategoryPin} />;
       }
-      return <PlaceListSheet places={categoryPins} />;
+      return <PlaceListSheet places={categoryPins} onPlacePress={selectCategoryPin} />;
     }
 
     return <CategoryList onChipPress={onQuickChipPress} />;
@@ -360,6 +434,7 @@ export default function MapsScreen() {
           selectedSearchResult ? searchResultMarkers : selectedCategoryCode ? categoryMarkers : []
         }
         placeMarkerIcon={selectedSearchResult ? searchResultMarkerIcon : categoryMarkerIcon}
+        userLocation={userLocation}
         onBusStopMarkerPress={onBusStopMarkerPress}
         onBuildingMarkerPress={onBuildingMarkerPress}
         onPlaceMarkerPress={onPlaceMarkerPress}
