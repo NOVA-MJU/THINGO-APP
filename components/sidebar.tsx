@@ -103,7 +103,7 @@ export default function Sidebar({ visible, onClose, onNavigate }: SidebarProps) 
   // 로그인 버튼 클릭
   function handleLogin() {
     handleClose();
-    router.push('/(auth)/login');
+    router.push('/login');
   }
 
   // 로그아웃 버튼 클릭

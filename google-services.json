@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "650247693575",
+    "project_id": "thingo-8eee1",
+    "storage_bucket": "thingo-8eee1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:650247693575:android:12076b14ac7f1793b191a2",
+        "android_client_info": {
+          "package_name": "com.nova.thingo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA3bv5jB9GRMkVmflmRHsfyXmnZiLj97So"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
