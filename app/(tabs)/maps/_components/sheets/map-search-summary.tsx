@@ -1,10 +1,12 @@
 import type { MapSearchItem } from '@/api/maps';
 import { FavoriteIcon } from '@/components/icons/map';
 import { Text } from '@/components/ui/text';
+import { useToggleMapFavorite } from '@/hooks/useToggleMapFavorite';
 import { formatMapDistance, getOperatingStatusClassName } from '@/lib/maps/format';
 import { getMapIcon, getMapIconClassName } from '@/lib/maps/icons';
 import { cn } from '@/lib/utils';
-import { Image, View } from 'react-native';
+import * as React from 'react';
+import { Image, TouchableOpacity, View } from 'react-native';
 
 interface MapSearchSummaryProps {
   item: MapSearchItem;
@@ -13,6 +15,13 @@ interface MapSearchSummaryProps {
 export default function MapSearchSummary({ item }: MapSearchSummaryProps) {
   const Icon = getMapIcon(item.iconKey, item.categoryCode);
   const secondaryText = item.classroomCode || item.location;
+  const toggleFavorite = useToggleMapFavorite();
+  // item은 검색 선택 컨텍스트의 스냅샷이라 react-query 무효화로 갱신되지 않으므로 로컬로 낙관 반영
+  const [favorite, setFavorite] = React.useState(item.favorite);
+
+  React.useEffect(() => {
+    setFavorite(item.favorite);
+  }, [item.favorite]);
 
   return (
     <View className="pb-4">
@@ -28,7 +37,12 @@ export default function MapSearchSummary({ item }: MapSearchSummaryProps) {
             {secondaryText ?? (item.type === 'BUILDING' ? '건물' : '장소')}
           </Text>
         </View>
-        <FavoriteIcon size={28} active={item.favorite} />
+        <TouchableOpacity
+          hitSlop={4}
+          onPress={() => toggleFavorite(item.id, { onToggled: setFavorite })}
+        >
+          <FavoriteIcon size={28} active={favorite} />
+        </TouchableOpacity>
       </View>
 
       <View className="mt-2.5 flex-row items-center gap-1.5 px-4">

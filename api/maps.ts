@@ -82,6 +82,20 @@ export type MapBuildingDetail = {
   floors: MapBuildingFloor[];
 };
 
+export type MapPlaceDetail = {
+  id: number;
+  name: string;
+  categoryCode: string;
+  iconKey: string | null;
+  imageUrl: string | null;
+  favorite: boolean;
+  distanceMeters: number | null;
+  latitude: number;
+  longitude: number;
+  location: string | null;
+  infoText: string | null;
+};
+
 export type MapCategoryPin = {
   id: number;
   type: MapPlaceType;
@@ -200,4 +214,31 @@ export async function getBuildingDetail(
     if (error instanceof AxiosError && error.response?.status === 404) return null;
     throw error;
   }
+}
+
+// 장소(비건물) 상세 조회
+export async function getPlaceDetail(
+  id: number,
+  lat?: number,
+  lng?: number
+): Promise<MapPlaceDetail | null> {
+  try {
+    const { data } = await client.get<ApiResponse<MapPlaceDetail>>(`/map/places/${id}`, {
+      params: { lat, lng },
+    });
+
+    return data.data;
+  } catch (error) {
+    if (error instanceof AxiosError && error.response?.status === 404) return null;
+    throw error;
+  }
+}
+
+// 건물/장소 즐겨찾기 토글 (등록 시 true, 해제 시 false 반환)
+export async function toggleMapFavorite(pinId: number): Promise<boolean> {
+  const { data } = await client.post<ApiResponse<boolean>>('/map/favorites', null, {
+    params: { pinId },
+  });
+
+  return data.data;
 }

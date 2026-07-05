@@ -1,12 +1,14 @@
 import { MapCategoryPin } from '@/api/maps';
 import { BuildingIcon, FavoriteIcon } from '@/components/icons/map';
 import { Text } from '@/components/ui/text';
+import { useToggleMapFavorite } from '@/hooks/useToggleMapFavorite';
 import { ComponentType, Fragment } from 'react';
 import { Image, ScrollView, TouchableOpacity, View } from 'react-native';
 import CATEGORIES from '../../_constants/category-data';
 
 interface PlaceListSheetProps {
   places: MapCategoryPin[];
+  onPlacePress?: (place: MapCategoryPin) => void;
 }
 
 // 칩의 카테고리 코드로 아이콘 조회 (일치하는 칩이 없으면 기본 건물 아이콘 사용)
@@ -23,7 +25,9 @@ function resolvePlaceIcon(categoryCode: string): {
 }
 
 // 장소 목록 표시 시트
-export default function PlaceListSheet({ places }: PlaceListSheetProps) {
+export default function PlaceListSheet({ places, onPlacePress }: PlaceListSheetProps) {
+  const toggleFavorite = useToggleMapFavorite();
+
   if (places.length === 0) {
     return (
       <View className="items-center px-4 py-10">
@@ -40,7 +44,12 @@ export default function PlaceListSheet({ places }: PlaceListSheetProps) {
         return (
           <Fragment key={place.id}>
             {index > 0 && <View className="m-4 h-[1.5px] bg-grey-02" />}
-            <View className="px-4">
+            <TouchableOpacity
+              className="px-4"
+              activeOpacity={0.7}
+              disabled={!onPlacePress}
+              onPress={() => onPlacePress?.(place)}
+            >
               <View className="flex-row items-center gap-3.5">
                 <View className="rounded bg-blue-05 p-2">
                   <Icon size={28} className={iconClassName} />
@@ -53,7 +62,7 @@ export default function PlaceListSheet({ places }: PlaceListSheetProps) {
                     </Text>
                   )}
                 </View>
-                <TouchableOpacity hitSlop={4}>
+                <TouchableOpacity hitSlop={4} onPress={() => toggleFavorite(place.id)}>
                   <FavoriteIcon size={28} active={place.favorite} />
                 </TouchableOpacity>
               </View>
@@ -77,7 +86,7 @@ export default function PlaceListSheet({ places }: PlaceListSheetProps) {
                   resizeMode="cover"
                 />
               )}
-            </View>
+            </TouchableOpacity>
           </Fragment>
         );
       })}
