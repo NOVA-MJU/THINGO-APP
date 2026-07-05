@@ -91,6 +91,7 @@ function resolveMapIcon(iconKey: string | null): MapIconComponent {
   return MapIcon;
 }
 
+// 명지대학교 캠퍼스 건물 전용 상세 보기 시트
 export default function BuildingDetailSheet({ building }: { building: MapBuildingDetail }) {
   const [selectedCategoryCode, setSelectedCategoryCode] = React.useState<string | null>(null);
 
