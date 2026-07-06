@@ -1,0 +1,32 @@
+name: Deploy App
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-submit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build and submit (iOS & Android)
+        run: eas build --platform all --profile production --non-interactive --auto-submit --no-wait
