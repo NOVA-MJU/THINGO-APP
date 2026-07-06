@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:650247693575:android:12076b14ac7f1793b191a2",
+        "mobilesdk_app_id": "1:650247693575:android:df3ebb2639c4ee0fb191a2",
         "android_client_info": {
-          "package_name": "com.nova.thingo"
+          "package_name": "com.mju.thingo"
         }
       },
       "oauth_client": [],
