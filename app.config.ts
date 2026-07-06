@@ -17,14 +17,14 @@ const config: ExpoConfig = {
   assetBundlePatterns: ['**/*'],
   ios: {
     supportsTablet: true,
-    bundleIdentifier: 'com.nova.thingo',
+    bundleIdentifier: 'com.mju.thingo',
     infoPlist: {
       CFBundleDevelopmentRegion: 'ko',
       CFBundleLocalizations: ['ko'],
     },
   },
   android: {
-    package: 'com.nova.thingo',
+    package: 'com.mju.thingo',
     googleServicesFile: './google-services.json',
 
     adaptiveIcon: {
@@ -67,6 +67,11 @@ const config: ExpoConfig = {
   ],
   experiments: {
     typedRoutes: true,
+  },
+  extra: {
+    eas: {
+      projectId: '8d706b08-8345-411a-a29a-99ec2ffb93c4',
+    },
   },
 };
 
