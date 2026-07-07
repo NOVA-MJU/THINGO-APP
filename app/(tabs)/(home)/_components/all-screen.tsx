@@ -25,7 +25,7 @@ import { getBoards, getHotBoards, type Board } from '@/api/posts';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getNews, type NewsItem, type NewsCategory } from '@/api/news';
 import { getBanners, type Banner } from '@/api/banners';
-import { getBroadcasts, type BroadcastItem } from '@/api/broadcast';
+import { getBroadcasts, type BroadcastItem, type BroadcastSource } from '@/api/broadcast';
 import { getMenus, type DailyMenu } from '@/api/menus';
 import {
   getCalendar,
@@ -70,6 +70,12 @@ const NEWSPAPER_CATEGORY_MAP: Record<string, NewsCategory> = {
   사회: 'SOCIETY',
 };
 
+const BROADCAST_SOURCE_MAP: Record<string, BroadcastSource> = {
+  전체: 'ALL',
+  명지대학교: 'OFFICIAL',
+  명대방송국: 'BROADCAST',
+};
+
 const BOARD_CATEGORY_LABELS: Record<string, string> = {
   FREE: '자유게시판',
   NOTICE: '공지게시판',
@@ -94,6 +100,7 @@ export default function AllScreen({ onNavigate }: Props) {
   const [currentBannerIndex, setCurrentBannerIndex] = React.useState(0);
   const [selectedNoticeCategory, setSelectedNoticeCategory] = React.useState('전체');
   const [selectedNewspaperCategory, setSelectedNewspaperCategory] = React.useState('전체');
+  const [selectedBroadcastSource, setSelectedBroadcastSource] = React.useState('전체');
   const [notices, setNotices] = React.useState<Notice[]>([]);
   const [noticesLoading, setNoticesLoading] = React.useState(false);
   const [hotNotices, setHotNotices] = React.useState<HotNotice[]>([]);
@@ -139,11 +146,11 @@ export default function AllScreen({ onNavigate }: Props) {
 
   React.useEffect(() => {
     setBroadcastsLoading(true);
-    getBroadcasts({ size: 5 })
+    getBroadcasts({ source: BROADCAST_SOURCE_MAP[selectedBroadcastSource], size: 5 })
       .then((res) => setBroadcasts(res.content))
       .catch(() => setBroadcasts([]))
       .finally(() => setBroadcastsLoading(false));
-  }, []);
+  }, [selectedBroadcastSource]);
 
   React.useEffect(() => {
     getMenus()
@@ -722,6 +729,14 @@ export default function AllScreen({ onNavigate }: Props) {
             <TouchableOpacity onPress={() => onNavigate(6)} className="me-3.5">
               <ArrowRightIcon size={20} className="text-grey-60" />
             </TouchableOpacity>
+          </View>
+          <View className="mt-3">
+            <CategoryFilter
+              categories={Object.keys(BROADCAST_SOURCE_MAP)}
+              selected={selectedBroadcastSource}
+              onSelect={setSelectedBroadcastSource}
+              paddingHorizontal={16}
+            />
           </View>
           <View className="relative mx-4 mt-4 gap-4">
             {broadcasts.map((item, index) => {
