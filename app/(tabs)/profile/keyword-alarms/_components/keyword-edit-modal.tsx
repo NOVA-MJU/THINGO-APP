@@ -1,9 +1,8 @@
-import type { AlarmCategory, KeywordAlarm } from '@/api/notifications';
+﻿import type { AlarmCategory, KeywordAlarm } from '@/api/notifications';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
-import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
-import { Trash2, X } from 'lucide-react-native';
+import { Info, Trash2, X } from 'lucide-react-native';
 import * as React from 'react';
 import {
   Animated,
@@ -70,6 +69,15 @@ export function KeywordEditModal({
     ]).start();
   }, [alarm, backdropOpacity, sheetTranslateY, windowHeight]);
 
+  const hasCategoryChanges = React.useMemo(() => {
+    const initialCategories = alarm?.categories ?? [];
+    if (initialCategories.length !== categories.length) return true;
+
+    return initialCategories.some((category) => !categories.includes(category));
+  }, [alarm?.categories, categories]);
+
+  const canSave = categories.length > 0 && hasCategoryChanges && !saving && !deleting;
+
   const handlePanResponder = React.useMemo(
     () =>
       PanResponder.create({
@@ -134,11 +142,7 @@ export function KeywordEditModal({
   }
 
   function saveCategories() {
-    if (categories.length === 0) {
-      setShowCategoryError(true);
-      return;
-    }
-
+    if (!canSave) return;
     onSave(categories);
   }
 
@@ -152,7 +156,7 @@ export function KeywordEditModal({
             { backgroundColor: 'rgba(0, 0, 0, 0.4)', opacity: backdropOpacity },
           ]}
         />
-        <Pressable className="flex-1" onPress={onClose} accessibilityLabel="수정 창 닫기" />
+        <Pressable className="flex-1" onPress={onClose} accessibilityLabel="키워드 수정 닫기" />
         <Animated.View
           style={[
             { width: '100%', transform: [{ translateY: sheetTranslateY }] },
@@ -163,56 +167,79 @@ export function KeywordEditModal({
           ]}
         >
           <View
-            className="w-full rounded-t-[24px] bg-white px-4 pt-3"
-            style={{ paddingBottom: Math.max(insets.bottom, 20) }}
+            className="w-full rounded-t-[20px] border border-grey-10 bg-white pt-4"
+            style={{
+              paddingBottom:
+                Platform.OS === 'web'
+                  ? 20
+                  : Platform.OS === 'android'
+                    ? Math.max(insets.bottom, 20)
+                    : Math.max(insets.bottom, 40),
+              shadowColor: '#17171B',
+              shadowOffset: { width: 0, height: -4 },
+              shadowOpacity: 0.14,
+              shadowRadius: 8,
+              elevation: 8,
+            }}
           >
             <View
               {...handlePanResponder.panHandlers}
               accessibilityRole="button"
               accessibilityLabel="아래로 끌어 키워드 수정 닫기"
-              className="-mx-4 -mt-3 h-10 items-center justify-center web:cursor-grab web:select-none"
+              className="-mt-4 h-8 items-center justify-center web:cursor-grab web:select-none"
             >
-              <View className="h-1 w-10 rounded-full bg-grey-20" />
+              <View className="h-1 w-10 rounded-full bg-grey-10" />
             </View>
-            <View className="flex-row items-center">
+
+            <View className="h-[43px] flex-row items-start px-4">
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`${alarm?.keyword ?? ''} 키워드 삭제`}
                 onPress={() => alarm && onDelete(alarm)}
                 disabled={saving || deleting}
-                className="h-11 w-11 items-center justify-center rounded-full active:bg-grey-02"
+                className="h-[27px] w-[52px] items-center justify-center active:opacity-70"
               >
-                <Icon as={Trash2} size={21} className="text-error" />
+                <Icon as={Trash2} size={24} className="text-grey-30" />
               </Pressable>
-              <Text className="flex-1 text-center text-title03 text-black">키워드 수정</Text>
+              <View className="h-[27px] flex-1 items-center justify-center">
+                <Text className="text-title03 text-black">키워드 수정</Text>
+              </View>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="키워드 수정 닫기"
                 onPress={onClose}
                 disabled={saving || deleting}
-                className="h-11 w-11 items-center justify-center rounded-full active:bg-grey-02"
+                className="h-[27px] w-[52px] items-center justify-center active:opacity-70"
               >
-                <Icon as={X} size={22} className="text-grey-60" />
+                <Icon as={X} size={24} className="text-grey-30" />
               </Pressable>
             </View>
 
-            <View className="mt-5">
-              <Text className="text-body04 text-grey-80">키워드</Text>
-              <Input
-                className="mt-2 h-11 bg-grey-02 text-grey-60"
-                value={alarm?.keyword ?? ''}
-                editable={false}
-              />
-              <Text className="mt-1 text-caption02 text-grey-40">
-                키워드는 삭제 후 다시 등록할 수 있어요.
-              </Text>
+            <View className="h-1 bg-grey-02" />
+
+            <View className="px-4 pt-4">
+              <Text className="font-weight-600 text-body02 text-grey-80">키워드</Text>
+              <View className="mt-4 h-11 justify-center rounded-[8px] border border-grey-20 bg-white px-3">
+                <Text className="text-body05 text-grey-80" numberOfLines={1}>
+                  {alarm?.keyword ?? ''}
+                </Text>
+              </View>
+              <View className="mt-2 flex-row items-center gap-1">
+                <View className="items-center justify-center rounded-full bg-grey-20">
+                  <Icon as={Info} size={14} className="text-white" />
+                </View>
+                <Text className="flex-1 text-caption04 text-grey-40">
+                  키워드는 삭제 후 다시 등록할 수 있어요.
+                </Text>
+              </View>
             </View>
 
-            <View className="mt-6">
+            <View className="mt-4 px-4">
               <CategorySelector
                 value={categories}
                 onChange={changeCategories}
                 onReset={() => changeCategories(alarm?.categories ?? [])}
+                variant="sheet"
               />
               {showCategoryError && (
                 <Text className="mt-2 text-caption02 text-error">
@@ -220,8 +247,25 @@ export function KeywordEditModal({
                 </Text>
               )}
             </View>
-            <Button className="mt-7" onPress={saveCategories} disabled={saving || deleting}>
-              <Text>{saving ? '저장 중' : '저장'}</Text>
+
+            <Button
+              className="mx-4 mt-5 h-[36px] rounded-[8px]"
+              variant={canSave ? 'default' : 'secondary'}
+              onPress={saveCategories}
+              disabled={!canSave}
+            >
+              <Text
+                style={
+                  Platform.OS === 'android'
+                    ? {
+                        includeFontPadding: false,
+                        transform: [{ translateY: -1 }],
+                      }
+                    : undefined
+                }
+              >
+                {saving ? '저장 중' : '저장'}
+              </Text>
             </Button>
           </View>
         </Animated.View>
