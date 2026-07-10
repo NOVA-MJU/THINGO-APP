@@ -3,6 +3,10 @@ export function formatMapDistance(distanceMeters: number) {
   return `${(distanceMeters / 1000).toFixed(1)}km`;
 }
 
+export function formatMapFloorLabel(floorLabel: string) {
+  return floorLabel.replace(/^F(\d+)$/i, '$1');
+}
+
 export function getOperatingStatusClassName(status: string) {
   if (status.includes('휴무')) return 'text-grey-40';
   if (status.includes('종료')) return 'text-error';
