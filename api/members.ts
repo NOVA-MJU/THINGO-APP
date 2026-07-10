@@ -39,11 +39,11 @@ export type SignupRequest = {
   email: string;
   password: string;
   nickname: string;
-  gender: 'MALE' | 'FEMALE' | 'OTHER';
   college: string;
   departmentName: string;
   studentNumber: string;
   profileImageUrl?: string;
+  privacyAgreed: boolean;
 };
 
 export type UpdateMemberRequest = {

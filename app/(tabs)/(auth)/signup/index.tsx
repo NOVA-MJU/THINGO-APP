@@ -178,11 +178,11 @@ export default function SignupScreen() {
         email: `${userEmail}@mju.ac.kr`,
         password,
         nickname,
-        gender: 'OTHER', // TODO: 성별 입력 UI 제거됨 - 백엔드 API 변경 시 함께 정리
         college: selectedCollege,
         departmentName: selectedDepartment,
         studentNumber,
         profileImageUrl: profileImageUrl ?? undefined,
+        privacyAgreed: allAgreed,
       });
       const member = await getMemberInfo();
       setUser(member);
