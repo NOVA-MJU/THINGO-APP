@@ -578,9 +578,6 @@ function ErrorState({
           <Text>다시 시도</Text>
         </Button>
       </View>
-      <View style={{ paddingBottom: bottomInset }}>
-        <Footer />
-      </View>
     </View>
   );
 }
