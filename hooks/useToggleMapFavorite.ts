@@ -1,11 +1,12 @@
 import { toggleMapFavorite } from '@/api/maps';
 import { useAuth } from '@/context/auth-context';
-import { showAlert } from '@/lib/alert';
+import { useLoginRequiredModal } from '@/context/login-required-modal-context';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-// 지도 건물/장소 즐겨찾기 토글 (미로그인 시 안내만 표시)
+// 지도 건물/장소 즐겨찾기 토글
 export function useToggleMapFavorite() {
   const { user } = useAuth();
+  const { showLoginRequiredModal } = useLoginRequiredModal();
   const queryClient = useQueryClient();
 
   const { mutate } = useMutation({
@@ -25,7 +26,7 @@ export function useToggleMapFavorite() {
     options?: { onToggled?: (favorite: boolean) => void }
   ) {
     if (!user) {
-      showAlert('로그인이 필요한 서비스 입니다');
+      showLoginRequiredModal();
       return;
     }
     mutate(pinId, { onSuccess: (favorite) => options?.onToggled?.(favorite) });

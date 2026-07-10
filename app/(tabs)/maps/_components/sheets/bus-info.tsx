@@ -1,8 +1,8 @@
-import { showAlert } from '@/lib/alert';
 import { Text } from '@/components/ui/text';
 import { fetchBusArrivals, toggleBusFavorite } from '@/lib/maps/bus-arrivals';
 import type { BusStopStation } from '@/lib/maps/bus-stops';
 import { useAuth } from '@/context/auth-context';
+import { useLoginRequiredModal } from '@/context/login-required-modal-context';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as React from 'react';
 import { ActivityIndicator, ScrollView, TouchableOpacity, View } from 'react-native';
@@ -37,6 +37,7 @@ function formatSeconds(total: number): string {
 
 export default function BusInfoSheet({ station }: Props) {
   const { user } = useAuth();
+  const { showLoginRequiredModal } = useLoginRequiredModal();
   const queryClient = useQueryClient();
   const fetchedAtRef = React.useRef<number>(Date.now());
   const [elapsedSeconds, setElapsedSeconds] = React.useState(0);
@@ -71,7 +72,7 @@ export default function BusInfoSheet({ station }: Props) {
 
   function handleFavoritePress(routeName: string) {
     if (!user) {
-      showAlert('로그인이 필요한 서비스 입니다');
+      showLoginRequiredModal();
       return;
     }
     toggleFavorite(routeName);
