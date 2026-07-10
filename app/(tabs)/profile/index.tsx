@@ -5,29 +5,16 @@ import { Footer } from '@/components/footer';
 import { ArrowRightIcon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
+import { openContactMail } from '@/lib/contact';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, Image, Linking, ScrollView, TouchableOpacity, View } from 'react-native';
+import { Image, Linking, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const TERMS_URL =
   'https://verbena-ixia-597.notion.site/Thingo-33e22ef5d21e80b08328edd8519b0b4e?source=copy_link';
 const PRIVACY_URL =
   'https://verbena-ixia-597.notion.site/Thingo-33e22ef5d21e807d9738dc14def5de24?source=copy_link';
-const CONTACT_MAIL = `mailto:mjsearch2025@gmail.com?subject=${encodeURIComponent('문의 내용을 작성해주세요')}&body=${encodeURIComponent('안녕하세요,\n\n문의사항을 아래에 작성해주세요.\n\n- 이름:\n- 연락처:\n- 문의 내용:')}`;
-
-async function openContactMail() {
-  const supported = await Linking.canOpenURL(CONTACT_MAIL);
-  if (!supported) {
-    Alert.alert('알림', 'mail 앱이 설치되어있지 않습니다.');
-    return;
-  }
-  try {
-    await Linking.openURL(CONTACT_MAIL);
-  } catch {
-    Alert.alert('알림', 'mail 앱이 설치되어있지 않습니다.');
-  }
-}
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
