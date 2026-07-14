@@ -42,6 +42,7 @@ import {
   TruckIcon,
 } from '@/components/icons/map';
 import type { MapBuildingDetail } from '@/api/maps';
+import { formatMapFloorLabel } from '@/lib/maps/format';
 import { cn } from '@/lib/utils';
 import { useToggleMapFavorite } from '@/hooks/useToggleMapFavorite';
 
@@ -122,7 +123,7 @@ export default function BuildingDetailSheet({ building }: { building: MapBuildin
           <View className="flex-row items-center gap-1.5">
             <Text className={`text-body04 ${statusColor}`}>{statusLabel}</Text>
             {building.infoText && (
-              <Text className="text-body05 text-grey-80">{building.infoText}</Text>
+              <Text className="text-body05 text-grey-40">{building.infoText}</Text>
             )}
           </View>
           <TouchableOpacity className="flex-row items-center gap-1" hitSlop={4}>
@@ -206,7 +207,9 @@ export default function BuildingDetailSheet({ building }: { building: MapBuildin
 
             return (
               <View key={floor.floorId} className="flex-row gap-2 rounded-xl bg-grey-02 px-4 py-5">
-                <Text className="text-body04 text-blue-35">{floor.floorLabel}</Text>
+                <Text className="text-body04 text-blue-35">
+                  {formatMapFloorLabel(floor.floorLabel)}
+                </Text>
                 <Text className="flex-1 text-body05 text-black">
                   {places.map((place) => place.name).join(', ')}
                 </Text>

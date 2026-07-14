@@ -1,6 +1,7 @@
 import '@/global.css';
 
 import { AuthProvider } from '@/context/auth-context';
+import { LoginRequiredModalProvider } from '@/context/login-required-modal-context';
 import { NAV_THEME } from '@/lib/theme';
 import { ThemeProvider } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -65,14 +66,16 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <ThemeProvider value={NAV_THEME}>
-            {Platform.OS === 'web' && (
-              <Head>
-                <title>Thingo</title>
-              </Head>
-            )}
-            <StatusBar style="dark" />
-            <Stack screenOptions={{ headerShown: false }} />
-            <PortalHost />
+            <LoginRequiredModalProvider>
+              {Platform.OS === 'web' && (
+                <Head>
+                  <title>Thingo</title>
+                </Head>
+              )}
+              <StatusBar style="dark" />
+              <Stack screenOptions={{ headerShown: false }} />
+              <PortalHost />
+            </LoginRequiredModalProvider>
           </ThemeProvider>
         </AuthProvider>
       </QueryClientProvider>
