@@ -59,9 +59,9 @@ export default function LoginScreen() {
     >
       {/* 로그인 영역 */}
       <View className="flex-1 gap-3 px-4 py-8">
-        <Text className="text-title01 text-black">로그인</Text>
-        <View className="rounded-xl bg-white p-6">
-          <Text className="text-body04 text-black">이메일</Text>
+        <Text className="text-title03 text-black">로그인</Text>
+        <View className="rounded-xl bg-white p-4">
+          <Text className="text-body04 text-grey-80">이메일</Text>
           <Input
             className="mt-2"
             placeholder="@mju.ac.kr"
@@ -74,7 +74,7 @@ export default function LoginScreen() {
             onSubmitEditing={() => passwordRef.current?.focus()}
             submitBehavior="submit"
           />
-          <Text className="mt-5 text-body04 text-black">비밀번호</Text>
+          <Text className="mt-4 text-body04 text-grey-80">비밀번호</Text>
           <Input
             ref={passwordRef}
             className="mt-2"
