@@ -23,3 +23,4 @@ export { default as LocationIcon } from './location';
 export { default as LoginIcon } from './login';
 export { default as ExternalLinkIcon } from './external-link';
 export { default as CheckboxIcon } from './checkbox';
+export { default as MoreVerticalIcon } from './more-vertical';
