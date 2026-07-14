@@ -1,5 +1,6 @@
-import { getBroadcasts, type BroadcastItem } from '@/api/broadcast';
+import { getBroadcasts, type BroadcastItem, type BroadcastSource } from '@/api/broadcast';
 import { Footer } from '@/components/footer';
+import { CategoryFilter } from '@/components/ui/category-filter';
 import { Pagination } from '@/components/ui/pagination';
 import { Text } from '@/components/ui/text';
 import { YoutubeEmbed } from '@/components/youtube-embed';
@@ -8,9 +9,16 @@ import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
 import { ActivityIndicator, ScrollView, TouchableOpacity, View } from 'react-native';
 
+const BROADCAST_SOURCE_MAP: Record<string, BroadcastSource> = {
+  전체: 'ALL',
+  명지대학교: 'OFFICIAL',
+  명대방송국: 'BROADCAST',
+};
+
 export default function NewsScreen() {
   const router = useRouter();
-  const { page } = useLocalSearchParams<{ page?: string }>();
+  const { source, page } = useLocalSearchParams<{ source?: string; page?: string }>();
+  const selectedSource = source && source in BROADCAST_SOURCE_MAP ? source : '전체';
   const currentPage = Number(page ?? '1');
 
   const scrollRef = React.useRef<ScrollView>(null);
@@ -20,14 +28,26 @@ export default function NewsScreen() {
 
   React.useEffect(() => {
     setLoading(true);
-    getBroadcasts({ page: currentPage - 1, size: 5 })
+    getBroadcasts({
+      source: BROADCAST_SOURCE_MAP[selectedSource],
+      page: currentPage - 1,
+      size: 5,
+    })
       .then((res) => {
         setBroadcasts(res.content);
         setTotalPages(res.totalPages);
       })
-      .catch(() => setBroadcasts([]))
+      .catch(() => {
+        setBroadcasts([]);
+        setTotalPages(1);
+      })
       .finally(() => setLoading(false));
-  }, [currentPage]);
+  }, [selectedSource, currentPage]);
+
+  function handleSourceSelect(nextSource: string) {
+    router.setParams({ source: nextSource, page: '1' });
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
+  }
 
   function handlePageChange(p: number) {
     router.setParams({ page: String(p) });
@@ -40,6 +60,13 @@ export default function NewsScreen() {
       className="native:w-screen flex-1 bg-grey-02 web:w-full"
       contentContainerClassName="flex-grow"
     >
+      <View className="pt-4">
+        <CategoryFilter
+          categories={Object.keys(BROADCAST_SOURCE_MAP)}
+          selected={selectedSource}
+          onSelect={handleSourceSelect}
+        />
+      </View>
       <View className="relative flex-1 gap-4 p-5">
         {broadcasts.map((item, index) => {
           const videoId = new URL(item.url).searchParams.get('v') ?? '';
