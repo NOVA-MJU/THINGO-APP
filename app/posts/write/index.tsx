@@ -159,12 +159,14 @@ export default function BoardWriteScreen() {
     }
   }, [editingBoardUUID, user]);
 
-  React.useEffect(() => {
-    if (isInitializing) return;
-    if (!isEditMode) return;
-    if (!user) return;
-    void loadBoardForEdit();
-  }, [isEditMode, isInitializing, loadBoardForEdit, user]);
+  useFocusEffect(
+    React.useCallback(() => {
+      if (isInitializing) return;
+      if (!isEditMode) return;
+      if (!user) return;
+      void loadBoardForEdit();
+    }, [isEditMode, isInitializing, loadBoardForEdit, user])
+  );
 
   // 뒤로가기 버튼 클릭
   const handleBackPress = React.useCallback(() => {
@@ -235,26 +237,19 @@ export default function BoardWriteScreen() {
         communityCategory: mapBoardOptionToCategory(category),
       };
 
-      const nextBoard =
-        isEditMode && editingBoardUUID
-          ? await updateBoard(editingBoardUUID, requestBody)
-          : await createBoard(requestBody);
+      if (isEditMode && editingBoardUUID) {
+        await updateBoard(editingBoardUUID, requestBody);
 
-      setExitDialogOpen(false);
-
-      if (isEditMode) {
-        const nextBoardCategory = nextBoard.communityCategory === 'FREE' ? 'free' : 'info';
-
-        router.dismissTo(
-          `/posts/${nextBoard.uuid}?fromEdit=true&boardCategory=${nextBoardCategory}&refreshPost=${Date.now()}`
-        );
+        setExitDialogOpen(false);
+        router.back();
         return;
       }
 
+      const nextBoard = await createBoard(requestBody);
       const nextBoardCategory = nextBoard.communityCategory === 'FREE' ? 'free' : 'info';
-      router.replace(
-        `/posts/${nextBoard.uuid}?fromCreate=true&boardCategory=${nextBoardCategory}&refreshPost=${Date.now()}`
-      );
+
+      setExitDialogOpen(false);
+      router.replace(`/posts/${nextBoard.uuid}?boardCategory=${nextBoardCategory}`);
     } catch {
       showAlert(isEditMode ? '게시글 수정 실패' : '게시글 작성 실패', '잠시 후 다시 시도해주세요.');
     } finally {

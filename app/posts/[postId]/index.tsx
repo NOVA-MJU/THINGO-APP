@@ -53,8 +53,6 @@ export default function BoardDetailScreen() {
   const insets = useSafeAreaInsets();
   const { postId, boardCategory } = useLocalSearchParams<{
     postId?: string | string[];
-    fromEdit?: string | string[];
-    fromCreate?: string | string[];
     boardCategory?: string | string[];
   }>();
 
