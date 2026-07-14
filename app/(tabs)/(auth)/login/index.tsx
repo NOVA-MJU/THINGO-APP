@@ -7,6 +7,7 @@ import { getMemberInfo } from '@/api/members';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'expo-router';
 import { showAlert } from '@/lib/alert';
+import { isAxiosError } from 'axios';
 import { useRef, useState } from 'react';
 import { ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -34,9 +35,13 @@ export default function LoginScreen() {
       } else {
         router.replace('/');
       }
-    } catch {
+    } catch (e) {
       setPassword('');
-      showAlert('로그인 실패', '이메일 또는 비밀번호를 확인해주세요.');
+      if (isAxiosError(e) && e.response?.status === 401) {
+        showAlert('로그인 실패', '아이디 또는 비밀번호가 일치하지 않습니다');
+      } else {
+        showAlert('서버 오류', '잠시 후 다시 시도해주세요');
+      }
     } finally {
       setIsPending(false);
     }

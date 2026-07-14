@@ -22,9 +22,6 @@ export default function ProfileEditScreen() {
   const router = useRouter();
 
   const [nickname, setNickname] = useState(user?.nickname ?? '');
-  const [gender, setGender] = useState<'MALE' | 'FEMALE' | 'OTHER' | null>(
-    (user?.gender as 'MALE' | 'FEMALE' | 'OTHER') ?? null
-  );
   const [selectedCollege, setSelectedCollege] = useState<string | null>(user?.college ?? null);
   const [selectedDepartment, setSelectedDepartment] = useState<string | null>(
     user?.departmentName ?? null
@@ -58,7 +55,6 @@ export default function ProfileEditScreen() {
   // 기본 정보 변경 시 저장 버튼 활성화
   const hasBasicInfoChanged =
     nickname !== (user?.nickname ?? '') ||
-    gender !== ((user?.gender as 'MALE' | 'FEMALE' | 'OTHER') ?? null) ||
     selectedCollege !== (user?.college ?? null) ||
     selectedDepartment !== (user?.departmentName ?? null) ||
     profileImageUrl !== (user?.profileImageUrl ?? null);
@@ -98,14 +94,13 @@ export default function ProfileEditScreen() {
     if (nickname !== (user?.nickname ?? '') && checkedNickname !== nickname)
       return showAlert('알림', '닉네임 중복 확인을 해주세요.');
     if (selectedCollege && !selectedDepartment) return showAlert('알림', '학과를 선택해주세요.');
-    if (!gender || !selectedCollege || !selectedDepartment) return;
+    if (!selectedCollege || !selectedDepartment) return;
     setIsSaving(true);
     try {
       const nextProfileImageUrl = profileImageUrl ?? '';
 
       await updateMemberInfo({
         name: user?.name ?? '',
-        gender,
         nickname,
         college: selectedCollege,
         departmentName: selectedDepartment,
@@ -123,17 +118,18 @@ export default function ProfileEditScreen() {
   };
 
   return (
-    <View className="flex-1">
+    <View className="flex-1 bg-grey-02">
       <View style={{ paddingTop: insets.top }} className="bg-white">
         <AppHeader title="프로필 수정" />
       </View>
       <ScrollView contentContainerClassName="flex-grow">
-        <View className="flex-1 bg-grey-02 px-4">
+        <View className="flex-1 px-4">
+          {/* 계정 정보 */}
           <View className="mt-5 flex-row">
             <Text className="text-title01 text-black">계정 정보</Text>
             <Text className="ms-1 text-title01 text-error">*</Text>
           </View>
-          <View className="mt-3 rounded-xl bg-white p-6">
+          <View className="mt-2 rounded-xl bg-white p-4">
             {/* 이메일 */}
             <Text className="text-body04 text-grey-80">이메일</Text>
             <View className="mt-2 rounded-lg border border-grey-10 bg-grey-02 p-3">
@@ -142,7 +138,7 @@ export default function ProfileEditScreen() {
             <Text className="mt-2 text-caption02 text-grey-30">※ 이메일은 수정할 수 없습니다.</Text>
 
             {/* 비밀번호 변경 */}
-            <Text className="mt-6 text-body04 text-grey-80">현재 비밀번호</Text>
+            <Text className="mt-4 text-body04 text-grey-80">현재 비밀번호</Text>
             <Input
               className="mt-2"
               placeholder="현재 비밀번호를 입력하세요"
@@ -150,7 +146,7 @@ export default function ProfileEditScreen() {
               value={currentPassword}
               onChangeText={setCurrentPassword}
             />
-            <Text className="mt-6 text-body04 text-grey-80">새 비밀번호</Text>
+            <Text className="mt-4 text-body04 text-grey-80">새 비밀번호</Text>
             <Input
               className="mt-2"
               placeholder="새 비밀번호를 입력하세요"
@@ -166,7 +162,7 @@ export default function ProfileEditScreen() {
                 영문, 숫자, 특수문자 포함 8자 이상
               </Text>
             </View>
-            <Text className="mt-6 text-body04 text-grey-80">새 비밀번호 확인</Text>
+            <Text className="mt-4 text-body04 text-grey-80">새 비밀번호 확인</Text>
             <Input
               className="mt-2"
               placeholder="비밀번호를 다시 입력하세요"
@@ -179,7 +175,7 @@ export default function ProfileEditScreen() {
               returnKeyType="done"
             />
             <Button
-              className="mt-6"
+              className="mt-4"
               variant={currentPassword && newPassword && confirmPassword ? 'default' : 'subtle'}
               onPress={handleChangePassword}
               disabled={!currentPassword || !newPassword || !confirmPassword}
@@ -188,11 +184,12 @@ export default function ProfileEditScreen() {
             </Button>
           </View>
 
-          <View className="mt-10 flex-row">
+          {/* 기본 정보 */}
+          <View className="mt-4 flex-row">
             <Text className="text-title01 text-black">기본 정보</Text>
             <Text className="ms-1 text-title01 text-error">*</Text>
           </View>
-          <View className="mt-3 rounded-xl bg-white p-6">
+          <View className="mt-2 rounded-xl bg-white p-4">
             {/* 프로필 이미지 */}
             <Text className="text-body04 text-grey-80">프로필</Text>
             <View className="relative mt-2 self-start">
@@ -225,7 +222,7 @@ export default function ProfileEditScreen() {
             </View>
 
             {/* 닉네임 */}
-            <Text className="mt-6 text-body04 text-grey-80">닉네임</Text>
+            <Text className="mt-4 text-body04 text-grey-80">닉네임</Text>
             <View className="flex-row items-center gap-2.5">
               <Input
                 className="mt-2 flex-1"
@@ -250,7 +247,7 @@ export default function ProfileEditScreen() {
             </View>
 
             {/* 단과대 */}
-            <Text className="mt-6 text-body04 text-grey-80">단과대</Text>
+            <Text className="mt-4 text-body04 text-grey-80">단과대</Text>
             <DropdownMenu.Root>
               <DropdownMenu.Trigger>
                 <View className="mt-2 flex-row items-center rounded-md border border-grey-10 px-3 py-[9.5px]">
@@ -277,8 +274,9 @@ export default function ProfileEditScreen() {
                 ))}
               </DropdownMenu.Content>
             </DropdownMenu.Root>
+
             {/* 학과 */}
-            <Text className="mt-6 text-body04 text-grey-80">학과</Text>
+            <Text className="mt-4 text-body04 text-grey-80">학과</Text>
             <DropdownMenu.Root>
               <DropdownMenu.Trigger disabled={!selectedCollege}>
                 <View
@@ -306,41 +304,16 @@ export default function ProfileEditScreen() {
             </DropdownMenu.Root>
 
             {/* 학번 */}
-            <Text className="mt-6 text-body04 text-grey-80">학번</Text>
+            <Text className="mt-4 text-body04 text-grey-80">학번</Text>
             <View className="mt-2 flex-1 rounded-lg border border-grey-10 bg-grey-02 p-3">
               <Text className="text-body06 text-grey-40">{user?.studentNumber}</Text>
             </View>
             <Text className="mt-2 text-caption02 text-grey-30">※학번은 수정할 수 없습니다.</Text>
-
-            {/* 성별 */}
-            <Text className="mt-6 text-body04 text-grey-80">성별</Text>
-            <View className="mt-2 flex-row gap-2">
-              <Button
-                variant={gender === 'MALE' ? 'default' : 'muted'}
-                className="flex-1"
-                onPress={() => setGender('MALE')}
-              >
-                <Text>남자</Text>
-              </Button>
-              <Button
-                variant={gender === 'FEMALE' ? 'default' : 'muted'}
-                className="flex-1"
-                onPress={() => setGender('FEMALE')}
-              >
-                <Text>여자</Text>
-              </Button>
-              <Button
-                variant={gender === 'OTHER' ? 'default' : 'muted'}
-                className="flex-1"
-                onPress={() => setGender('OTHER')}
-              >
-                <Text>기타</Text>
-              </Button>
-            </View>
           </View>
 
+          {/* 저장하기 버튼 */}
           <Button
-            className="mb-6 mt-5"
+            className="mt-4"
             variant={hasBasicInfoChanged ? 'default' : 'subtle'}
             disabled={!hasBasicInfoChanged || isSaving}
             onPress={handleSave}
@@ -348,7 +321,9 @@ export default function ProfileEditScreen() {
             <Text>저장하기</Text>
           </Button>
         </View>
-        <Footer />
+
+        {/* 앱 푸터 */}
+        <Footer className="mt-14" />
       </ScrollView>
     </View>
   );

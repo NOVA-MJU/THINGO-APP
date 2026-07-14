@@ -234,7 +234,11 @@ export default function AcademicCalendarScreen() {
     : [];
 
   return (
-    <ScrollView ref={scrollRef} className="native:w-screen web:w-full">
+    <ScrollView
+      ref={scrollRef}
+      className="native:w-screen web:w-full"
+      contentContainerClassName="flex-grow"
+    >
       {/* 탭 네비게이션 */}
       <View className="bg-grey-02">
         <View className="mt-2 flex-row">
