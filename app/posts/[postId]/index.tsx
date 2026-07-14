@@ -11,7 +11,13 @@ import {
   type Comment,
 } from '@/api/posts';
 import { Footer } from '@/components/footer';
-import { ArrowLeftIcon, ChatBubbleIcon, CloseIcon, HeartIcon } from '@/components/icons';
+import {
+  ArrowLeftIcon,
+  ChatBubbleIcon,
+  CloseIcon,
+  HeartIcon,
+  MoreVerticalIcon,
+} from '@/components/icons';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PostContent } from '@/components/post-content';
 import { Button } from '@/components/ui/button';
@@ -29,7 +35,15 @@ import { parseUTCDate } from '@/lib/utils';
 import { format } from 'date-fns';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as React from 'react';
-import { Keyboard, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  Keyboard,
+  Platform,
+  Pressable,
+  ScrollView,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
 
@@ -37,7 +51,7 @@ const COMMENT_MAX_LENGTH = 300;
 
 export default function BoardDetailScreen() {
   const insets = useSafeAreaInsets();
-  const { postId, fromEdit, fromCreate, boardCategory } = useLocalSearchParams<{
+  const { postId, boardCategory } = useLocalSearchParams<{
     postId?: string | string[];
     fromEdit?: string | string[];
     fromCreate?: string | string[];
@@ -45,8 +59,6 @@ export default function BoardDetailScreen() {
   }>();
 
   const boardUUID = Array.isArray(postId) ? postId[0] : postId;
-  const isFromEdit = (Array.isArray(fromEdit) ? fromEdit[0] : fromEdit) === 'true';
-  const isFromCreate = (Array.isArray(fromCreate) ? fromCreate[0] : fromCreate) === 'true';
   const previousBoardCategory = Array.isArray(boardCategory) ? boardCategory[0] : boardCategory;
   const { user, isInitializing } = useAuth();
   const [board, setBoard] = React.useState<Board | null>(null);
@@ -66,6 +78,7 @@ export default function BoardDetailScreen() {
   const [replySubmittingParentUUID, setReplySubmittingParentUUID] = React.useState<string | null>(
     null
   );
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = React.useState(false);
 
   const loadBoard = React.useCallback(async () => {
     if (!boardUUID) {
@@ -180,27 +193,33 @@ export default function BoardDetailScreen() {
     router.push('/login');
   }, []);
 
-  const handleBackPress = React.useCallback(() => {
-    if (isFromEdit || isFromCreate) {
-      router.replace({
-        pathname: '/',
-        params: {
-          tab: 'board',
-          boardCategory: previousBoardCategory === 'free' ? 'free' : 'info',
-          refreshBoards: String(Date.now()),
-        },
-      });
-      return;
-    }
-
+  // 페이지 뒤로가기 버튼 동작
+  function handleBackPress() {
     router.back();
-  }, [isFromCreate, isFromEdit, previousBoardCategory]);
+  }
 
+  // 수정 버튼 클릭 동작
   const handleEditPress = React.useCallback(() => {
     if (!boardUUID || !board?.canEdit) return;
     router.push(`/posts/edit/${boardUUID}`);
   }, [board?.canEdit, boardUUID]);
 
+  // 더보기 버튼 클릭 시 신고, 차단 버튼 드롭다운 표시
+  const handleMoreMenuTogglePress = React.useCallback(() => {
+    setIsMoreMenuOpen((previous) => !previous);
+  }, []);
+
+  // 게시글 신고 버튼 클릭
+  const handleReportPress = React.useCallback(() => {
+    setIsMoreMenuOpen(false);
+  }, []);
+
+  // 사용자 차단 버튼 클릭
+  const handleBlockPress = React.useCallback(() => {
+    setIsMoreMenuOpen(false);
+  }, []);
+
+  // 게시글 삭제 버튼 클릭
   const handleBoardDeleteConfirm = React.useCallback(async () => {
     if (!boardUUID || !board?.canDelete || isBoardDeleting) return;
 
@@ -212,14 +231,24 @@ export default function BoardDetailScreen() {
       await deleteBoard(boardUUID);
       setDeleteDialogOpen(false);
 
-      router.replace({
-        pathname: '/',
-        params: {
-          tab: 'board',
-          boardCategory: previousBoardCategory === 'free' ? 'free' : nextBoardCategory,
-          refreshBoards: String(Date.now()),
-        },
-      });
+      if (Platform.OS === 'web') {
+        router.dismissTo({
+          pathname: '/posts',
+          params: {
+            boardCategory: previousBoardCategory === 'free' ? 'free' : nextBoardCategory,
+            refreshBoards: String(Date.now()),
+          },
+        });
+      } else {
+        router.dismissTo({
+          pathname: '/',
+          params: {
+            tab: 'board',
+            boardCategory: previousBoardCategory === 'free' ? 'free' : nextBoardCategory,
+            refreshBoards: String(Date.now()),
+          },
+        });
+      }
     } catch {
       showAlert('게시글 삭제 실패', '잠시 후 다시 시도해주세요.');
     } finally {
@@ -233,6 +262,7 @@ export default function BoardDetailScreen() {
     previousBoardCategory,
   ]);
 
+  // 댓글 좋아요 버튼 클릭
   const handleCommentLikeClick = React.useCallback(
     async (commentUUID: string) => {
       if (!boardUUID) return;
@@ -370,15 +400,53 @@ export default function BoardDetailScreen() {
     >
       <View className="flex-1 justify-between bg-white">
         <View>
-          <View className="border-b border-grey-02 px-4 pb-4 pt-5">
+          <View className="h-[60px] flex-row items-center justify-between border-b border-grey-02 px-4">
+            {/* 뒤로가기 버튼 */}
             <TouchableOpacity
               onPress={handleBackPress}
-              className="flex-row items-center gap-1 self-start"
+              className="flex-row items-center gap-1"
+              hitSlop={4}
             >
-              <ArrowLeftIcon className="text-black" />
+              <ArrowLeftIcon className="text-black" size={20} />
               <Text className="text-body03 text-black">이전</Text>
             </TouchableOpacity>
+
+            {/* 신고, 차단 더보기 버튼 */}
+            <TouchableOpacity onPress={handleMoreMenuTogglePress} hitSlop={4}>
+              <MoreVerticalIcon size={20} className="text-grey-30" />
+            </TouchableOpacity>
           </View>
+
+          {/* 신고, 차단 드롭다운 메뉴 */}
+          {isMoreMenuOpen && (
+            <>
+              <Pressable
+                onPress={() => setIsMoreMenuOpen(false)}
+                className="absolute inset-0 z-10"
+              />
+              <View
+                className="absolute right-[28px] top-[45px] z-20 rounded bg-white py-1.5"
+                style={{
+                  elevation: 6,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.15,
+                  shadowRadius: 6,
+                }}
+              >
+                <Pressable onPress={handleReportPress} className="active:bg-blue-05">
+                  <Text className="px-6 py-1 text-caption02 text-grey-30 active:text-blue-35">
+                    신고
+                  </Text>
+                </Pressable>
+                <Pressable onPress={handleBlockPress} className="active:bg-blue-05">
+                  <Text className="px-6 py-1 text-caption02 text-grey-30 active:text-blue-35">
+                    차단
+                  </Text>
+                </Pressable>
+              </View>
+            </>
+          )}
 
           {/* 본문 */}
           {isBoardLoading || !board ? (
@@ -401,6 +469,7 @@ export default function BoardDetailScreen() {
           ) : (
             <View className="py-5">
               <View className="gap-1 px-4">
+                {/* 컨텐츠 제목 */}
                 <Text className="text-body02 text-black">{board.title}</Text>
 
                 <View className="flex-row items-center justify-between gap-4">
@@ -424,10 +493,12 @@ export default function BoardDetailScreen() {
                 </View>
               </View>
 
+              {/* 컨텐츠 본문 */}
               <View className="px-4 pt-4">
                 <PostContent content={board.content || board.previewContent} />
               </View>
 
+              {/* 좋아요 버튼 */}
               <View className="flex-row items-center justify-between px-5 pt-5">
                 <TouchableOpacity
                   onPress={() => void handlePostLikeClick()}
@@ -523,6 +594,7 @@ export default function BoardDetailScreen() {
         <Footer withBottomInset />
       </View>
 
+      {/* 게시글 삭제 확인 창 */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent className="mx-6 w-[320px] max-w-[320px] gap-4 rounded-xl border-none py-[24px]">
           <DialogHeader className="gap-1">

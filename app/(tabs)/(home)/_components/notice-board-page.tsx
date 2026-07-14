@@ -5,7 +5,7 @@ import { Pagination } from '@/components/ui/pagination';
 import { Text } from '@/components/ui/text';
 import { cn, parseUTCDate } from '@/lib/utils';
 import { format } from 'date-fns';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { ClipboardPen } from 'lucide-react-native';
 import * as React from 'react';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
@@ -132,10 +132,9 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
 
 function NoticeBoardScreen() {
   const router = useRouter();
-  const { boardCategory, page, refreshBoards } = useLocalSearchParams<{
+  const { boardCategory, page } = useLocalSearchParams<{
     boardCategory?: string;
     page?: string;
-    refreshBoards?: string;
   }>();
 
   const activeCategory: BoardCategoryTab = boardCategory === 'free' ? 'free' : 'info';
@@ -148,36 +147,57 @@ function NoticeBoardScreen() {
   const [error, setError] = React.useState(false);
   const [totalPages, setTotalPages] = React.useState(1);
   const [totalElements, setTotalElements] = React.useState(0);
+  const loadedQueryKeyRef = React.useRef<string | null>(null);
 
-  const loadBoards = React.useCallback(async () => {
-    setLoading(true);
-    setError(false);
+  const loadBoards = React.useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (!options?.silent) {
+        setLoading(true);
+      }
+      setError(false);
 
-    try {
-      const response = await getBoards({
-        page: currentPage - 1,
-        size: ITEMS_PER_PAGE,
-        communityCategory: CATEGORY_MAP[activeCategory],
-        sortBy: 'createdAt',
-        direction: 'DESC',
-      });
+      try {
+        const response = await getBoards({
+          page: currentPage - 1,
+          size: ITEMS_PER_PAGE,
+          communityCategory: CATEGORY_MAP[activeCategory],
+          sortBy: 'createdAt',
+          direction: 'DESC',
+        });
 
-      setBoards(response.boards);
-      setTotalPages(Math.max(1, response.totalPages));
-      setTotalElements(response.totalElements);
-    } catch {
-      setBoards([]);
-      setTotalPages(1);
-      setTotalElements(0);
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
-  }, [activeCategory, currentPage]);
+        setBoards(response.boards);
+        setTotalPages(Math.max(1, response.totalPages));
+        setTotalElements(response.totalElements);
+      } catch {
+        setBoards([]);
+        setTotalPages(1);
+        setTotalElements(0);
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [activeCategory, currentPage]
+  );
 
+  // 데이터 최초 로딩
   React.useEffect(() => {
     void loadBoards();
-  }, [loadBoards, refreshBoards]);
+  }, [loadBoards]);
+
+  // 화면이 다시 focus 될 때 데이터 갱신
+  useFocusEffect(
+    React.useCallback(() => {
+      const queryKey = `${activeCategory}-${currentPage}`;
+
+      if (loadedQueryKeyRef.current !== queryKey) {
+        loadedQueryKeyRef.current = queryKey;
+        return;
+      }
+
+      void loadBoards({ silent: true });
+    }, [activeCategory, currentPage, loadBoards])
+  );
 
   React.useEffect(() => {
     scrollRef.current?.scrollTo({ y: 0, animated: false });

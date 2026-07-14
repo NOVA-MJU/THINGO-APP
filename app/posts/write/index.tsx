@@ -166,6 +166,7 @@ export default function BoardWriteScreen() {
     void loadBoardForEdit();
   }, [isEditMode, isInitializing, loadBoardForEdit, user]);
 
+  // 뒤로가기 버튼 클릭
   const handleBackPress = React.useCallback(() => {
     if (isSubmitting) return true;
 
@@ -190,11 +191,13 @@ export default function BoardWriteScreen() {
     }, [handleBackPress])
   );
 
+  // 페이지 나가기 확인
   const handleDiscard = React.useCallback(() => {
     setExitDialogOpen(false);
     router.back();
   }, []);
 
+  // 게시글 작성 완료 버튼 클릭
   const handleSubmit = React.useCallback(async () => {
     if (!user) {
       router.push('/login');
@@ -242,7 +245,7 @@ export default function BoardWriteScreen() {
       if (isEditMode) {
         const nextBoardCategory = nextBoard.communityCategory === 'FREE' ? 'free' : 'info';
 
-        router.replace(
+        router.dismissTo(
           `/posts/${nextBoard.uuid}?fromEdit=true&boardCategory=${nextBoardCategory}&refreshPost=${Date.now()}`
         );
         return;

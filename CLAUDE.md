@@ -56,6 +56,13 @@ pnpm expo run:android
 - 앱은 한국어만 지원
 - `locales/ko.json`은 한국어 감지용 형식적인 파일이고 i18n키 추가하지 말 것
 
+## routing (`app/(tabs)/(home)`)
+
+- 홈 탭(ALL/학식/게시판/공지사항/학사일정/명대신문/명대뉴스) 이동 방식이 플랫폼별로 다름
+  - **모바일**: 라우트는 항상 `/` 하나이고 `tab` 쿼리 파라미터로 어느 탭인지 구분 (`app/(tabs)/(home)/index.tsx`가 스와이프 뷰로 렌더링)
+  - **웹**: 탭마다 실제 URL이 따로 있음 (`/`, `/meal`, `/posts`, `/notices`, `/academic-calendar`, `/newspaper`, `/news` — `TAB_PATHS` 배열 참고). `/`로 이동해도 `tab` 파라미터는 무시되고 `AllScreen`만 렌더링됨
+- 게시판 목록으로 되돌아가거나 새로고침 신호(`refreshBoards`, `boardCategory`)를 넘길 때, `Platform.OS`로 분기해서 모바일은 `pathname: '/'` + `tab: 'board'`, 웹은 `pathname: '/posts'`(`tab` 파라미터 불필요)로 이동해야 함
+
 ## lib utilities
 
 - Tailwind 클래스 병합 시 `cn()` 사용 (`lib/utils.ts`)
