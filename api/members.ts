@@ -9,7 +9,6 @@ export type MemberInfo = {
   name: string;
   email: string;
   profileImageUrl: string | null;
-  gender: string;
   nickname: string;
   college: string;
   departmentName: string;
@@ -48,7 +47,6 @@ export type SignupRequest = {
 
 export type UpdateMemberRequest = {
   name: string;
-  gender: 'MALE' | 'FEMALE' | 'OTHER';
   nickname: string;
   college: string;
   departmentName: string;
