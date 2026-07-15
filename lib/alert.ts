@@ -15,8 +15,12 @@ export function showConfirm(
   title: string,
   message?: string,
   onConfirm?: () => void,
-  onCancel?: () => void
+  onCancel?: () => void,
+  options?: { confirmText?: string; cancelText?: string }
 ) {
+  const confirmText = options?.confirmText ?? '확인';
+  const cancelText = options?.cancelText ?? '취소';
+
   if (Platform.OS === 'web') {
     if (window.confirm(message ? `${title}\n${message}` : title)) {
       onConfirm?.();
@@ -25,8 +29,8 @@ export function showConfirm(
     }
   } else {
     Alert.alert(title, message, [
-      { text: '취소', style: 'cancel', onPress: onCancel },
-      { text: '확인', onPress: onConfirm },
+      { text: cancelText, style: 'cancel', onPress: onCancel },
+      { text: confirmText, onPress: onConfirm },
     ]);
   }
 }

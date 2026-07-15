@@ -10,6 +10,7 @@ import {
   type Board,
   type Comment,
 } from '@/api/posts';
+import { blockMember } from '@/api/members';
 import { Footer } from '@/components/footer';
 import {
   ArrowLeftIcon,
@@ -28,22 +29,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Text } from '@/components/ui/text';
 import { useAuth } from '@/context/auth-context';
-import { showAlert } from '@/lib/alert';
+import { showAlert, showConfirm } from '@/lib/alert';
 import { parseUTCDate } from '@/lib/utils';
 import { format } from 'date-fns';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as React from 'react';
-import {
-  Keyboard,
-  Platform,
-  Pressable,
-  ScrollView,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Keyboard, Platform, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
 
@@ -69,6 +68,8 @@ export default function BoardDetailScreen() {
   const [isCommentSubmitting, setIsCommentSubmitting] = React.useState(false);
   const [isBoardDeleting, setIsBoardDeleting] = React.useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [blockDialogOpen, setBlockDialogOpen] = React.useState(false);
+  const [isBoardBlocking, setIsBoardBlocking] = React.useState(false);
   const [pendingCommentLikeUUIDs, setPendingCommentLikeUUIDs] = React.useState<string[]>([]);
   const [deletingCommentUUID, setDeletingCommentUUID] = React.useState<string | null>(null);
   const [activeReplyParentUUID, setActiveReplyParentUUID] = React.useState<string | null>(null);
@@ -76,8 +77,6 @@ export default function BoardDetailScreen() {
   const [replySubmittingParentUUID, setReplySubmittingParentUUID] = React.useState<string | null>(
     null
   );
-  const [isMoreMenuOpen, setIsMoreMenuOpen] = React.useState(false);
-
   const loadBoard = React.useCallback(async () => {
     if (!boardUUID) {
       setErrorMessage('잘못된 게시글 주소입니다.');
@@ -187,13 +186,31 @@ export default function BoardDetailScreen() {
     }
   }, [boardUUID, commentText, user]);
 
-  const handleLoginPress = React.useCallback(() => {
-    router.push('/login');
-  }, []);
-
   // 페이지 뒤로가기 버튼 동작
+  // 새로고침, 직접 URL 접근 등으로 히스토리 스택이 없는 경우 GO_BACK 경고가 발생하므로
+  // canGoBack()으로 확인 후 없으면 게시판 목록으로 이동
   function handleBackPress() {
-    router.back();
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+
+    if (Platform.OS === 'web') {
+      router.replace({
+        pathname: '/posts',
+        params: {
+          boardCategory: previousBoardCategory === 'free' ? 'free' : 'info',
+        },
+      });
+    } else {
+      router.replace({
+        pathname: '/',
+        params: {
+          tab: 'board',
+          boardCategory: previousBoardCategory === 'free' ? 'free' : 'info',
+        },
+      });
+    }
   }
 
   // 수정 버튼 클릭 동작
@@ -202,20 +219,52 @@ export default function BoardDetailScreen() {
     router.push(`/posts/edit/${boardUUID}`);
   }, [board?.canEdit, boardUUID]);
 
-  // 더보기 버튼 클릭 시 신고, 차단 버튼 드롭다운 표시
-  const handleMoreMenuTogglePress = React.useCallback(() => {
-    setIsMoreMenuOpen((previous) => !previous);
-  }, []);
-
   // 게시글 신고 버튼 클릭
-  const handleReportPress = React.useCallback(() => {
-    setIsMoreMenuOpen(false);
-  }, []);
+  function handleReportPress() {
+    if (!user) {
+      showConfirm(
+        '로그인이 필요한 서비스입니다.',
+        undefined,
+        () => router.push('/login'),
+        undefined,
+        { confirmText: '로그인' }
+      );
+      return;
+    }
+  }
 
   // 사용자 차단 버튼 클릭
-  const handleBlockPress = React.useCallback(() => {
-    setIsMoreMenuOpen(false);
-  }, []);
+  function handleBlockPress() {
+    if (!user) {
+      showConfirm(
+        '로그인이 필요한 서비스입니다.',
+        undefined,
+        () => router.push('/login'),
+        undefined,
+        { confirmText: '로그인' }
+      );
+      return;
+    }
+
+    setBlockDialogOpen(true);
+  }
+
+  // 차단 dialog 차단 확인 버튼 클릭
+  const handleBlockConfirm = React.useCallback(async () => {
+    if (!board?.authorUuid || isBoardBlocking) return;
+
+    setIsBoardBlocking(true);
+
+    try {
+      await blockMember(board.authorUuid);
+      setBlockDialogOpen(false);
+      router.back();
+    } catch {
+      showAlert('사용자 차단 실패', '잠시 후 다시 시도해주세요.');
+    } finally {
+      setIsBoardBlocking(false);
+    }
+  }, [board?.authorUuid, isBoardBlocking]);
 
   // 게시글 삭제 버튼 클릭
   const handleBoardDeleteConfirm = React.useCallback(async () => {
@@ -409,42 +458,25 @@ export default function BoardDetailScreen() {
               <Text className="text-body03 text-black">이전</Text>
             </TouchableOpacity>
 
-            {/* 신고, 차단 더보기 버튼 */}
-            <TouchableOpacity onPress={handleMoreMenuTogglePress} hitSlop={4}>
-              <MoreVerticalIcon size={20} className="text-grey-30" />
-            </TouchableOpacity>
+            {/* 신고, 차단 더보기 버튼 (내가 작성한 게시글은 표시하지 않음) */}
+            {board?.authorUuid !== user?.uuid ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <TouchableOpacity hitSlop={4}>
+                    <MoreVerticalIcon size={20} className="text-grey-30" />
+                  </TouchableOpacity>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onPress={handleReportPress}>
+                    <Text className="px-2 py-1 text-caption02 text-grey-30">신고</Text>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onPress={handleBlockPress}>
+                    <Text className="px-2 py-1 text-caption02 text-grey-30">차단</Text>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
           </View>
-
-          {/* 신고, 차단 드롭다운 메뉴 */}
-          {isMoreMenuOpen && (
-            <>
-              <Pressable
-                onPress={() => setIsMoreMenuOpen(false)}
-                className="absolute inset-0 z-10"
-              />
-              <View
-                className="absolute right-[28px] top-[45px] z-20 rounded bg-white py-1.5"
-                style={{
-                  elevation: 6,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.15,
-                  shadowRadius: 6,
-                }}
-              >
-                <Pressable onPress={handleReportPress} className="active:bg-blue-05">
-                  <Text className="px-6 py-1 text-caption02 text-grey-30 active:text-blue-35">
-                    신고
-                  </Text>
-                </Pressable>
-                <Pressable onPress={handleBlockPress} className="active:bg-blue-05">
-                  <Text className="px-6 py-1 text-caption02 text-grey-30 active:text-blue-35">
-                    차단
-                  </Text>
-                </Pressable>
-              </View>
-            </>
-          )}
 
           {/* 본문 */}
           {isBoardLoading || !board ? (
@@ -465,7 +497,7 @@ export default function BoardDetailScreen() {
               </View>
             </View>
           ) : (
-            <View className="py-5">
+            <View className="pt-5">
               <View className="gap-1 px-4">
                 {/* 컨텐츠 제목 */}
                 <Text className="text-body02 text-black">{board.title}</Text>
@@ -492,12 +524,12 @@ export default function BoardDetailScreen() {
               </View>
 
               {/* 컨텐츠 본문 */}
-              <View className="px-4 pt-4">
+              <View className="px-4 pt-5">
                 <PostContent content={board.content || board.previewContent} />
               </View>
 
               {/* 좋아요 버튼 */}
-              <View className="flex-row items-center justify-between px-5 pt-5">
+              <View className="flex-row items-center justify-between p-5">
                 <TouchableOpacity
                   onPress={() => void handlePostLikeClick()}
                   className="flex-row items-center self-start"
@@ -508,7 +540,9 @@ export default function BoardDetailScreen() {
                   </Text>
                   <HeartIcon
                     filled={board.liked}
-                    className={board.liked ? 'text-blue-20' : 'text-grey-20'}
+                    className={
+                      board.liked ? 'text-blue-20' : user ? 'text-blue-10' : 'text-grey-20'
+                    }
                   />
                 </TouchableOpacity>
 
@@ -530,7 +564,7 @@ export default function BoardDetailScreen() {
             </View>
           )}
 
-          <View className="mt-5 border-b border-grey-02" />
+          <View className="h-[1px] bg-grey-02" />
 
           {/* 댓글 */}
           <View className="px-4 pt-5">
@@ -584,12 +618,24 @@ export default function BoardDetailScreen() {
                 ) : null}
               </>
             ) : (
-              <LoggedOutCommentView onLoginPress={handleLoginPress} />
+              <View className="gap-[14px]">
+                <View className="h-[129px] items-center justify-center rounded-[4px] border border-grey-10 bg-white px-4">
+                  <Text className="text-center text-body05 text-grey-30">
+                    로그인 후 이용 가능합니다.
+                  </Text>
+                </View>
+                <Button
+                  onPress={() => router.push('/login')}
+                  className="h-[48px] rounded-[8px] bg-blue-35"
+                >
+                  <Text className="text-white">Thingo 로그인하기</Text>
+                </Button>
+              </View>
             )}
           </View>
         </View>
 
-        <Footer withBottomInset />
+        <Footer withBottomInset className="mt-7" />
       </View>
 
       {/* 게시글 삭제 확인 창 */}
@@ -625,6 +671,44 @@ export default function BoardDetailScreen() {
           </View>
         </DialogContent>
       </Dialog>
+
+      {/* 사용자 차단 확인 창 */}
+      <Dialog open={blockDialogOpen} onOpenChange={setBlockDialogOpen}>
+        <DialogContent showCloseButton={false} className="min-w-80 p-5">
+          <View className="gap-4">
+            <View>
+              <DialogTitle className="text-center text-body04 leading-normal text-grey-80">
+                {`'${board?.author}' 차단하시겠어요?`}
+              </DialogTitle>
+              <Text className="text-center text-caption02 text-grey-80">
+                {
+                  '차단하면 이 사용자가 작성한 모든 게시판 글과\n댓글, 명지도 리뷰가 즉시 숨겨집니다.'
+                }
+              </Text>
+              <Text className="text-center text-caption04 text-grey-40">
+                (상대방에게는 차단 사실을 알리지 않아요.)
+              </Text>
+            </View>
+            <View className="flex-row gap-2">
+              <Button
+                className="h-9 flex-1 py-0"
+                variant="outline"
+                onPress={() => setBlockDialogOpen(false)}
+                disabled={isBoardBlocking}
+              >
+                <Text>취소</Text>
+              </Button>
+              <Button
+                className="h-9 flex-1 py-0"
+                onPress={handleBlockConfirm}
+                disabled={isBoardBlocking}
+              >
+                <Text>{isBoardBlocking ? '차단 중...' : '차단'}</Text>
+              </Button>
+            </View>
+          </View>
+        </DialogContent>
+      </Dialog>
     </ScrollView>
   );
 }
@@ -648,19 +732,6 @@ function ErrorState({
           <Text>다시 시도</Text>
         </Button>
       </View>
-    </View>
-  );
-}
-
-function LoggedOutCommentView({ onLoginPress }: { onLoginPress: () => void }) {
-  return (
-    <View className="gap-[14px]">
-      <View className="h-[129px] items-center justify-center rounded-[4px] border border-grey-10 bg-white px-4">
-        <Text className="text-center text-body05 text-grey-30">로그인 후 이용 가능합니다.</Text>
-      </View>
-      <Button onPress={onLoginPress} className="h-[48px] rounded-[8px] bg-blue-35">
-        <Text className="text-white">Thingo 로그인하기</Text>
-      </Button>
     </View>
   );
 }

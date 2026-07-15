@@ -203,6 +203,11 @@ export async function deleteAccount(password: string): Promise<void> {
   await client.delete('/members/info', { data: { password } });
 }
 
+// 사용자 차단
+export async function blockMember(targetMemberUuid: string): Promise<void> {
+  await client.post('/blocks', { targetMemberUuid });
+}
+
 // 회원가입 후 로그인 처리
 export async function signup(body: SignupRequest): Promise<void> {
   const { data } = await client.post<{ data: { accessToken: string; refreshToken: string } }>(
