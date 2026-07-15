@@ -28,6 +28,7 @@ type BoardResponse = {
   likeCount: number;
   commentCount: number;
   author: string;
+  authorUuid?: string;
   liked?: boolean;
   isLiked?: boolean;
   canEdit?: boolean;
@@ -66,6 +67,7 @@ export type Board = {
   likeCount: number;
   commentCount: number;
   author: string;
+  authorUuid: string | null;
   liked: boolean;
   canEdit: boolean;
   canDelete: boolean;
@@ -119,6 +121,7 @@ function normalizeBoard(board: BoardResponse): Board {
     likeCount: board.likeCount,
     commentCount: board.commentCount,
     author: board.author,
+    authorUuid: board.authorUuid ?? null,
     liked: typeof board.liked === 'boolean' ? board.liked : Boolean(board.isLiked),
     canEdit: Boolean(board.canEdit),
     canDelete: Boolean(board.canDelete),
