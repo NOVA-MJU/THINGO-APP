@@ -258,13 +258,31 @@ export default function BoardDetailScreen() {
     try {
       await blockMember(board.authorUuid);
       setBlockDialogOpen(false);
-      router.back();
+
+      if (router.canGoBack()) {
+        router.back();
+      } else if (Platform.OS === 'web') {
+        router.replace({
+          pathname: '/posts',
+          params: {
+            boardCategory: previousBoardCategory === 'free' ? 'free' : 'info',
+          },
+        });
+      } else {
+        router.replace({
+          pathname: '/',
+          params: {
+            tab: 'board',
+            boardCategory: previousBoardCategory === 'free' ? 'free' : 'info',
+          },
+        });
+      }
     } catch {
       showAlert('사용자 차단 실패', '잠시 후 다시 시도해주세요.');
     } finally {
       setIsBoardBlocking(false);
     }
-  }, [board?.authorUuid, isBoardBlocking]);
+  }, [board?.authorUuid, isBoardBlocking, previousBoardCategory]);
 
   // 게시글 삭제 버튼 클릭
   const handleBoardDeleteConfirm = React.useCallback(async () => {
