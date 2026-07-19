@@ -61,13 +61,11 @@ export async function createKeywordAlarm(input: KeywordAlarmInput): Promise<Keyw
   return data.data;
 }
 
-export async function updateKeywordAlarmCategories(
+export async function updateKeywordAlarm(
   id: number,
-  categories: AlarmCategory[]
+  input: KeywordAlarmInput
 ): Promise<KeywordAlarm> {
-  const { data } = await client.patch<ApiResponse<KeywordAlarm>>(`/keyword-alarms/${id}`, {
-    categories,
-  });
+  const { data } = await client.patch<ApiResponse<KeywordAlarm>>(`/keyword-alarms/${id}`, input);
   return data.data;
 }
 
