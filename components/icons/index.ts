@@ -1,4 +1,6 @@
 export { default as ArrowLeftIcon } from './arrow-left';
+export { default as AlertOffIcon } from './alert-off';
+export { default as AlertOnIcon } from './alert-on';
 export { default as HamburgerIcon } from './hamburger';
 export { default as ChatBubbleIcon } from './chat-bubble';
 export { default as ArrowDownIcon } from './arrow-down';
