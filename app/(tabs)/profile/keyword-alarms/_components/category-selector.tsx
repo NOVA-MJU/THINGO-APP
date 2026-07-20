@@ -57,13 +57,10 @@ export function CategorySelector({
             onPress={onReset}
             className={cn(
               'items-center justify-center rounded-full active:opacity-70',
-              sheetVariant
-                ? 'h-[33px] w-[33px] bg-grey-02'
-                : 'h-9 flex-row gap-1 border border-grey-10 bg-white px-3'
+              sheetVariant ? 'h-[30px] w-[30px] bg-grey-02' : 'h-[30px] w-[30px] bg-grey-02'
             )}
           >
             <Icon as={RotateCcw} size={sheetVariant ? 18 : 15} className="text-grey-40" />
-            {!sheetVariant && <Text className="text-caption01 text-grey-40">리셋</Text>}
           </Pressable>
         )}
         {ALARM_CATEGORIES.map((category) => {
@@ -76,7 +73,7 @@ export function CategorySelector({
               onPress={() => toggle(category.value)}
               className={cn(
                 'justify-center rounded-full border active:opacity-70',
-                sheetVariant ? 'h-[30px] px-3' : 'h-9 px-3',
+                'h-[30px] px-3',
                 selected ? 'border-blue-15 bg-blue-05' : 'border-grey-10 bg-white'
               )}
             >
