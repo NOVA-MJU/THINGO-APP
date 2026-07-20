@@ -261,6 +261,42 @@ export default function AllScreen({ onNavigate }: Props) {
     );
   }, [menus, currentMealCategory]);
 
+  // 배너 링크가 홈 탭(다른 스와이프 화면)을 가리키는 경우, 모바일에서는 router로 이동하면
+  // 헤더·탭바가 없는 화면이 렌더링되므로 onNavigate로 스와이프 전환하고, 웹은 실제 URL이 있어 그대로 이동
+  function handleBannerPress(linkUrl: string) {
+    if (Platform.OS !== 'web') {
+      if (linkUrl === '/') {
+        onNavigate(0);
+        return;
+      }
+      if (linkUrl.startsWith('/meal')) {
+        onNavigate(1);
+        return;
+      }
+      if (linkUrl.startsWith('/posts')) {
+        onNavigate(2);
+        return;
+      }
+      if (linkUrl.startsWith('/notices')) {
+        onNavigate(3);
+        return;
+      }
+      if (linkUrl.startsWith('/academic-calendar')) {
+        onNavigate(4);
+        return;
+      }
+      if (linkUrl.startsWith('/newspaper')) {
+        onNavigate(5);
+        return;
+      }
+      if (linkUrl.startsWith('/news')) {
+        onNavigate(6);
+        return;
+      }
+    }
+    openLinkOrNavigate(linkUrl);
+  }
+
   return (
     <ScrollView className="native:w-screen flex-1 web:w-full">
       <View className="min-h-screen bg-grey-02">
@@ -287,7 +323,7 @@ export default function AllScreen({ onNavigate }: Props) {
                       onSnapToItem={setCurrentBannerIndex}
                       renderItem={({ item, index }: { item: Banner; index: number }) => (
                         <TouchableOpacity
-                          onPress={() => openLinkOrNavigate(item.linkUrl)}
+                          onPress={() => handleBannerPress(item.linkUrl)}
                           style={{
                             flex: 1,
                             marginHorizontal: CAROUSEL_GAP / 2,
@@ -314,8 +350,8 @@ export default function AllScreen({ onNavigate }: Props) {
                             <Svg width="100%" height="100%">
                               <Defs>
                                 <SvgLinearGradient id="hotGrad" x1="0" y1="0" x2="0" y2="1">
-                                  <Stop offset="0" stopColor="#5DABFF" stopOpacity="0" />
-                                  <Stop offset="1" stopColor="#5DABFF" stopOpacity="0.85" />
+                                  <Stop offset="0" stopColor="#000000" stopOpacity="0" />
+                                  <Stop offset="1" stopColor="#000000" stopOpacity="0.5" />
                                 </SvgLinearGradient>
                               </Defs>
                               <Rect width="100%" height="100%" fill="url(#hotGrad)" />
