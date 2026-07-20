@@ -124,6 +124,14 @@ export default function ProfileScreen() {
               <Text className="text-body04 text-grey-40">- 개</Text>
               <ArrowRightIcon size={20} className="text-grey-30" />
             </TouchableOpacity>
+            <TouchableOpacity
+              className="flex-row items-center gap-4 rounded-xl bg-white px-4 py-6"
+              onPress={() => router.push('/profile/blocked-users' as never)}
+            >
+              <Text className="flex-1 text-body04 text-grey-80">차단한 사용자</Text>
+              <Text className="text-body04 text-grey-40">- 개</Text>
+              <ArrowRightIcon size={20} className="text-grey-30" />
+            </TouchableOpacity>
           </View>
 
           {/* 정보 */}
