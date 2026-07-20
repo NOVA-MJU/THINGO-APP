@@ -6,19 +6,17 @@ import { ArrowRightIcon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { openContactMail } from '@/lib/contact';
+import { openLink } from '@/lib/open-link';
 import { showConfirm } from '@/lib/alert';
 import { useFocusEffect, useRouter } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useState } from 'react';
 import { Image, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const TERMS_URL =
-  'https://verbena-ixia-597.notion.site/Thingo-33e22ef5d21e80b08328edd8519b0b4e?source=copy_link';
+const TERMS_URL = 'https://verbena-ixia-597.notion.site/Thingo-33e22ef5d21e80b08328edd8519b0b4e';
 const LOCATION_PRIVACY_URL =
-  'https://app.notion.com/p/Thingo-39722ef5d21e802ebf0edfe83047fa8f?source=copy_link';
-const PRIVACY_URL =
-  'https://verbena-ixia-597.notion.site/Thingo-33e22ef5d21e807d9738dc14def5de24?source=copy_link';
+  'https://verbena-ixia-597.notion.site/Thingo-39722ef5d21e802ebf0edfe83047fa8f';
+const PRIVACY_URL = 'https://verbena-ixia-597.notion.site/Thingo-33e22ef5d21e807d9738dc14def5de24';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -143,21 +141,21 @@ export default function ProfileScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               className="flex-row items-center justify-between border-b border-grey-02 py-3"
-              onPress={() => WebBrowser.openBrowserAsync(TERMS_URL)}
+              onPress={() => openLink(TERMS_URL)}
             >
               <Text className="text-body06 text-black">Thingo 서비스 이용 약관</Text>
               <ArrowRightIcon size={20} className="text-grey-30" />
             </TouchableOpacity>
             <TouchableOpacity
               className="flex-row items-center justify-between border-b border-grey-02 py-3"
-              onPress={() => WebBrowser.openBrowserAsync(LOCATION_PRIVACY_URL)}
+              onPress={() => openLink(LOCATION_PRIVACY_URL)}
             >
               <Text className="text-body06 text-black">위치기반 서비스 이용 약관</Text>
               <ArrowRightIcon size={20} className="text-grey-30" />
             </TouchableOpacity>
             <TouchableOpacity
               className="flex-row items-center justify-between border-b border-grey-02 py-3"
-              onPress={() => WebBrowser.openBrowserAsync(PRIVACY_URL)}
+              onPress={() => openLink(PRIVACY_URL)}
             >
               <Text className="text-body06 text-black">개인정보 처리 방침</Text>
               <ArrowRightIcon size={20} className="text-grey-30" />

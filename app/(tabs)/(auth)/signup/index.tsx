@@ -19,19 +19,17 @@ import { isAxiosError } from 'axios';
 import { useRouter } from 'expo-router';
 import { showAlert } from '@/lib/alert';
 import { useImageUpload } from '@/hooks/useImageUpload';
+import { openLink } from '@/lib/open-link';
 import { useState } from 'react';
 import { Image, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
 import * as DropdownMenu from 'zeego/dropdown-menu';
-import * as WebBrowser from 'expo-web-browser';
 import { AppHeader } from '@/components/app-header';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const TERMS_URL =
-  'https://verbena-ixia-597.notion.site/Thingo-33e22ef5d21e80b08328edd8519b0b4e?source=copy_link';
+const TERMS_URL = 'https://verbena-ixia-597.notion.site/Thingo-33e22ef5d21e80b08328edd8519b0b4e';
 const LOCATION_PRIVACY_URL =
-  'https://app.notion.com/p/Thingo-39722ef5d21e802ebf0edfe83047fa8f?source=copy_link';
-const PRIVACY_URL =
-  'https://verbena-ixia-597.notion.site/Thingo-33e22ef5d21e807d9738dc14def5de24?source=copy_link';
+  'https://verbena-ixia-597.notion.site/Thingo-39722ef5d21e802ebf0edfe83047fa8f';
+const PRIVACY_URL = 'https://verbena-ixia-597.notion.site/Thingo-33e22ef5d21e807d9738dc14def5de24';
 
 export default function SignupScreen() {
   const insets = useSafeAreaInsets();
@@ -506,7 +504,7 @@ export default function SignupScreen() {
               </TouchableOpacity>
               <Text className="text-body05 text-grey-80">(필수)</Text>
               <Text className="flex-1 text-body05 text-grey-80">Thingo 서비스 이용약관 동의</Text>
-              <TouchableOpacity hitSlop={4} onPress={() => WebBrowser.openBrowserAsync(TERMS_URL)}>
+              <TouchableOpacity hitSlop={4} onPress={() => openLink(TERMS_URL)}>
                 <ArrowRightIcon size={20} className="text-grey-30" />
               </TouchableOpacity>
             </View>
@@ -516,10 +514,7 @@ export default function SignupScreen() {
               </TouchableOpacity>
               <Text className="text-body05 text-grey-80">(필수)</Text>
               <Text className="flex-1 text-body05 text-grey-80">개인정보 수집 및 이용동의</Text>
-              <TouchableOpacity
-                hitSlop={4}
-                onPress={() => WebBrowser.openBrowserAsync(PRIVACY_URL)}
-              >
+              <TouchableOpacity hitSlop={4} onPress={() => openLink(PRIVACY_URL)}>
                 <ArrowRightIcon size={20} className="text-grey-30" />
               </TouchableOpacity>
             </View>
@@ -532,10 +527,7 @@ export default function SignupScreen() {
               </TouchableOpacity>
               <Text className="text-body05 text-grey-80">(필수)</Text>
               <Text className="flex-1 text-body05 text-grey-80">위치기반 서비스 이용약관 동의</Text>
-              <TouchableOpacity
-                hitSlop={4}
-                onPress={() => WebBrowser.openBrowserAsync(LOCATION_PRIVACY_URL)}
-              >
+              <TouchableOpacity hitSlop={4} onPress={() => openLink(LOCATION_PRIVACY_URL)}>
                 <ArrowRightIcon size={20} className="text-grey-30" />
               </TouchableOpacity>
             </View>

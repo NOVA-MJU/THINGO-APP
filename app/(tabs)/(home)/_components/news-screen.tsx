@@ -4,8 +4,9 @@ import { CategoryFilter } from '@/components/ui/category-filter';
 import { Pagination } from '@/components/ui/pagination';
 import { Text } from '@/components/ui/text';
 import { YoutubeEmbed } from '@/components/youtube-embed';
+import { openLink } from '@/lib/open-link';
 import { formatTimeAgo } from '@/lib/utils';
-import { Link, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
 import { ActivityIndicator, ScrollView, TouchableOpacity, View } from 'react-native';
 
@@ -75,20 +76,18 @@ export default function NewsScreen() {
               <View className="flex-5 overflow-hidden rounded-t-xl">
                 <YoutubeEmbed videoId={videoId} height={192} />
               </View>
-              <Link href={item.url as `https://${string}`} asChild>
-                <TouchableOpacity>
-                  <View className="flex-2 gap-0.5 rounded-b-xl bg-white px-4 py-2">
-                    <View style={{ minHeight: 48 }}>
-                      <Text className="text-body02 text-black" numberOfLines={2}>
-                        {item.title}
-                      </Text>
-                    </View>
-                    <Text className="text-caption04 text-grey-30" numberOfLines={1}>
-                      {formatTimeAgo(item.publishedAt)}
+              <TouchableOpacity onPress={() => openLink(item.url)}>
+                <View className="flex-2 gap-0.5 rounded-b-xl bg-white px-4 py-2">
+                  <View style={{ minHeight: 48 }}>
+                    <Text className="text-body02 text-black" numberOfLines={2}>
+                      {item.title}
                     </Text>
                   </View>
-                </TouchableOpacity>
-              </Link>
+                  <Text className="text-caption04 text-grey-30" numberOfLines={1}>
+                    {formatTimeAgo(item.publishedAt)}
+                  </Text>
+                </View>
+              </TouchableOpacity>
             </View>
           );
         })}
