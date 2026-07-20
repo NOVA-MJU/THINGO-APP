@@ -15,6 +15,7 @@ Notifications.setNotificationHandler({
 });
 
 export async function registerCurrentDeviceForPush(): Promise<string | null> {
+  // 웹은 브라우저 푸시 토큰을 등록하지 않고 알림함 데이터 조회만 지원한다.
   if (Platform.OS !== 'android') return null;
 
   await Notifications.setNotificationChannelAsync('default', {

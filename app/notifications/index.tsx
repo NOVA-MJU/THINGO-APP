@@ -16,6 +16,7 @@ import {
   ActivityIndicator,
   FlatList,
   Linking,
+  Platform,
   Pressable,
   RefreshControl,
   View,
@@ -37,7 +38,32 @@ export default function NotificationsScreen() {
     initialPageParam: 0,
     getNextPageParam: (lastPage) => (lastPage.last ? undefined : lastPage.number + 1),
     enabled: !!user,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
+  const refetchNotifications = notificationsQuery.refetch;
+
+  React.useEffect(() => {
+    if (Platform.OS !== 'web' || !user) return;
+
+    function refetchVisibleNotifications() {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      refetchNotifications();
+    }
+
+    globalThis.addEventListener?.('focus', refetchVisibleNotifications);
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', refetchVisibleNotifications);
+    }
+
+    return () => {
+      globalThis.removeEventListener?.('focus', refetchVisibleNotifications);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', refetchVisibleNotifications);
+      }
+    };
+  }, [refetchNotifications, user]);
 
   const readMutation = useMutation({
     mutationFn: markNotificationAsRead,
