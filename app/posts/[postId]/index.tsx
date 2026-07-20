@@ -11,6 +11,7 @@ import {
   type Comment,
 } from '@/api/posts';
 import { blockMember } from '@/api/members';
+import { reportBoard, type ReportReason } from '@/api/reports';
 import { Footer } from '@/components/footer';
 import {
   ArrowLeftIcon,
@@ -18,6 +19,8 @@ import {
   CloseIcon,
   HeartIcon,
   MoreVerticalIcon,
+  RadioIcon,
+  XThinIcon,
 } from '@/components/icons';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PostContent } from '@/components/post-content';
@@ -39,6 +42,12 @@ import { Text } from '@/components/ui/text';
 import { useAuth } from '@/context/auth-context';
 import { showAlert, showConfirm } from '@/lib/alert';
 import { parseUTCDate } from '@/lib/utils';
+import {
+  BottomSheetBackdrop,
+  BottomSheetModal,
+  BottomSheetScrollView,
+  type BottomSheetBackdropProps,
+} from '@gorhom/bottom-sheet';
 import { format } from 'date-fns';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as React from 'react';
@@ -47,6 +56,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
 
 const COMMENT_MAX_LENGTH = 300;
+const REPORT_ETC_MAX_LENGTH = 400;
 
 export default function BoardDetailScreen() {
   const insets = useSafeAreaInsets();
@@ -69,6 +79,12 @@ export default function BoardDetailScreen() {
   const [isBoardDeleting, setIsBoardDeleting] = React.useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [blockDialogOpen, setBlockDialogOpen] = React.useState(false);
+  const reportBottomSheetRef = React.useRef<BottomSheetModal>(null);
+  const [selectedReportReasonId, setSelectedReportReasonId] = React.useState<ReportReason | null>(
+    null
+  );
+  const [reportEtcText, setReportEtcText] = React.useState('');
+  const [isReportSubmitting, setIsReportSubmitting] = React.useState(false);
   const [isBoardBlocking, setIsBoardBlocking] = React.useState(false);
   const [pendingCommentLikeUUIDs, setPendingCommentLikeUUIDs] = React.useState<string[]>([]);
   const [deletingCommentUUID, setDeletingCommentUUID] = React.useState<string | null>(null);
@@ -231,7 +247,37 @@ export default function BoardDetailScreen() {
       );
       return;
     }
+
+    setSelectedReportReasonId(null);
+    setReportEtcText('');
+    reportBottomSheetRef.current?.present();
   }
+
+  // 신고 바텀시트 닫기 버튼 클릭
+  function handleReportSheetClose() {
+    reportBottomSheetRef.current?.dismiss();
+  }
+
+  // 신고하기 버튼 클릭
+  const handleReportSubmit = React.useCallback(async () => {
+    const canSubmitReport =
+      selectedReportReasonId === 'ETC'
+        ? reportEtcText.trim().length > 0
+        : selectedReportReasonId !== null;
+    if (!boardUUID || !selectedReportReasonId || !canSubmitReport || isReportSubmitting) return;
+
+    setIsReportSubmitting(true);
+
+    try {
+      await reportBoard(boardUUID, selectedReportReasonId, reportEtcText.trim());
+      reportBottomSheetRef.current?.dismiss();
+      showAlert('신고가 접수되었습니다.');
+    } catch {
+      showAlert('신고 접수 실패', '잠시 후 다시 시도해주세요.');
+    } finally {
+      setIsReportSubmitting(false);
+    }
+  }, [boardUUID, isReportSubmitting, reportEtcText, selectedReportReasonId]);
 
   // 사용자 차단 버튼 클릭
   function handleBlockPress() {
@@ -459,275 +505,416 @@ export default function BoardDetailScreen() {
   }
 
   return (
-    <ScrollView
-      className="bg-white"
-      contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top }}
-    >
-      <View className="flex-1 justify-between bg-white">
-        <View>
-          <View className="h-[60px] flex-row items-center justify-between border-b border-grey-02 px-4">
-            {/* 뒤로가기 버튼 */}
-            <TouchableOpacity
-              onPress={handleBackPress}
-              className="flex-row items-center gap-1"
-              hitSlop={4}
-            >
-              <ArrowLeftIcon className="text-black" size={20} />
-              <Text className="text-body03 text-black">이전</Text>
-            </TouchableOpacity>
+    <>
+      <ScrollView
+        className="bg-white"
+        contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top }}
+      >
+        <View className="flex-1 justify-between bg-white">
+          <View>
+            <View className="h-[60px] flex-row items-center justify-between border-b border-grey-02 px-4">
+              {/* 뒤로가기 버튼 */}
+              <TouchableOpacity
+                onPress={handleBackPress}
+                className="flex-row items-center gap-1"
+                hitSlop={4}
+              >
+                <ArrowLeftIcon className="text-black" size={20} />
+                <Text className="text-body03 text-black">이전</Text>
+              </TouchableOpacity>
 
-            {/* 신고, 차단 더보기 버튼 (내가 작성한 게시글은 표시하지 않음) */}
-            {board?.authorUuid !== user?.uuid ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <TouchableOpacity hitSlop={4}>
-                    <MoreVerticalIcon size={20} className="text-grey-30" />
-                  </TouchableOpacity>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onPress={handleReportPress}>
-                    <Text className="px-2 py-1 text-caption02 text-grey-30">신고</Text>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onPress={handleBlockPress}>
-                    <Text className="px-2 py-1 text-caption02 text-grey-30">차단</Text>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : null}
-          </View>
-
-          {/* 본문 */}
-          {isBoardLoading || !board ? (
-            <View className="py-5">
-              <View className="gap-2 px-4">
-                <Skeleton className="h-5 w-3/4 rounded" />
-                <View className="flex-row items-center gap-3">
-                  <Skeleton className="h-4 w-20 rounded" />
-                  <Skeleton className="h-4 w-16 rounded" />
-                </View>
-              </View>
-              <View className="mt-4 gap-2 px-4">
-                <Skeleton className="h-4 w-full rounded" />
-                <Skeleton className="h-4 w-full rounded" />
-                <Skeleton className="h-4 w-5/6 rounded" />
-                <Skeleton className="h-4 w-full rounded" />
-                <Skeleton className="h-4 w-2/3 rounded" />
-              </View>
+              {/* 신고, 차단 더보기 버튼 (내가 작성한 게시글은 표시하지 않음) */}
+              {board?.authorUuid !== user?.uuid ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <TouchableOpacity hitSlop={4}>
+                      <MoreVerticalIcon size={20} className="text-grey-30" />
+                    </TouchableOpacity>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onPress={handleReportPress}>
+                      <Text className="px-2 py-1 text-caption02 text-grey-30">신고</Text>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onPress={handleBlockPress}>
+                      <Text className="px-2 py-1 text-caption02 text-grey-30">차단</Text>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : null}
             </View>
-          ) : (
-            <View className="pt-5">
-              <View className="gap-1 px-4">
-                {/* 컨텐츠 제목 */}
-                <Text className="text-body02 text-black">{board.title}</Text>
 
-                <View className="flex-row items-center justify-between gap-4">
+            {/* 본문 */}
+            {isBoardLoading || !board ? (
+              <View className="py-5">
+                <View className="gap-2 px-4">
+                  <Skeleton className="h-5 w-3/4 rounded" />
                   <View className="flex-row items-center gap-3">
-                    <Text className="text-body05 text-grey-40">{formatBoardDate(board)}</Text>
-                    <Svg width="1" height="16" viewBox="0 0 1 16" fill="none">
-                      <Line x1="0.5" x2="0.5" y2="16" stroke="#AEB2B6" />
-                    </Svg>
-                    <Text className="text-body05 text-grey-40">{board.author}</Text>
-                  </View>
-
-                  <View className="flex-row items-center">
-                    <HeartIcon size={24} filled={board.liked} className="text-blue-20" />
-                    <Text className="text-body05 text-grey-40">{board.likeCount}</Text>
-                    <Svg width="1" height="16" viewBox="0 0 1 16" fill="none" className="ms-2">
-                      <Line x1="0.5" x2="0.5" y2="16" stroke="#AEB2B6" />
-                    </Svg>
-                    <ChatBubbleIcon size={24} className="ms-1.5 text-blue-20" />
-                    <Text className="text-body05 text-grey-40">{board.commentCount}</Text>
+                    <Skeleton className="h-4 w-20 rounded" />
+                    <Skeleton className="h-4 w-16 rounded" />
                   </View>
                 </View>
+                <View className="mt-4 gap-2 px-4">
+                  <Skeleton className="h-4 w-full rounded" />
+                  <Skeleton className="h-4 w-full rounded" />
+                  <Skeleton className="h-4 w-5/6 rounded" />
+                  <Skeleton className="h-4 w-full rounded" />
+                  <Skeleton className="h-4 w-2/3 rounded" />
+                </View>
               </View>
-
-              {/* 컨텐츠 본문 */}
-              <View className="px-4 pt-5">
-                <PostContent content={board.content || board.previewContent} />
-              </View>
-
-              {/* 좋아요 버튼 */}
-              <View className="flex-row items-center justify-between p-5">
-                <TouchableOpacity
-                  onPress={() => void handlePostLikeClick()}
-                  className="flex-row items-center self-start"
-                  disabled={isLikePending}
-                >
-                  <Text className="text-body04 text-grey-40">
-                    {isLikePending ? '처리 중...' : '좋아요'}
-                  </Text>
-                  <HeartIcon
-                    filled={board.liked}
-                    className={
-                      board.liked ? 'text-blue-20' : user ? 'text-blue-10' : 'text-grey-20'
-                    }
-                  />
-                </TouchableOpacity>
-
-                {board.canEdit || board.canDelete ? (
-                  <View className="flex-row items-center gap-5">
-                    {board.canEdit ? (
-                      <TouchableOpacity onPress={handleEditPress}>
-                        <Text className="text-body05 text-grey-40">수정</Text>
-                      </TouchableOpacity>
-                    ) : null}
-                    {board.canDelete ? (
-                      <TouchableOpacity onPress={() => setDeleteDialogOpen(true)}>
-                        <Text className="text-body05 text-grey-40">삭제</Text>
-                      </TouchableOpacity>
-                    ) : null}
-                  </View>
-                ) : null}
-              </View>
-            </View>
-          )}
-
-          <View className="h-[1px] bg-grey-02" />
-
-          {/* 댓글 */}
-          <View className="px-4 pt-5">
-            <Text className="mb-2 text-body02 text-black">댓글</Text>
-
-            {isCommentsLoading ? (
-              <View className="mt-2 gap-5">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <View key={i} className="gap-[10px]">
-                    <View className="flex-row items-start gap-3">
-                      <Skeleton className="h-10 w-10 rounded-full" />
-                      <View className="flex-1 gap-0.5 pt-1">
-                        <Skeleton className="h-4 w-24 rounded" />
-                        <Skeleton className="h-3 w-16 rounded" />
-                      </View>
-                    </View>
-                    <Skeleton className="h-4 w-full rounded" />
-                    <Skeleton className="h-4 w-3/4 rounded" />
-                  </View>
-                ))}
-              </View>
-            ) : user ? (
-              <>
-                <CommentComposer
-                  value={commentText}
-                  isSubmitting={isCommentSubmitting}
-                  onChange={setCommentText}
-                  onSubmit={() => void handleCommentSubmitClick()}
-                />
-
-                {comments.length > 0 ? (
-                  <View className="mt-4 gap-5">
-                    {comments.map((comment) => (
-                      <CommentThread
-                        key={comment.commentUUID}
-                        comment={comment}
-                        currentUserNickname={user.nickname}
-                        deletingCommentUUID={deletingCommentUUID}
-                        activeReplyParentUUID={activeReplyParentUUID}
-                        pendingCommentLikeUUIDs={pendingCommentLikeUUIDs}
-                        replyText={replyText}
-                        replySubmittingParentUUID={replySubmittingParentUUID}
-                        onCommentLikeToggle={handleCommentLikeClick}
-                        onDelete={handleCommentDeleteClick}
-                        onReplyToggle={handleReplyToggleClick}
-                        onReplyTextChange={setReplyText}
-                        onReplySubmit={() => void handleReplySubmitClick()}
-                      />
-                    ))}
-                  </View>
-                ) : null}
-              </>
             ) : (
-              <View className="gap-[14px]">
-                <View className="h-[129px] items-center justify-center rounded-[4px] border border-grey-10 bg-white px-4">
-                  <Text className="text-center text-body05 text-grey-30">
-                    로그인 후 이용 가능합니다.
-                  </Text>
+              <View className="pt-5">
+                <View className="gap-1 px-4">
+                  {/* 컨텐츠 제목 */}
+                  <Text className="text-body02 text-black">{board.title}</Text>
+
+                  <View className="flex-row items-center justify-between gap-4">
+                    <View className="flex-row items-center gap-3">
+                      <Text className="text-body05 text-grey-40">{formatBoardDate(board)}</Text>
+                      <Svg width="1" height="16" viewBox="0 0 1 16" fill="none">
+                        <Line x1="0.5" x2="0.5" y2="16" stroke="#AEB2B6" />
+                      </Svg>
+                      <Text className="text-body05 text-grey-40">{board.author}</Text>
+                    </View>
+
+                    <View className="flex-row items-center">
+                      <HeartIcon size={24} filled={board.liked} className="text-blue-20" />
+                      <Text className="text-body05 text-grey-40">{board.likeCount}</Text>
+                      <Svg width="1" height="16" viewBox="0 0 1 16" fill="none" className="ms-2">
+                        <Line x1="0.5" x2="0.5" y2="16" stroke="#AEB2B6" />
+                      </Svg>
+                      <ChatBubbleIcon size={24} className="ms-1.5 text-blue-20" />
+                      <Text className="text-body05 text-grey-40">{board.commentCount}</Text>
+                    </View>
+                  </View>
                 </View>
-                <Button
-                  onPress={() => router.push('/login')}
-                  className="h-[48px] rounded-[8px] bg-blue-35"
-                >
-                  <Text className="text-white">Thingo 로그인하기</Text>
-                </Button>
+
+                {/* 컨텐츠 본문 */}
+                <View className="px-4 pt-5">
+                  <PostContent content={board.content || board.previewContent} />
+                </View>
+
+                {/* 좋아요 버튼 */}
+                <View className="flex-row items-center justify-between p-5">
+                  <TouchableOpacity
+                    onPress={() => void handlePostLikeClick()}
+                    className="flex-row items-center self-start"
+                    disabled={isLikePending}
+                  >
+                    <Text className="text-body04 text-grey-40">
+                      {isLikePending ? '처리 중...' : '좋아요'}
+                    </Text>
+                    <HeartIcon
+                      filled={board.liked}
+                      className={
+                        board.liked ? 'text-blue-20' : user ? 'text-blue-10' : 'text-grey-20'
+                      }
+                    />
+                  </TouchableOpacity>
+
+                  {board.canEdit || board.canDelete ? (
+                    <View className="flex-row items-center gap-5">
+                      {board.canEdit ? (
+                        <TouchableOpacity onPress={handleEditPress}>
+                          <Text className="text-body05 text-grey-40">수정</Text>
+                        </TouchableOpacity>
+                      ) : null}
+                      {board.canDelete ? (
+                        <TouchableOpacity onPress={() => setDeleteDialogOpen(true)}>
+                          <Text className="text-body05 text-grey-40">삭제</Text>
+                        </TouchableOpacity>
+                      ) : null}
+                    </View>
+                  ) : null}
+                </View>
               </View>
             )}
+
+            <View className="h-[1px] bg-grey-02" />
+
+            {/* 댓글 */}
+            <View className="px-4 pt-5">
+              <Text className="mb-2 text-body02 text-black">댓글</Text>
+
+              {isCommentsLoading ? (
+                <View className="mt-2 gap-5">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <View key={i} className="gap-[10px]">
+                      <View className="flex-row items-start gap-3">
+                        <Skeleton className="h-10 w-10 rounded-full" />
+                        <View className="flex-1 gap-0.5 pt-1">
+                          <Skeleton className="h-4 w-24 rounded" />
+                          <Skeleton className="h-3 w-16 rounded" />
+                        </View>
+                      </View>
+                      <Skeleton className="h-4 w-full rounded" />
+                      <Skeleton className="h-4 w-3/4 rounded" />
+                    </View>
+                  ))}
+                </View>
+              ) : user ? (
+                <>
+                  <CommentComposer
+                    value={commentText}
+                    isSubmitting={isCommentSubmitting}
+                    onChange={setCommentText}
+                    onSubmit={() => void handleCommentSubmitClick()}
+                  />
+
+                  {comments.length > 0 ? (
+                    <View className="mt-4 gap-5">
+                      {comments.map((comment) => (
+                        <CommentThread
+                          key={comment.commentUUID}
+                          comment={comment}
+                          currentUserNickname={user.nickname}
+                          deletingCommentUUID={deletingCommentUUID}
+                          activeReplyParentUUID={activeReplyParentUUID}
+                          pendingCommentLikeUUIDs={pendingCommentLikeUUIDs}
+                          replyText={replyText}
+                          replySubmittingParentUUID={replySubmittingParentUUID}
+                          onCommentLikeToggle={handleCommentLikeClick}
+                          onDelete={handleCommentDeleteClick}
+                          onReplyToggle={handleReplyToggleClick}
+                          onReplyTextChange={setReplyText}
+                          onReplySubmit={() => void handleReplySubmitClick()}
+                        />
+                      ))}
+                    </View>
+                  ) : null}
+                </>
+              ) : (
+                <View className="gap-[14px]">
+                  <View className="h-[129px] items-center justify-center rounded-[4px] border border-grey-10 bg-white px-4">
+                    <Text className="text-center text-body05 text-grey-30">
+                      로그인 후 이용 가능합니다.
+                    </Text>
+                  </View>
+                  <Button
+                    onPress={() => router.push('/login')}
+                    className="h-[48px] rounded-[8px] bg-blue-35"
+                  >
+                    <Text className="text-white">Thingo 로그인하기</Text>
+                  </Button>
+                </View>
+              )}
+            </View>
           </View>
+
+          <Footer withBottomInset className="mt-7" />
         </View>
 
-        <Footer withBottomInset className="mt-7" />
-      </View>
-
-      {/* 게시글 삭제 확인 창 */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="mx-6 w-[320px] max-w-[320px] gap-4 rounded-xl border-none py-[24px]">
-          <DialogHeader className="gap-1">
-            <DialogTitle className="text-center text-body03 text-black">
-              게시글을 삭제하시겠습니까?
-            </DialogTitle>
-            <DialogDescription className="text-center text-body06 text-grey-80">
-              삭제한 게시글과 댓글은 복구할 수 없습니다.
-            </DialogDescription>
-          </DialogHeader>
-
-          <View className="flex-row gap-2">
-            <TouchableOpacity
-              onPress={() => setDeleteDialogOpen(false)}
-              className="h-[36px] flex-1 items-center justify-center rounded-xl bg-grey-10"
-              disabled={isBoardDeleting}
-            >
-              <Text className="text-body06 text-black">취소</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => void handleBoardDeleteConfirm()}
-              className="h-[36px] flex-1 items-center justify-center rounded-xl bg-error"
-              disabled={isBoardDeleting}
-            >
-              <Text className="text-body06 text-white">
-                {isBoardDeleting ? '삭제 중...' : '삭제'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </DialogContent>
-      </Dialog>
-
-      {/* 사용자 차단 확인 창 */}
-      <Dialog open={blockDialogOpen} onOpenChange={setBlockDialogOpen}>
-        <DialogContent showCloseButton={false} className="min-w-80 p-5">
-          <View className="gap-4">
-            <View>
-              <DialogTitle className="text-center text-body04 leading-normal text-grey-80">
-                {`'${board?.author}' 차단하시겠어요?`}
+        {/* 게시글 삭제 확인 창 */}
+        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <DialogContent className="mx-6 w-[320px] max-w-[320px] gap-4 rounded-xl border-none py-[24px]">
+            <DialogHeader className="gap-1">
+              <DialogTitle className="text-center text-body03 text-black">
+                게시글을 삭제하시겠습니까?
               </DialogTitle>
-              <Text className="text-center text-caption02 text-grey-80">
-                {
-                  '차단하면 이 사용자가 작성한 모든 게시판 글과\n댓글, 명지도 리뷰가 즉시 숨겨집니다.'
-                }
-              </Text>
-              <Text className="text-center text-caption04 text-grey-40">
-                (상대방에게는 차단 사실을 알리지 않아요.)
+              <DialogDescription className="text-center text-body06 text-grey-80">
+                삭제한 게시글과 댓글은 복구할 수 없습니다.
+              </DialogDescription>
+            </DialogHeader>
+
+            <View className="flex-row gap-2">
+              <TouchableOpacity
+                onPress={() => setDeleteDialogOpen(false)}
+                className="h-[36px] flex-1 items-center justify-center rounded-xl bg-grey-10"
+                disabled={isBoardDeleting}
+              >
+                <Text className="text-body06 text-black">취소</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => void handleBoardDeleteConfirm()}
+                className="h-[36px] flex-1 items-center justify-center rounded-xl bg-error"
+                disabled={isBoardDeleting}
+              >
+                <Text className="text-body06 text-white">
+                  {isBoardDeleting ? '삭제 중...' : '삭제'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </DialogContent>
+        </Dialog>
+
+        {/* 사용자 차단 확인 창 */}
+        <Dialog open={blockDialogOpen} onOpenChange={setBlockDialogOpen}>
+          <DialogContent showCloseButton={false} className="min-w-80 p-5">
+            <View className="gap-4">
+              <View>
+                <DialogTitle className="text-center text-body04 leading-normal text-grey-80">
+                  {`'${board?.author}' 차단하시겠어요?`}
+                </DialogTitle>
+                <Text className="text-center text-caption02 text-grey-80">
+                  {
+                    '차단하면 이 사용자가 작성한 모든 게시판 글과\n댓글, 명지도 리뷰가 즉시 숨겨집니다.'
+                  }
+                </Text>
+                <Text className="text-center text-caption04 text-grey-40">
+                  (상대방에게는 차단 사실을 알리지 않아요.)
+                </Text>
+              </View>
+              <View className="flex-row gap-2">
+                <Button
+                  className="h-9 flex-1 py-0"
+                  variant="outline"
+                  onPress={() => setBlockDialogOpen(false)}
+                  disabled={isBoardBlocking}
+                >
+                  <Text>취소</Text>
+                </Button>
+                <Button
+                  className="h-9 flex-1 py-0"
+                  onPress={handleBlockConfirm}
+                  disabled={isBoardBlocking}
+                >
+                  <Text>{isBoardBlocking ? '차단 중...' : '차단'}</Text>
+                </Button>
+              </View>
+            </View>
+          </DialogContent>
+        </Dialog>
+      </ScrollView>
+
+      {/* 게시글 신고 바텀시트 */}
+      <BottomSheetModal
+        ref={reportBottomSheetRef}
+        snapPoints={['70%']}
+        enableDynamicSizing={false}
+        backdropComponent={ReportBottomSheetBackdrop}
+        enableContentPanningGesture={false}
+      >
+        <BottomSheetScrollView contentContainerClassName="pb-4">
+          <View className="items-end px-4">
+            <TouchableOpacity onPress={handleReportSheetClose} hitSlop={4}>
+              <XThinIcon size={24} className="text-grey-30" />
+            </TouchableOpacity>
+          </View>
+          <View className="mt-[18px] flex-row items-center gap-1 px-4">
+            <Text className="text-body02 text-grey-80">신고 사유를 알려주세요.</Text>
+            <Text className="text-body02 text-error">*</Text>
+          </View>
+
+          <TouchableOpacity
+            className="mt-[18px] flex-row items-start gap-1.5 px-4"
+            onPress={() => setSelectedReportReasonId('COMMERCIAL_AD')}
+          >
+            <RadioIcon size={20} checked={selectedReportReasonId === 'COMMERCIAL_AD'} />
+            <View className="flex-1 gap-1">
+              <Text className="text-body05 text-grey-60">상업적 광고 및 홍보성</Text>
+              <Text className="text-caption02 text-grey-40">
+                영리 목적의 홍보·판매, 타 서비스나 사이트 가입 유도
               </Text>
             </View>
-            <View className="flex-row gap-2">
-              <Button
-                className="h-9 flex-1 py-0"
-                variant="outline"
-                onPress={() => setBlockDialogOpen(false)}
-                disabled={isBoardBlocking}
-              >
-                <Text>취소</Text>
-              </Button>
-              <Button
-                className="h-9 flex-1 py-0"
-                onPress={handleBlockConfirm}
-                disabled={isBoardBlocking}
-              >
-                <Text>{isBoardBlocking ? '차단 중...' : '차단'}</Text>
-              </Button>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            className="mt-[18px] flex-row items-start gap-1.5 px-4"
+            onPress={() => setSelectedReportReasonId('INAPPROPRIATE')}
+          >
+            <RadioIcon size={20} checked={selectedReportReasonId === 'INAPPROPRIATE'} />
+            <View className="flex-1 gap-1">
+              <Text className="text-body05 text-grey-60">주제 및 서비스 성격에 부적절함</Text>
+              <Text className="text-caption02 text-grey-40">
+                게시판 주제나 장소와 무관한 내용, 무의미한 초성·도배·낚시
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            className="mt-[18px] flex-row items-start gap-1.5 px-4"
+            onPress={() => setSelectedReportReasonId('ABUSE')}
+          >
+            <RadioIcon size={20} checked={selectedReportReasonId === 'ABUSE'} />
+            <View className="flex-1 gap-1">
+              <Text className="text-body05 text-grey-60">욕설/비하/인신공격</Text>
+              <Text className="text-caption02 text-grey-40">
+                특정인이나 단체에 대한 비방, 명예훼손, 학우 간 분란 조장
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            className="mt-[18px] flex-row items-start gap-1.5 px-4"
+            onPress={() => setSelectedReportReasonId('OBSCENE')}
+          >
+            <RadioIcon size={20} checked={selectedReportReasonId === 'OBSCENE'} />
+            <View className="flex-1 gap-1">
+              <Text className="text-body05 text-grey-60">음란성/불건전한 내용</Text>
+              <Text className="text-caption02 text-grey-40">
+                선정적인 내용, 불건전한 만남 유도, 불법촬영물 등 유통
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            className="mt-[18px] flex-row items-start gap-1.5 px-4"
+            onPress={() => setSelectedReportReasonId('PRIVACY_SCAM')}
+          >
+            <RadioIcon size={20} checked={selectedReportReasonId === 'PRIVACY_SCAM'} />
+            <View className="flex-1 gap-1">
+              <Text className="text-body05 text-grey-60">개인정보 노출 및 사칭/사기</Text>
+              <Text className="text-caption02 text-grey-40">
+                개인 실명·연락처·SNS ID 노출, 관리자 사칭, 사기 의심
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            className="mt-[18px] flex-row items-start gap-1.5 px-4"
+            onPress={() => setSelectedReportReasonId('ETC')}
+          >
+            <RadioIcon size={20} checked={selectedReportReasonId === 'ETC'} />
+            <View className="flex-1 gap-1">
+              <Text className="text-body05 text-grey-60">기타</Text>
+            </View>
+          </TouchableOpacity>
+
+          <View className="mt-2 px-4">
+            <View className="rounded-[8px] border border-grey-10 px-3 py-2.5">
+              <TextInput
+                multiline
+                textAlignVertical="top"
+                className="h-[96px] py-0 font-pretendard text-body05 text-black"
+                value={reportEtcText}
+                onChangeText={setReportEtcText}
+                placeholder="신고 사유를 입력해주세요."
+                placeholderTextColor="#909499"
+                maxLength={REPORT_ETC_MAX_LENGTH}
+              />
+              <Text className="text-right text-caption02 text-grey-40">
+                {reportEtcText.length}/{REPORT_ETC_MAX_LENGTH}
+              </Text>
             </View>
           </View>
-        </DialogContent>
-      </Dialog>
-    </ScrollView>
+        </BottomSheetScrollView>
+
+        <View className="mt-4 px-4" style={{ paddingBottom: insets.bottom }}>
+          <Button
+            onPress={() => void handleReportSubmit()}
+            disabled={
+              isReportSubmitting ||
+              (selectedReportReasonId === 'ETC'
+                ? reportEtcText.trim().length === 0
+                : selectedReportReasonId === null)
+            }
+          >
+            <Text className="text-white">{isReportSubmitting ? '신고 중...' : '신고하기'}</Text>
+          </Button>
+        </View>
+      </BottomSheetModal>
+    </>
+  );
+}
+
+function ReportBottomSheetBackdrop(props: BottomSheetBackdropProps) {
+  return (
+    <BottomSheetBackdrop
+      {...props}
+      appearsOnIndex={0}
+      disappearsOnIndex={-1}
+      pressBehavior="close"
+    />
   );
 }
 
