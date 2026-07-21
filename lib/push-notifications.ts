@@ -32,7 +32,6 @@ export async function registerCurrentDeviceForPush(): Promise<string | null> {
 
   if (permission.status !== 'granted') return null;
 
-  // 네이티브 Android FCM 토큰
   const token = await Notifications.getDevicePushTokenAsync();
 
   await registerDeviceToken(token.data, Platform.OS === 'ios' ? 'IOS' : 'ANDROID');
