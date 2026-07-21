@@ -135,10 +135,6 @@ export default function ProfileScreen() {
           {/* 정보 */}
           <Text className="mt-4 text-title03 text-grey-80">정보</Text>
           <View className="mt-2 rounded-xl bg-white px-4">
-            <TouchableOpacity className="flex-row items-center justify-between border-b border-grey-02 py-3">
-              <Text className="text-body06 text-black">커뮤니티 이용 규칙</Text>
-              <ArrowRightIcon size={20} className="text-grey-30" />
-            </TouchableOpacity>
             <TouchableOpacity
               className="flex-row items-center justify-between border-b border-grey-02 py-3"
               onPress={() => openLink(TERMS_URL)}

@@ -41,6 +41,13 @@ const config: ExpoConfig = {
     'expo-router',
     'expo-notifications',
     [
+      'expo-image-picker',
+      {
+        photosPermission:
+          '프로필 이미지 또는 게시글 이미지 업로드를 위해 사진 라이브러리 접근 권한이 필요합니다.',
+      },
+    ],
+    [
       '@mj-studio/react-native-naver-map',
       {
         client_id: process.env.EXPO_PUBLIC_NAVER_MAP_CLIENT_ID,
