@@ -1,4 +1,5 @@
 import { Text } from '@/components/ui/text';
+import { openLink, openLinkOrNavigate } from '@/lib/open-link';
 import * as React from 'react';
 import { Link } from 'expo-router';
 import {
@@ -25,7 +26,7 @@ import { getBoards, getHotBoards, type Board } from '@/api/posts';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getNews, type NewsItem, type NewsCategory } from '@/api/news';
 import { getBanners, type Banner } from '@/api/banners';
-import { getBroadcasts, type BroadcastItem } from '@/api/broadcast';
+import { getBroadcasts, type BroadcastItem, type BroadcastSource } from '@/api/broadcast';
 import { getMenus, type DailyMenu } from '@/api/menus';
 import {
   getCalendar,
@@ -70,6 +71,12 @@ const NEWSPAPER_CATEGORY_MAP: Record<string, NewsCategory> = {
   사회: 'SOCIETY',
 };
 
+const BROADCAST_SOURCE_MAP: Record<string, BroadcastSource> = {
+  전체: 'ALL',
+  명지대학교: 'OFFICIAL',
+  명대방송국: 'BROADCAST',
+};
+
 const BOARD_CATEGORY_LABELS: Record<string, string> = {
   FREE: '자유게시판',
   NOTICE: '공지게시판',
@@ -94,6 +101,7 @@ export default function AllScreen({ onNavigate }: Props) {
   const [currentBannerIndex, setCurrentBannerIndex] = React.useState(0);
   const [selectedNoticeCategory, setSelectedNoticeCategory] = React.useState('전체');
   const [selectedNewspaperCategory, setSelectedNewspaperCategory] = React.useState('전체');
+  const [selectedBroadcastSource, setSelectedBroadcastSource] = React.useState('전체');
   const [notices, setNotices] = React.useState<Notice[]>([]);
   const [noticesLoading, setNoticesLoading] = React.useState(false);
   const [hotNotices, setHotNotices] = React.useState<HotNotice[]>([]);
@@ -139,11 +147,11 @@ export default function AllScreen({ onNavigate }: Props) {
 
   React.useEffect(() => {
     setBroadcastsLoading(true);
-    getBroadcasts({ size: 5 })
+    getBroadcasts({ source: BROADCAST_SOURCE_MAP[selectedBroadcastSource], size: 5 })
       .then((res) => setBroadcasts(res.content))
       .catch(() => setBroadcasts([]))
       .finally(() => setBroadcastsLoading(false));
-  }, []);
+  }, [selectedBroadcastSource]);
 
   React.useEffect(() => {
     getMenus()
@@ -253,6 +261,42 @@ export default function AllScreen({ onNavigate }: Props) {
     );
   }, [menus, currentMealCategory]);
 
+  // 배너 링크가 홈 탭(다른 스와이프 화면)을 가리키는 경우, 모바일에서는 router로 이동하면
+  // 헤더·탭바가 없는 화면이 렌더링되므로 onNavigate로 스와이프 전환하고, 웹은 실제 URL이 있어 그대로 이동
+  function handleBannerPress(linkUrl: string) {
+    if (Platform.OS !== 'web') {
+      if (linkUrl === '/') {
+        onNavigate(0);
+        return;
+      }
+      if (linkUrl.startsWith('/meal')) {
+        onNavigate(1);
+        return;
+      }
+      if (linkUrl.startsWith('/posts')) {
+        onNavigate(2);
+        return;
+      }
+      if (linkUrl.startsWith('/notices')) {
+        onNavigate(3);
+        return;
+      }
+      if (linkUrl.startsWith('/academic-calendar')) {
+        onNavigate(4);
+        return;
+      }
+      if (linkUrl.startsWith('/newspaper')) {
+        onNavigate(5);
+        return;
+      }
+      if (linkUrl.startsWith('/news')) {
+        onNavigate(6);
+        return;
+      }
+    }
+    openLinkOrNavigate(linkUrl);
+  }
+
   return (
     <ScrollView className="native:w-screen flex-1 web:w-full">
       <View className="min-h-screen bg-grey-02">
@@ -278,68 +322,65 @@ export default function AllScreen({ onNavigate }: Props) {
                       autoPlayInterval={3000}
                       onSnapToItem={setCurrentBannerIndex}
                       renderItem={({ item, index }: { item: Banner; index: number }) => (
-                        <Link href={item.linkUrl as `https://${string}`} asChild>
-                          <TouchableOpacity
+                        <TouchableOpacity
+                          onPress={() => handleBannerPress(item.linkUrl)}
+                          style={{
+                            flex: 1,
+                            marginHorizontal: CAROUSEL_GAP / 2,
+                            borderRadius: 16,
+                            overflow: 'hidden',
+                          }}
+                        >
+                          <Image
+                            source={{ uri: item.imageUrl }}
+                            className="absolute bottom-0 left-0 right-0 top-0 z-0"
+                            resizeMode="cover"
+                          />
+
+                          <View
                             style={{
-                              flex: 1,
-                              marginHorizontal: CAROUSEL_GAP / 2,
-                              borderRadius: 16,
-                              overflow: 'hidden',
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              zIndex: 10,
                             }}
                           >
-                            <Image
-                              source={{ uri: item.imageUrl }}
-                              className="absolute bottom-0 left-0 right-0 top-0 z-0"
-                              resizeMode="cover"
-                            />
+                            <Svg width="100%" height="100%">
+                              <Defs>
+                                <SvgLinearGradient id="hotGrad" x1="0" y1="0" x2="0" y2="1">
+                                  <Stop offset="0" stopColor="#000000" stopOpacity="0" />
+                                  <Stop offset="1" stopColor="#000000" stopOpacity="0.5" />
+                                </SvgLinearGradient>
+                              </Defs>
+                              <Rect width="100%" height="100%" fill="url(#hotGrad)" />
+                            </Svg>
+                          </View>
 
-                            <View
-                              style={{
-                                position: 'absolute',
-                                top: 0,
-                                left: 0,
-                                right: 0,
-                                bottom: 0,
-                                zIndex: 10,
-                              }}
-                            >
-                              <Svg width="100%" height="100%">
-                                <Defs>
-                                  <SvgLinearGradient id="hotGrad" x1="0" y1="0" x2="0" y2="1">
-                                    <Stop offset="0" stopColor="#5DABFF" stopOpacity="0" />
-                                    <Stop offset="1" stopColor="#5DABFF" stopOpacity="0.85" />
-                                  </SvgLinearGradient>
-                                </Defs>
-                                <Rect width="100%" height="100%" fill="url(#hotGrad)" />
-                              </Svg>
+                          <View className="absolute bottom-0 left-0 right-0 top-0 z-20 justify-between p-4">
+                            <View className="self-end rounded-full bg-bg px-2 py-0.5">
+                              <Text className="text-caption02 text-white">
+                                {index + 1}/{banners.length}
+                              </Text>
                             </View>
-
-                            <View className="absolute bottom-0 left-0 right-0 top-0 z-20 justify-between p-4">
-                              <View className="self-end rounded-full bg-bg px-2 py-0.5">
-                                <Text className="text-caption02 text-white">
-                                  {index + 1}/{banners.length}
-                                </Text>
+                            <View className="p-2">
+                              <View className="self-start rounded-md bg-blue-05 px-1 py-0.5">
+                                <Text className="text-caption01 text-blue-35">{item.category}</Text>
                               </View>
-                              <View className="p-2">
-                                <View className="self-start rounded-md bg-blue-05 px-1 py-0.5">
-                                  <Text className="text-caption01 text-blue-35">
-                                    {item.category}
-                                  </Text>
-                                </View>
-                                {/* TODO: 텍스트 스타일 적용해야함 */}
-                                <Text
-                                  className="mt-3 text-[20px] font-bold text-white"
-                                  numberOfLines={2}
-                                >
-                                  {item.title}
-                                </Text>
-                                <Text className="mt-0.5 text-body04 text-blue-05" numberOfLines={1}>
-                                  {item.oneLineIntro}
-                                </Text>
-                              </View>
+                              {/* TODO: 텍스트 스타일 적용해야함 */}
+                              <Text
+                                className="mt-3 text-[20px] font-bold text-white"
+                                numberOfLines={2}
+                              >
+                                {item.title}
+                              </Text>
+                              <Text className="mt-0.5 text-body04 text-blue-05" numberOfLines={1}>
+                                {item.oneLineIntro}
+                              </Text>
                             </View>
-                          </TouchableOpacity>
-                        </Link>
+                          </View>
+                        </TouchableOpacity>
                       )}
                     />
                   )}
@@ -473,18 +514,20 @@ export default function AllScreen({ onNavigate }: Props) {
                 const d = new Date(item.date);
                 const dateLabel = `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
                 return (
-                  <Link key={index} href={item.link as `https://${string}`} asChild>
-                    <TouchableOpacity className="flex-row items-center gap-1 px-4 py-3">
-                      <Text className="text-body04 text-black" numberOfLines={1}>
-                        {NOTICE_CATEGORIES.find((c) => c.value === item.category)?.label ??
-                          item.category}
-                      </Text>
-                      <Text className="flex-1 text-body05 text-black" numberOfLines={1}>
-                        {item.title}
-                      </Text>
-                      <Text className="text-caption04 text-grey-30">{dateLabel}</Text>
-                    </TouchableOpacity>
-                  </Link>
+                  <TouchableOpacity
+                    key={index}
+                    className="flex-row items-center gap-1 px-4 py-3"
+                    onPress={() => openLink(item.link)}
+                  >
+                    <Text className="text-body04 text-black" numberOfLines={1}>
+                      {NOTICE_CATEGORIES.find((c) => c.value === item.category)?.label ??
+                        item.category}
+                    </Text>
+                    <Text className="flex-1 text-body05 text-black" numberOfLines={1}>
+                      {item.title}
+                    </Text>
+                    <Text className="text-caption04 text-grey-30">{dateLabel}</Text>
+                  </TouchableOpacity>
                 );
               })}
         </View>
@@ -559,20 +602,21 @@ export default function AllScreen({ onNavigate }: Props) {
           </View>
           <View className="relative mx-4 mt-2 rounded-xl bg-white py-1">
             {notices.map((item, index) => (
-              <Link key={index} href={item.link as `https://${string}`} asChild>
-                <TouchableOpacity className="flex-row items-center gap-1 px-4 py-3">
-                  <Text className="text-body04 text-black" numberOfLines={1}>
-                    {NOTICE_CATEGORIES.find((c) => c.value === item.category)?.label ??
-                      item.category}
-                  </Text>
-                  <Text className="flex-1 text-body05 text-black" numberOfLines={1}>
-                    {item.title}
-                  </Text>
-                  <Text className="text-caption04 text-grey-30" numberOfLines={1}>
-                    {formatTimeAgo(item.date)}
-                  </Text>
-                </TouchableOpacity>
-              </Link>
+              <TouchableOpacity
+                key={index}
+                className="flex-row items-center gap-1 px-4 py-3"
+                onPress={() => openLink(item.link)}
+              >
+                <Text className="text-body04 text-black" numberOfLines={1}>
+                  {NOTICE_CATEGORIES.find((c) => c.value === item.category)?.label ?? item.category}
+                </Text>
+                <Text className="flex-1 text-body05 text-black" numberOfLines={1}>
+                  {item.title}
+                </Text>
+                <Text className="text-caption04 text-grey-30" numberOfLines={1}>
+                  {formatTimeAgo(item.date)}
+                </Text>
+              </TouchableOpacity>
             ))}
             {noticesLoading && (
               <View className="absolute inset-0 items-center justify-center">
@@ -683,29 +727,31 @@ export default function AllScreen({ onNavigate }: Props) {
           </View>
           <View className="relative mx-4 mt-2 gap-2">
             {newspaper.map((item, index) => (
-              <Link key={index} href={item.link as `https://${string}`} asChild>
-                <TouchableOpacity className="flex-row items-center gap-4 rounded-xl bg-white p-4">
-                  <Image
-                    source={{ uri: item.imageUrl }}
-                    style={{ width: 110, height: 110 }}
-                    className="rounded border border-grey-10 bg-white"
-                  />
-                  <View className="flex-1">
-                    <Text className="text-body02 text-black" numberOfLines={1}>
-                      {item.title}
-                    </Text>
-                    <Text className="mt-0.5 flex-1 text-body05 text-black" numberOfLines={2}>
-                      {item.summary}
-                    </Text>
-                    <Text className="mt-0.5 text-caption01 text-grey-30" numberOfLines={1}>
-                      {item.reporter}
-                    </Text>
-                    <Text className="text-caption04 text-grey-30" numberOfLines={1}>
-                      {new Date(item.date).toISOString().slice(0, 10)}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              </Link>
+              <TouchableOpacity
+                key={index}
+                className="flex-row items-center gap-4 rounded-xl bg-white p-4"
+                onPress={() => openLink(item.link)}
+              >
+                <Image
+                  source={{ uri: item.imageUrl }}
+                  style={{ width: 110, height: 110 }}
+                  className="rounded border border-grey-10 bg-white"
+                />
+                <View className="flex-1">
+                  <Text className="text-body02 text-black" numberOfLines={1}>
+                    {item.title}
+                  </Text>
+                  <Text className="mt-0.5 flex-1 text-body05 text-black" numberOfLines={2}>
+                    {item.summary}
+                  </Text>
+                  <Text className="mt-0.5 text-caption01 text-grey-30" numberOfLines={1}>
+                    {item.reporter}
+                  </Text>
+                  <Text className="text-caption04 text-grey-30" numberOfLines={1}>
+                    {new Date(item.date).toISOString().slice(0, 10)}
+                  </Text>
+                </View>
+              </TouchableOpacity>
             ))}
             {newspaperLoading && (
               <View className="absolute inset-0 items-center justify-center">
@@ -723,6 +769,14 @@ export default function AllScreen({ onNavigate }: Props) {
               <ArrowRightIcon size={20} className="text-grey-60" />
             </TouchableOpacity>
           </View>
+          <View className="mt-3">
+            <CategoryFilter
+              categories={Object.keys(BROADCAST_SOURCE_MAP)}
+              selected={selectedBroadcastSource}
+              onSelect={setSelectedBroadcastSource}
+              paddingHorizontal={16}
+            />
+          </View>
           <View className="relative mx-4 mt-4 gap-4">
             {broadcasts.map((item, index) => {
               const videoId = new URL(item.url).searchParams.get('v') ?? '';
@@ -733,18 +787,16 @@ export default function AllScreen({ onNavigate }: Props) {
                   <View className="overflow-hidden rounded-t-xl">
                     <YoutubeEmbed videoId={videoId} height={192} />
                   </View>
-                  <Link href={item.url as `https://${string}`} asChild>
-                    <TouchableOpacity>
-                      <View className="h-24 gap-0.5 rounded-b-xl bg-white px-4 py-2">
-                        <Text className="flex-1 text-body02 text-black" numberOfLines={2}>
-                          {item.title}
-                        </Text>
-                        <Text className="text-caption04 text-grey-30" numberOfLines={1}>
-                          {dateLabel}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  </Link>
+                  <TouchableOpacity onPress={() => openLink(item.url)}>
+                    <View className="h-24 gap-0.5 rounded-b-xl bg-white px-4 py-2">
+                      <Text className="flex-1 text-body02 text-black" numberOfLines={2}>
+                        {item.title}
+                      </Text>
+                      <Text className="text-caption04 text-grey-30" numberOfLines={1}>
+                        {dateLabel}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
                 </View>
               );
             })}

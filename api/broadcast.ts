@@ -1,6 +1,9 @@
 import { client } from './client';
 
+export type BroadcastSource = 'ALL' | 'OFFICIAL' | 'BROADCAST' | 'NEWS';
+
 export type BroadcastItem = {
+  source: BroadcastSource;
   title: string;
   url: string;
   thumbnailUrl: string;
@@ -9,6 +12,7 @@ export type BroadcastItem = {
 };
 
 export type BroadcastParams = {
+  source?: BroadcastSource;
   page?: number;
   size?: number;
 };

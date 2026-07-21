@@ -9,7 +9,6 @@ export type MemberInfo = {
   name: string;
   email: string;
   profileImageUrl: string | null;
-  gender: string;
   nickname: string;
   college: string;
   departmentName: string;
@@ -39,16 +38,15 @@ export type SignupRequest = {
   email: string;
   password: string;
   nickname: string;
-  gender: 'MALE' | 'FEMALE' | 'OTHER';
   college: string;
   departmentName: string;
   studentNumber: string;
   profileImageUrl?: string;
+  privacyAgreed: boolean;
 };
 
 export type UpdateMemberRequest = {
   name: string;
-  gender: 'MALE' | 'FEMALE' | 'OTHER';
   nickname: string;
   college: string;
   departmentName: string;
@@ -203,6 +201,34 @@ export async function getMyCommentedPosts(page = 0): Promise<MyCommentedPostsPag
 // 회원 탈퇴
 export async function deleteAccount(password: string): Promise<void> {
   await client.delete('/members/info', { data: { password } });
+}
+
+// 사용자 차단
+export async function blockMember(targetMemberUuid: string): Promise<void> {
+  await client.post('/blocks', { targetMemberUuid });
+}
+
+export type BlockedMember = {
+  memberUuid: string;
+  nickname: string;
+  name: string;
+  profileImageUrl: string | null;
+  blockedAt: string;
+};
+
+type BlockedMembersResponse = {
+  data: BlockedMember[];
+};
+
+// 내가 차단한 사용자 목록 조회 (최근 차단순)
+export async function getBlockedMembers(): Promise<BlockedMember[]> {
+  const { data } = await client.get<BlockedMembersResponse>('/blocks');
+  return data.data;
+}
+
+// 사용자 차단 해제
+export async function unblockMember(targetMemberUuid: string): Promise<void> {
+  await client.delete(`/blocks/${targetMemberUuid}`);
 }
 
 // 회원가입 후 로그인 처리

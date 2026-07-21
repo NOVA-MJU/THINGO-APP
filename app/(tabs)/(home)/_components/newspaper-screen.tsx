@@ -3,18 +3,12 @@ import { Footer } from '@/components/footer';
 import { CategoryFilter } from '@/components/ui/category-filter';
 import { Pagination } from '@/components/ui/pagination';
 import { Text } from '@/components/ui/text';
+import { openLink } from '@/lib/open-link';
 import { parseUTCDate } from '@/lib/utils';
 import { format } from 'date-fns';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
-import {
-  ActivityIndicator,
-  Image,
-  Linking,
-  ScrollView,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Image, ScrollView, TouchableOpacity, View } from 'react-native';
 
 const CATEGORIES: { label: string; value: NewsCategory }[] = [
   { label: '전체', value: null },
@@ -74,7 +68,7 @@ export default function NewspaperScreen() {
       </View>
       <View className="relative flex-1 gap-2 px-4 pt-2.5">
         {articles.map((article, index) => (
-          <TouchableOpacity key={index} onPress={() => Linking.openURL(article.link)}>
+          <TouchableOpacity key={index} onPress={() => openLink(article.link)}>
             <View className="flex-row gap-4 rounded-xl bg-white p-4">
               <Image
                 source={

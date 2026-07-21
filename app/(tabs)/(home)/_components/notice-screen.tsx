@@ -1,11 +1,12 @@
 import { CategoryFilter } from '@/components/ui/category-filter';
 import { Pagination } from '@/components/ui/pagination';
 import { Text } from '@/components/ui/text';
+import { openLink } from '@/lib/open-link';
 import { parseUTCDate } from '@/lib/utils';
 import { format } from 'date-fns';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
-import { ActivityIndicator, Linking, ScrollView, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, TouchableOpacity, View } from 'react-native';
 import { Footer } from '@/components/footer';
 import { getNotices, type Notice, type NoticeCategory } from '@/api/notices';
 
@@ -79,7 +80,7 @@ export default function NoticeScreen() {
 
       <View className="relative mt-2.5 flex-1 border-t border-grey-02">
         {notices.map((notice, index) => (
-          <TouchableOpacity key={index} onPress={() => Linking.openURL(notice.link)}>
+          <TouchableOpacity key={index} onPress={() => openLink(notice.link)}>
             <View className="flex w-full flex-col gap-1 border-b border-grey-02 px-4 py-2.5">
               <Text className="text-caption01 text-blue-15">
                 {CATEGORIES.find((c) => c.value === notice.category)?.label ?? notice.category}

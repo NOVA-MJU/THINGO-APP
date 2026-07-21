@@ -3,11 +3,13 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
+import { cn } from '@/lib/utils';
 import { Trash2, X } from 'lucide-react-native';
 import * as React from 'react';
 import {
   Animated,
   Easing,
+  Keyboard,
   Modal,
   PanResponder,
   Platform,
@@ -24,9 +26,25 @@ type KeywordEditModalProps = {
   saving: boolean;
   deleting: boolean;
   onClose: () => void;
-  onSave: (categories: AlarmCategory[]) => void;
+  onSave: (keyword: string, categories: AlarmCategory[]) => void;
   onDelete: (alarm: KeywordAlarm) => void;
 };
+
+const KEYWORD_PATTERN = /^\S{2,5}$/;
+const KEYBOARD_BUTTON_CLEARANCE = 52;
+
+function KeywordGuideIcon({ invalid }: { invalid: boolean }) {
+  return (
+    <View
+      className={cn(
+        'h-[14px] w-[14px] items-center justify-center rounded-full',
+        invalid ? 'bg-error' : 'bg-grey-20'
+      )}
+    >
+      <Text className="text-caption05 leading-none text-white">i</Text>
+    </View>
+  );
+}
 
 export function KeywordEditModal({
   alarm,
@@ -40,10 +58,13 @@ export function KeywordEditModal({
   const { height: windowHeight } = useWindowDimensions();
   const backdropOpacity = React.useRef(new Animated.Value(0)).current;
   const sheetTranslateY = React.useRef(new Animated.Value(windowHeight)).current;
+  const keyboardTranslateY = React.useRef(new Animated.Value(0)).current;
+  const [keyword, setKeyword] = React.useState('');
   const [categories, setCategories] = React.useState<AlarmCategory[]>([]);
   const [showCategoryError, setShowCategoryError] = React.useState(false);
 
   React.useEffect(() => {
+    setKeyword(alarm?.keyword ?? '');
     setCategories(alarm?.categories ?? []);
     setShowCategoryError(false);
   }, [alarm]);
@@ -69,6 +90,55 @@ export function KeywordEditModal({
       }),
     ]).start();
   }, [alarm, backdropOpacity, sheetTranslateY, windowHeight]);
+
+  React.useEffect(() => {
+    if (!alarm) return;
+
+    const showSubscription = Keyboard.addListener('keyboardDidShow', (event) => {
+      const nextOffset = Math.max(
+        0,
+        event.endCoordinates.height - insets.bottom + KEYBOARD_BUTTON_CLEARANCE
+      );
+
+      Animated.timing(keyboardTranslateY, {
+        toValue: -nextOffset,
+        duration: 220,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }).start();
+    });
+    const hideSubscription = Keyboard.addListener('keyboardDidHide', () => {
+      Animated.timing(keyboardTranslateY, {
+        toValue: 0,
+        duration: 180,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: false,
+      }).start();
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+      keyboardTranslateY.setValue(0);
+    };
+  }, [alarm, insets.bottom, keyboardTranslateY]);
+
+  const hasCategoryChanges = React.useMemo(() => {
+    const initialCategories = alarm?.categories ?? [];
+    if (initialCategories.length !== categories.length) return true;
+
+    return initialCategories.some((category) => !categories.includes(category));
+  }, [alarm?.categories, categories]);
+
+  const normalizedKeyword = keyword.replace(/\s+/g, '');
+  const isKeywordInvalid = keyword.length > 0 && !KEYWORD_PATTERN.test(normalizedKeyword);
+  const hasKeywordChanges = normalizedKeyword !== (alarm?.keyword ?? '');
+  const canSave =
+    KEYWORD_PATTERN.test(normalizedKeyword) &&
+    categories.length > 0 &&
+    (hasKeywordChanges || hasCategoryChanges) &&
+    !saving &&
+    !deleting;
 
   const handlePanResponder = React.useMemo(
     () =>
@@ -133,13 +203,14 @@ export function KeywordEditModal({
     if (nextCategories.length > 0) setShowCategoryError(false);
   }
 
-  function saveCategories() {
+  function saveKeywordAlarm() {
     if (categories.length === 0) {
       setShowCategoryError(true);
       return;
     }
+    if (!canSave) return;
 
-    onSave(categories);
+    onSave(normalizedKeyword, categories);
   }
 
   return (
@@ -152,10 +223,13 @@ export function KeywordEditModal({
             { backgroundColor: 'rgba(0, 0, 0, 0.4)', opacity: backdropOpacity },
           ]}
         />
-        <Pressable className="flex-1" onPress={onClose} accessibilityLabel="수정 창 닫기" />
+        <Pressable className="flex-1" onPress={onClose} accessibilityLabel="키워드 수정 닫기" />
         <Animated.View
           style={[
-            { width: '100%', transform: [{ translateY: sheetTranslateY }] },
+            {
+              width: '100%',
+              transform: [{ translateY: keyboardTranslateY }, { translateY: sheetTranslateY }],
+            },
             Platform.OS === 'web' && {
               alignSelf: 'center',
               maxWidth: 600,
@@ -163,56 +237,103 @@ export function KeywordEditModal({
           ]}
         >
           <View
-            className="w-full rounded-t-[24px] bg-white px-4 pt-3"
-            style={{ paddingBottom: Math.max(insets.bottom, 20) }}
+            className="w-full rounded-t-[20px] border border-grey-10 bg-white pt-4"
+            style={{
+              paddingBottom:
+                Platform.OS === 'web'
+                  ? 12
+                  : Platform.OS === 'android'
+                    ? Math.max(insets.bottom, 12)
+                    : Math.max(insets.bottom, 28),
+              shadowColor: '#17171B',
+              shadowOffset: { width: 0, height: -4 },
+              shadowOpacity: 0.14,
+              shadowRadius: 8,
+              elevation: 8,
+            }}
           >
+            <View
+              pointerEvents="none"
+              style={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                bottom: -KEYBOARD_BUTTON_CLEARANCE,
+                height: KEYBOARD_BUTTON_CLEARANCE,
+                backgroundColor: '#ffffff',
+              }}
+            />
             <View
               {...handlePanResponder.panHandlers}
               accessibilityRole="button"
               accessibilityLabel="아래로 끌어 키워드 수정 닫기"
-              className="-mx-4 -mt-3 h-10 items-center justify-center web:cursor-grab web:select-none"
+              className="-mt-4 h-8 items-center justify-center web:cursor-grab web:select-none"
             >
-              <View className="h-1 w-10 rounded-full bg-grey-20" />
+              <View className="h-1 w-10 rounded-full bg-grey-10" />
             </View>
-            <View className="flex-row items-center">
+
+            <View className="h-[43px] flex-row items-start px-4">
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`${alarm?.keyword ?? ''} 키워드 삭제`}
                 onPress={() => alarm && onDelete(alarm)}
                 disabled={saving || deleting}
-                className="h-11 w-11 items-center justify-center rounded-full active:bg-grey-02"
+                className="h-[27px] w-[52px] items-center justify-start active:opacity-70"
               >
-                <Icon as={Trash2} size={21} className="text-error" />
+                <Icon as={Trash2} size={20} className="text-grey-30" />
               </Pressable>
-              <Text className="flex-1 text-center text-title03 text-black">키워드 수정</Text>
+              <View className="h-[27px] flex-1 items-center justify-center">
+                <Text className="text-title03 text-black">키워드 수정</Text>
+              </View>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="키워드 수정 닫기"
                 onPress={onClose}
                 disabled={saving || deleting}
-                className="h-11 w-11 items-center justify-center rounded-full active:bg-grey-02"
+                className="h-[27px] w-[52px] items-end justify-center active:opacity-70"
               >
-                <Icon as={X} size={22} className="text-grey-60" />
+                <Icon as={X} size={24} className="text-grey-30" />
               </Pressable>
             </View>
 
-            <View className="mt-5">
-              <Text className="text-body04 text-grey-80">키워드</Text>
+            <View className="h-1 bg-grey-02" />
+
+            <View className="px-4 pt-4">
+              <Text className="text-body02 text-grey-80">키워드</Text>
               <Input
-                className="mt-2 h-11 bg-grey-02 text-grey-60"
-                value={alarm?.keyword ?? ''}
-                editable={false}
+                className={cn('mt-2 h-11', isKeywordInvalid && 'border-error')}
+                placeholder="기존 키워드 텍스트 노출"
+                value={keyword}
+                onChangeText={setKeyword}
+                maxLength={10}
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="done"
+                onSubmitEditing={saveKeywordAlarm}
+                aria-invalid={isKeywordInvalid}
               />
-              <Text className="mt-1 text-caption02 text-grey-40">
-                키워드는 삭제 후 다시 등록할 수 있어요.
-              </Text>
+              <View className="ml-1 mt-3 flex-row items-center gap-2">
+                <KeywordGuideIcon invalid={isKeywordInvalid} />
+                <Text
+                  className={
+                    isKeywordInvalid
+                      ? 'flex-1 text-caption04 text-error'
+                      : 'flex-1 text-caption04 text-grey-40'
+                  }
+                >
+                  {isKeywordInvalid
+                    ? '올바른 형식의 키워드를 입력해주세요.'
+                    : '공백 제외 2글자 이상 입력해주세요.'}
+                </Text>
+              </View>
             </View>
 
-            <View className="mt-6">
+            <View className="mt-4 px-4">
               <CategorySelector
                 value={categories}
                 onChange={changeCategories}
                 onReset={() => changeCategories(alarm?.categories ?? [])}
+                variant="sheet"
               />
               {showCategoryError && (
                 <Text className="mt-2 text-caption02 text-error">
@@ -220,8 +341,25 @@ export function KeywordEditModal({
                 </Text>
               )}
             </View>
-            <Button className="mt-7" onPress={saveCategories} disabled={saving || deleting}>
-              <Text>{saving ? '저장 중' : '저장'}</Text>
+
+            <Button
+              className="mx-4 mt-5 h-9 rounded-[8px]"
+              variant={canSave ? 'default' : 'secondary'}
+              onPress={saveKeywordAlarm}
+              disabled={!canSave}
+            >
+              <Text
+                style={
+                  Platform.OS === 'android'
+                    ? {
+                        includeFontPadding: false,
+                        transform: [{ translateY: -1 }],
+                      }
+                    : undefined
+                }
+              >
+                {saving ? '저장 중' : '저장'}
+              </Text>
             </Button>
           </View>
         </Animated.View>

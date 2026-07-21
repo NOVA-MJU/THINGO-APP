@@ -18,6 +18,7 @@ import {
   type AiSummary,
   type SearchResults,
 } from '@/api/search';
+import { openLink } from '@/lib/open-link';
 import { parseUTCDate } from '@/lib/utils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { format } from 'date-fns';
@@ -476,11 +477,9 @@ export default function SearchScreen() {
                                 <Text className="flex-1 text-body05 text-grey-30">
                                   {source.title}
                                 </Text>
-                                <Link href={source.url as `https://${string}`} asChild>
-                                  <TouchableOpacity>
-                                    <LinkIcon />
-                                  </TouchableOpacity>
-                                </Link>
+                                <TouchableOpacity onPress={() => openLink(source.url)}>
+                                  <LinkIcon />
+                                </TouchableOpacity>
                               </View>
                             ))}
                           </View>
@@ -501,21 +500,19 @@ export default function SearchScreen() {
                       </TouchableOpacity>
                     </View>
                     {getSectionItems(results.notices).map((item) => (
-                      <Link key={item.id} href={item.url as `https://${string}`} asChild>
-                        <TouchableOpacity>
-                          <View className="gap-[3px] border-b border-grey-02 px-4 py-2.5">
-                            <Text className="text-caption01 text-blue-15">
-                              {NOTICE_CATEGORY_LABELS[item.category] ?? item.category}
-                            </Text>
-                            <Text className="text-body05 text-black" numberOfLines={2}>
-                              {item.title}
-                            </Text>
-                            <Text className="text-caption04 text-grey-30">
-                              {formatSearchDate(item.date)}
-                            </Text>
-                          </View>
-                        </TouchableOpacity>
-                      </Link>
+                      <TouchableOpacity key={item.id} onPress={() => openLink(item.url)}>
+                        <View className="gap-[3px] border-b border-grey-02 px-4 py-2.5">
+                          <Text className="text-caption01 text-blue-15">
+                            {NOTICE_CATEGORY_LABELS[item.category] ?? item.category}
+                          </Text>
+                          <Text className="text-body05 text-black" numberOfLines={2}>
+                            {item.title}
+                          </Text>
+                          <Text className="text-caption04 text-grey-30">
+                            {formatSearchDate(item.date)}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
                     ))}
                   </View>
                 )}
@@ -592,38 +589,36 @@ export default function SearchScreen() {
                     </View>
                     <View className="mt-2">
                       {getSectionItems(results.newspapers).map((item) => (
-                        <Link key={item.id} href={item.url as `https://${string}`} asChild>
-                          <TouchableOpacity>
-                            <View className="flex-row items-center gap-4 px-4 py-3">
-                              <Image
-                                source={
-                                  item.imageUrl
-                                    ? { uri: item.imageUrl }
-                                    : require('@/assets/news-default-thumbnail.jpg')
-                                }
-                                className="rounded-sm border border-grey-10"
-                                style={{ width: 100, height: 100 }}
-                              />
-                              <View className="flex-1">
-                                <Text className="text-body02 text-black" numberOfLines={1}>
-                                  {item.title}
-                                </Text>
-                                <Text className="mt-0.5 text-body05 text-black" numberOfLines={2}>
-                                  {item.preview}
-                                </Text>
-                                <Text
-                                  className="mt-0.5 text-caption01 text-grey-30"
-                                  numberOfLines={1}
-                                >
-                                  {item.author}
-                                </Text>
-                                <Text className="text-caption04 text-grey-30" numberOfLines={1}>
-                                  {formatSearchDate(item.date)}
-                                </Text>
-                              </View>
+                        <TouchableOpacity key={item.id} onPress={() => openLink(item.url)}>
+                          <View className="flex-row items-center gap-4 px-4 py-3">
+                            <Image
+                              source={
+                                item.imageUrl
+                                  ? { uri: item.imageUrl }
+                                  : require('@/assets/news-default-thumbnail.jpg')
+                              }
+                              className="rounded-sm border border-grey-10"
+                              style={{ width: 100, height: 100 }}
+                            />
+                            <View className="flex-1">
+                              <Text className="text-body02 text-black" numberOfLines={1}>
+                                {item.title}
+                              </Text>
+                              <Text className="mt-0.5 text-body05 text-black" numberOfLines={2}>
+                                {item.preview}
+                              </Text>
+                              <Text
+                                className="mt-0.5 text-caption01 text-grey-30"
+                                numberOfLines={1}
+                              >
+                                {item.author}
+                              </Text>
+                              <Text className="text-caption04 text-grey-30" numberOfLines={1}>
+                                {formatSearchDate(item.date)}
+                              </Text>
                             </View>
-                          </TouchableOpacity>
-                        </Link>
+                          </View>
+                        </TouchableOpacity>
                       ))}
                     </View>
                   </View>
@@ -646,18 +641,16 @@ export default function SearchScreen() {
                             <View className="overflow-hidden rounded-t-xl">
                               <YoutubeEmbed videoId={videoId} height={192} />
                             </View>
-                            <Link href={item.url as `https://${string}`} asChild>
-                              <TouchableOpacity>
-                                <View className="gap-0.5 rounded-b-xl bg-white px-4 py-2">
-                                  <Text className="text-body02 text-black" numberOfLines={2}>
-                                    {item.title}
-                                  </Text>
-                                  <Text className="text-caption04 text-grey-30" numberOfLines={1}>
-                                    {formatSearchDate(item.date)}
-                                  </Text>
-                                </View>
-                              </TouchableOpacity>
-                            </Link>
+                            <TouchableOpacity onPress={() => openLink(item.url)}>
+                              <View className="gap-0.5 rounded-b-xl bg-white px-4 py-2">
+                                <Text className="text-body02 text-black" numberOfLines={2}>
+                                  {item.title}
+                                </Text>
+                                <Text className="text-caption04 text-grey-30" numberOfLines={1}>
+                                  {formatSearchDate(item.date)}
+                                </Text>
+                              </View>
+                            </TouchableOpacity>
                           </View>
                         );
                       })}

@@ -93,8 +93,7 @@ export default function ForgotPasswordScreen() {
         <View className="flex-1">
           {step === 0 && (
             <View className="px-4">
-              <Text className="mt-[30px] text-title01 text-black">비밀번호 재설정</Text>
-              <View className="mt-3 rounded-xl bg-white p-6">
+              <View className="mt-5 rounded-xl bg-white p-4">
                 <Text className="text-body04 text-grey-80">이메일</Text>
                 <View className="mt-2 flex-row gap-2.5">
                   <Input
@@ -107,6 +106,7 @@ export default function ForgotPasswordScreen() {
                     editable={!codeSent}
                   />
                   <Button
+                    className="rounded-[8px]"
                     variant={email && !codeSent ? 'default' : 'subtle'}
                     disabled={!email || isRequesting || codeSent}
                     onPress={handleRequestCode}
@@ -114,7 +114,7 @@ export default function ForgotPasswordScreen() {
                     <Text>인증요청</Text>
                   </Button>
                 </View>
-                <Text className="mt-5 text-body04 text-grey-80">인증번호</Text>
+                <Text className="mt-4 text-body04 text-grey-80">인증번호</Text>
                 <View className="mt-2 flex-row gap-2.5">
                   <Input
                     placeholder="인증번호를 입력하세요"
@@ -124,6 +124,7 @@ export default function ForgotPasswordScreen() {
                     onChangeText={setCode}
                   />
                   <Button
+                    className="rounded-[8px]"
                     variant={codeSent && code && !codeVerified ? 'default' : 'subtle'}
                     disabled={!codeSent || !code || codeVerified}
                     onPress={handleSubmitCode}
@@ -158,8 +159,7 @@ export default function ForgotPasswordScreen() {
 
           {step === 1 && (
             <View className="px-4">
-              <Text className="mt-[30px] text-title01 text-black">비밀번호 재설정</Text>
-              <View className="mt-3 rounded-xl bg-white p-6">
+              <View className="mt-5 rounded-xl bg-white p-4">
                 <Text className="text-body04 text-grey-80">새 비밀번호</Text>
                 <Input
                   placeholder="새 비밀번호를 입력하세요"
@@ -170,7 +170,7 @@ export default function ForgotPasswordScreen() {
                   value={newPassword}
                   onChangeText={setNewPassword}
                 />
-                <Text className="mt-5 text-body04 text-grey-80">새 비밀번호 확인</Text>
+                <Text className="mt-4 text-body04 text-grey-80">새 비밀번호 확인</Text>
                 <Input
                   placeholder="비밀번호를 다시 입력하세요"
                   className="mt-2"

@@ -58,10 +58,11 @@ const config: ExpoConfig = {
     [
       'expo-location',
       {
-        locationWhenInUsePermission: '현재 위치를 지도에 표시하기 위해 위치 권한이 필요합니다.',
+        locationWhenInUsePermission:
+          '사용자 주변의 학교 시설을 안내하기 위해 위치 정보가 필요합니다.',
         locationAlwaysAndWhenInUsePermission:
-          '현재 위치를 지도에 표시하기 위해 위치 권한이 필요합니다.',
-        locationAlwaysPermission: '현재 위치를 지도에 표시하기 위해 위치 권한이 필요합니다.',
+          '사용자 주변의 학교 시설을 안내하기 위해 위치 정보가 필요합니다.',
+        locationAlwaysPermission: '사용자 주변의 학교 시설을 안내하기 위해 위치 정보가 필요합니다.',
       },
     ],
   ],

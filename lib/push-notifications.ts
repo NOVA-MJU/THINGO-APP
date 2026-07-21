@@ -15,12 +15,14 @@ Notifications.setNotificationHandler({
 });
 
 export async function registerCurrentDeviceForPush(): Promise<string | null> {
-  if (Platform.OS !== 'android') return null;
+  if (Platform.OS !== 'android' && Platform.OS !== 'ios') return null;
 
-  await Notifications.setNotificationChannelAsync('default', {
-    name: '기본 알림',
-    importance: Notifications.AndroidImportance.HIGH,
-  });
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('default', {
+      name: '기본 알림',
+      importance: Notifications.AndroidImportance.HIGH,
+    });
+  }
 
   let permission = await Notifications.getPermissionsAsync();
 
@@ -30,17 +32,16 @@ export async function registerCurrentDeviceForPush(): Promise<string | null> {
 
   if (permission.status !== 'granted') return null;
 
-  // 네이티브 Android FCM 토큰
   const token = await Notifications.getDevicePushTokenAsync();
 
-  await registerDeviceToken(token.data, 'ANDROID');
+  await registerDeviceToken(token.data, Platform.OS === 'ios' ? 'IOS' : 'ANDROID');
   await SecureStore.setItemAsync(DEVICE_TOKEN_KEY, token.data);
 
   return token.data;
 }
 
 export async function unregisterCurrentDeviceForPush(): Promise<void> {
-  if (Platform.OS !== 'android') return;
+  if (Platform.OS !== 'android' && Platform.OS !== 'ios') return;
 
   const token = await SecureStore.getItemAsync(DEVICE_TOKEN_KEY);
   if (!token) return;

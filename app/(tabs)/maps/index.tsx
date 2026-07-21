@@ -14,7 +14,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
-import { Alert, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
+import { Platform, Pressable, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BuildingDetailSheet from './_components/sheets/sheet-building-detail';
 import BusInfoSheet from './_components/sheets/bus-info';
@@ -29,16 +29,19 @@ import {
   BuildingIcon,
   CurrentLocationIcon,
   MoreIcon,
+  ResetIcon,
   RestaurantIcon,
   StarIcon,
 } from '@/components/icons/map';
 import { useMapSearchSelection } from '@/context/map-search-selection';
+import { showAlert } from '@/lib/alert';
 import { getMapIcon } from '@/lib/maps/icons';
 
 const QUICK_CHIP_IDS = ['bus', 'daedong', 'printer', 'lounge', 'bank'];
 
 const CAMPUS_LATITUDE = 37.579711;
 const CAMPUS_LONGITUDE = 126.923186;
+const CAMPUS_ZOOM = 16;
 
 const QUICK_CHIPS = CATEGORIES.flatMap((c) =>
   c.chips.map((chip) => ({ ...chip, iconClassName: c.iconClassName }))
@@ -47,6 +50,13 @@ const QUICK_CHIPS = CATEGORIES.flatMap((c) =>
   .sort((a, b) => QUICK_CHIP_IDS.indexOf(a.id) - QUICK_CHIP_IDS.indexOf(b.id));
 
 const SNAP_POINTS = ['10%', '50%', '100%'];
+const MAP_CONTROL_SHADOW = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.18,
+  shadowRadius: 8,
+  elevation: 5,
+};
 
 export default function MapsScreen() {
   const router = useRouter();
@@ -356,16 +366,44 @@ export default function MapsScreen() {
     };
   }, []);
 
-  // 현위치 찾기 버튼 클릭 (native 전용)
+  // 현위치 찾기 버튼 클릭
   async function onCurrentLocationPress() {
-    if (Platform.OS === 'web') return;
+    if (Platform.OS === 'web') {
+      const geolocation = globalThis.navigator?.geolocation;
+
+      if (!geolocation) {
+        showAlert('위치 오류', '이 브라우저에서는 현재 위치를 사용할 수 없습니다.');
+        return;
+      }
+
+      try {
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 30000,
+          });
+        });
+
+        setUserLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          heading: position.coords.heading ?? undefined,
+        });
+        mapRef.current?.animateCameraTo(position.coords.latitude, position.coords.longitude, 16);
+      } catch {
+        showAlert('위치 오류', '현재 위치를 가져올 수 없습니다.');
+      }
+
+      return;
+    }
 
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') return;
 
     const servicesEnabled = await Location.hasServicesEnabledAsync();
     if (!servicesEnabled) {
-      Alert.alert('위치 서비스 비활성화', '기기의 위치 서비스를 켜주세요.');
+      showAlert('위치 서비스 비활성화', '기기의 위치 서비스를 켜주세요.');
       return;
     }
 
@@ -377,8 +415,19 @@ export default function MapsScreen() {
       });
       mapRef.current?.animateCameraTo(location.coords.latitude, location.coords.longitude, 16);
     } catch {
-      Alert.alert('위치 오류', '현재 위치를 가져올 수 없습니다.');
+      showAlert('위치 오류', '현재 위치를 가져올 수 없습니다.');
     }
+  }
+
+  function onResetMapPress() {
+    clearSearchResult();
+    setSelectedPlaceId(null);
+    setSelectedBuildingId(null);
+    setSelectedCategoryCode(null);
+    setSelectedStation(null);
+    setSelectedSheetMode('category');
+    mapRef.current?.animateCameraTo(CAMPUS_LATITUDE, CAMPUS_LONGITUDE, CAMPUS_ZOOM);
+    bottomSheetRef.current?.snapToIndex(0);
   }
 
   // 더보기 버튼 클릭 (카테고리 시트 표시)
@@ -529,25 +578,30 @@ export default function MapsScreen() {
         </View>
       </View>
 
-      {/* 현위치 버튼 */}
-      {Platform.OS !== 'web' && (
-        <TouchableOpacity
+      {/* 지도 컨트롤 버튼 */}
+      <View
+        className="absolute right-4 flex-row items-center gap-2"
+        style={{ bottom: insets.bottom + 64 }}
+      >
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="현재 위치로 이동"
           onPress={onCurrentLocationPress}
-          className="h-12 w-12 items-center justify-center rounded-full bg-white"
-          style={{
-            position: 'absolute',
-            bottom: insets.bottom + 64,
-            right: 16,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.3,
-            shadowRadius: 8,
-            elevation: 5,
-          }}
+          className="h-12 w-12 items-center justify-center rounded-full bg-white active:bg-grey-02 active:opacity-80"
+          style={MAP_CONTROL_SHADOW}
         >
           <CurrentLocationIcon size={28} className="text-blue-35" />
-        </TouchableOpacity>
-      )}
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="지도 보기 초기화"
+          onPress={onResetMapPress}
+          className="h-10 w-10 items-center justify-center rounded-full bg-white active:bg-grey-02 active:opacity-80"
+          style={MAP_CONTROL_SHADOW}
+        >
+          <ResetIcon size={22} className="text-grey-40" />
+        </Pressable>
+      </View>
 
       {/* 바텀시트 */}
       <BottomSheet

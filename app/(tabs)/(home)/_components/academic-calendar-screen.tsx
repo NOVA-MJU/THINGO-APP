@@ -10,18 +10,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Pagination } from '@/components/ui/pagination';
 import { Text } from '@/components/ui/text';
+import { openLink } from '@/lib/open-link';
 import { cn, parseUTCDate } from '@/lib/utils';
 import { format } from 'date-fns';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
-import {
-  ActivityIndicator,
-  Linking,
-  Pressable,
-  ScrollView,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, TouchableOpacity, View } from 'react-native';
 
 const CATEGORY_LABEL: Record<string, string> = {
   general: '일반',
@@ -234,7 +228,11 @@ export default function AcademicCalendarScreen() {
     : [];
 
   return (
-    <ScrollView ref={scrollRef} className="native:w-screen web:w-full">
+    <ScrollView
+      ref={scrollRef}
+      className="native:w-screen web:w-full"
+      contentContainerClassName="flex-grow"
+    >
       {/* 탭 네비게이션 */}
       <View className="bg-grey-02">
         <View className="mt-2 flex-row">
@@ -422,7 +420,7 @@ export default function AcademicCalendarScreen() {
           {/* 학사공지 목록 */}
           <View className="relative flex-1 py-3">
             {academicNotices.map((item, index) => (
-              <TouchableOpacity key={index} onPress={() => Linking.openURL(item.link)}>
+              <TouchableOpacity key={index} onPress={() => openLink(item.link)}>
                 <View className="gap-[3px] border-b border-grey-02 px-4 py-2.5">
                   <Text className="text-caption01 text-blue-15" numberOfLines={1}>
                     {CATEGORY_LABEL[item.category] ?? item.category}
