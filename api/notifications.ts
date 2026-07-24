@@ -6,6 +6,7 @@ export type KeywordAlarm = {
   id: number;
   keyword: string;
   categories: AlarmCategory[];
+  enabled: boolean;
   createdAt: string;
 };
 
@@ -44,6 +45,10 @@ type KeywordAlarmInput = {
   categories: AlarmCategory[];
 };
 
+type KeywordAlarmEnabledInput = {
+  enabled: boolean;
+};
+
 export const NOTIFICATION_PAGE_SIZE = 20;
 
 export async function getKeywordAlarms(): Promise<KeywordAlarm[]> {
@@ -66,6 +71,17 @@ export async function updateKeywordAlarm(
   input: KeywordAlarmInput
 ): Promise<KeywordAlarm> {
   const { data } = await client.patch<ApiResponse<KeywordAlarm>>(`/keyword-alarms/${id}`, input);
+  return data.data;
+}
+
+export async function updateKeywordAlarmEnabled(
+  id: number,
+  input: KeywordAlarmEnabledInput
+): Promise<KeywordAlarm> {
+  const { data } = await client.patch<ApiResponse<KeywordAlarm>>(
+    `/keyword-alarms/${id}/enabled`,
+    input
+  );
   return data.data;
 }
 

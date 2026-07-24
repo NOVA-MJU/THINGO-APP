@@ -7,23 +7,29 @@ import { Pressable, View } from 'react-native';
 
 type KeywordItemProps = {
   alarm: KeywordAlarm;
-  enabled: boolean;
+  disabled?: boolean;
   onEdit: () => void;
   onToggleEnabled: () => void;
 };
 
-export function KeywordItem({ alarm, enabled, onEdit, onToggleEnabled }: KeywordItemProps) {
+export function KeywordItem({
+  alarm,
+  disabled = false,
+  onEdit,
+  onToggleEnabled,
+}: KeywordItemProps) {
   return (
     <View className="h-[58px] flex-row items-center border-b border-grey-02 bg-white">
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${alarm.keyword} 알림 ${enabled ? '끄기' : '켜기'}`}
-        accessibilityState={{ checked: enabled }}
+        accessibilityLabel={`${alarm.keyword} 알림 ${alarm.enabled ? '끄기' : '켜기'}`}
+        accessibilityState={{ checked: alarm.enabled, disabled }}
         onPress={onToggleEnabled}
+        disabled={disabled}
         hitSlop={8}
-        className="h-[58px] w-[26px] items-start justify-center active:opacity-70"
+        className="h-[58px] w-[26px] items-start justify-center active:opacity-70 disabled:opacity-50"
       >
-        {enabled ? (
+        {alarm.enabled ? (
           <AlertOnIcon size={20} className="text-blue-10" />
         ) : (
           <AlertOffIcon size={20} className="text-grey-30" />
