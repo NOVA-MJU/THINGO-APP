@@ -4,6 +4,7 @@ import {
   getKeywordAlarms,
   getRecommendedKeywords,
   updateKeywordAlarm,
+  updateKeywordAlarmEnabled,
   type AlarmCategory,
   type KeywordAlarm,
 } from '@/api/notifications';
@@ -63,7 +64,6 @@ export default function KeywordAlarmsScreen() {
   const [editingAlarm, setEditingAlarm] = React.useState<KeywordAlarm | null>(null);
   const [deleteTarget, setDeleteTarget] = React.useState<KeywordAlarm | null>(null);
   const [confirmKeyword, setConfirmKeyword] = React.useState<ConfirmKeyword>(null);
-  const [alarmEnabledById, setAlarmEnabledById] = React.useState<Record<number, boolean>>({});
 
   const normalizedKeyword = keyword.replace(/\s+/g, '');
   const isValidKeyword = KEYWORD_PATTERN.test(normalizedKeyword);
@@ -85,16 +85,6 @@ export default function KeywordAlarmsScreen() {
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
   }, [alarmsQuery.data]);
-
-  React.useEffect(() => {
-    setAlarmEnabledById((current) => {
-      const next: Record<number, boolean> = {};
-      alarms.forEach((alarm) => {
-        next[alarm.id] = current[alarm.id] ?? true;
-      });
-      return next;
-    });
-  }, [alarms]);
 
   const recommendedKeywords =
     recommendedQuery.data && recommendedQuery.data.length > 0
@@ -141,6 +131,34 @@ export default function KeywordAlarmsScreen() {
     },
     onError: (error) => {
       showAlert('키워드 삭제 실패', getApiErrorMessage(error, '잠시 후 다시 시도해 주세요.'));
+    },
+  });
+
+  const updateEnabledMutation = useMutation({
+    mutationFn: ({ id, enabled }: { id: number; enabled: boolean }) =>
+      updateKeywordAlarmEnabled(id, { enabled }),
+    onMutate: async ({ id, enabled }) => {
+      await queryClient.cancelQueries({ queryKey: KEYWORD_ALARMS_QUERY_KEY });
+
+      const previousAlarms = queryClient.getQueryData<KeywordAlarm[]>(KEYWORD_ALARMS_QUERY_KEY);
+
+      queryClient.setQueryData<KeywordAlarm[]>(KEYWORD_ALARMS_QUERY_KEY, (current) =>
+        current?.map((alarm) => (alarm.id === id ? { ...alarm, enabled } : alarm))
+      );
+
+      return { previousAlarms };
+    },
+    onError: (error, _variables, context) => {
+      queryClient.setQueryData(KEYWORD_ALARMS_QUERY_KEY, context?.previousAlarms);
+      showAlert('알림 설정 실패', getApiErrorMessage(error, '잠시 후 다시 시도해 주세요.'));
+    },
+    onSuccess: (updatedAlarm) => {
+      queryClient.setQueryData<KeywordAlarm[]>(KEYWORD_ALARMS_QUERY_KEY, (current) =>
+        current?.map((alarm) => (alarm.id === updatedAlarm.id ? updatedAlarm : alarm))
+      );
+    },
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: KEYWORD_ALARMS_QUERY_KEY });
     },
   });
 
@@ -194,8 +212,8 @@ export default function KeywordAlarmsScreen() {
     }
   }
 
-  function toggleAlarmEnabled(id: number) {
-    setAlarmEnabledById((current) => ({ ...current, [id]: !(current[id] ?? true) }));
+  function toggleAlarmEnabled(alarm: KeywordAlarm) {
+    updateEnabledMutation.mutate({ id: alarm.id, enabled: !alarm.enabled });
   }
 
   const androidTextAdjust =
@@ -336,9 +354,9 @@ export default function KeywordAlarmsScreen() {
                 <KeywordItem
                   key={alarm.id}
                   alarm={alarm}
-                  enabled={alarmEnabledById[alarm.id] ?? true}
+                  disabled={updateEnabledMutation.isPending}
                   onEdit={() => setEditingAlarm(alarm)}
-                  onToggleEnabled={() => toggleAlarmEnabled(alarm.id)}
+                  onToggleEnabled={() => toggleAlarmEnabled(alarm)}
                 />
               ))}
             </View>
