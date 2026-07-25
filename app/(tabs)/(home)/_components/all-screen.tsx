@@ -99,6 +99,7 @@ export default function AllScreen({ onNavigate }: Props) {
   const [banners, setBanners] = React.useState<Banner[]>([]);
   const [bannersLoading, setBannersLoading] = React.useState(false);
   const [currentBannerIndex, setCurrentBannerIndex] = React.useState(0);
+  const isBannerDraggingRef = React.useRef(false);
   const [selectedNoticeCategory, setSelectedNoticeCategory] = React.useState('전체');
   const [selectedNewspaperCategory, setSelectedNewspaperCategory] = React.useState('전체');
   const [selectedBroadcastSource, setSelectedBroadcastSource] = React.useState('전체');
@@ -264,6 +265,9 @@ export default function AllScreen({ onNavigate }: Props) {
   // 배너 링크가 홈 탭(다른 스와이프 화면)을 가리키는 경우, 모바일에서는 router로 이동하면
   // 헤더·탭바가 없는 화면이 렌더링되므로 onNavigate로 스와이프 전환하고, 웹은 실제 URL이 있어 그대로 이동
   function handleBannerPress(linkUrl: string) {
+    // 웹에서 캐러셀 드래그 종료 시 클릭 이벤트도 함께 발생하는 문제 방지
+    if (isBannerDraggingRef.current) return;
+
     if (Platform.OS !== 'web') {
       if (linkUrl === '/') {
         onNavigate(0);
@@ -321,9 +325,21 @@ export default function AllScreen({ onNavigate }: Props) {
                       autoPlay
                       autoPlayInterval={3000}
                       onSnapToItem={setCurrentBannerIndex}
+                      onScrollStart={() => {
+                        isBannerDraggingRef.current = true;
+                      }}
+                      onScrollEnd={() => {
+                        // 클릭 이벤트가 스크롤 종료 직후 발생하므로 약간의 지연 후 해제
+                        setTimeout(() => {
+                          isBannerDraggingRef.current = false;
+                        }, 50);
+                      }}
                       renderItem={({ item, index }: { item: Banner; index: number }) => (
                         <TouchableOpacity
                           onPress={() => handleBannerPress(item.linkUrl)}
+                          activeOpacity={1}
+                          accessibilityRole="button"
+                          accessibilityLabel={item.title}
                           style={{
                             flex: 1,
                             marginHorizontal: CAROUSEL_GAP / 2,
@@ -587,7 +603,12 @@ export default function AllScreen({ onNavigate }: Props) {
         <View className="mt-8">
           <View className="flex-row items-center justify-between">
             <Text className="ms-4 text-title03 text-black">공지사항</Text>
-            <TouchableOpacity onPress={() => onNavigate(3)} className="me-3.5">
+            <TouchableOpacity
+              onPress={() => onNavigate(3)}
+              className="me-3.5"
+              accessibilityRole="button"
+              accessibilityLabel="공지사항 더보기"
+            >
               <ArrowRightIcon size={20} className="text-grey-60" />
             </TouchableOpacity>
           </View>
@@ -630,7 +651,12 @@ export default function AllScreen({ onNavigate }: Props) {
         <View className="mt-8">
           <View className="flex-row items-center justify-between">
             <Text className="ms-4 text-title03 text-black">학사일정</Text>
-            <TouchableOpacity onPress={() => onNavigate(4)} className="me-3.5">
+            <TouchableOpacity
+              onPress={() => onNavigate(4)}
+              className="me-3.5"
+              accessibilityRole="button"
+              accessibilityLabel="학사일정 더보기"
+            >
               <ArrowRightIcon size={20} className="text-grey-60" />
             </TouchableOpacity>
           </View>
@@ -659,7 +685,12 @@ export default function AllScreen({ onNavigate }: Props) {
         <View className="mt-8">
           <View className="flex-row items-center justify-between">
             <Text className="ms-4 text-title03 text-black">게시판</Text>
-            <TouchableOpacity onPress={() => onNavigate(2)} className="me-3.5">
+            <TouchableOpacity
+              onPress={() => onNavigate(2)}
+              className="me-3.5"
+              accessibilityRole="button"
+              accessibilityLabel="게시판 더보기"
+            >
               <ArrowRightIcon size={20} className="text-grey-60" />
             </TouchableOpacity>
           </View>
@@ -713,7 +744,12 @@ export default function AllScreen({ onNavigate }: Props) {
         <View className="mt-8">
           <View className="flex-row items-center justify-between">
             <Text className="ms-4 text-title03 text-black">명대신문</Text>
-            <TouchableOpacity onPress={() => onNavigate(5)} className="me-3.5">
+            <TouchableOpacity
+              onPress={() => onNavigate(5)}
+              className="me-3.5"
+              accessibilityRole="button"
+              accessibilityLabel="명대신문 더보기"
+            >
               <ArrowRightIcon size={20} className="text-grey-60" />
             </TouchableOpacity>
           </View>
@@ -765,7 +801,12 @@ export default function AllScreen({ onNavigate }: Props) {
         <View className="mb-9 mt-8">
           <View className="flex-row items-center justify-between">
             <Text className="ms-4 text-title03 text-black">명대뉴스</Text>
-            <TouchableOpacity onPress={() => onNavigate(6)} className="me-3.5">
+            <TouchableOpacity
+              onPress={() => onNavigate(6)}
+              className="me-3.5"
+              accessibilityRole="button"
+              accessibilityLabel="명대뉴스 더보기"
+            >
               <ArrowRightIcon size={20} className="text-grey-60" />
             </TouchableOpacity>
           </View>

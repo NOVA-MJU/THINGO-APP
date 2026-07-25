@@ -12,7 +12,7 @@ const config: ExpoConfig = {
   splash: {
     image: './assets/images/splash.png',
     resizeMode: 'contain',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#1778ff',
   },
   assetBundlePatterns: ['**/*'],
   ios: {
