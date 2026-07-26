@@ -3,17 +3,19 @@ import { FavoriteIcon, MyeongwolIcon, RestaurantIcon } from '@/components/icons/
 import { Text } from '@/components/ui/text';
 import { useToggleMapFavorite } from '@/hooks/useToggleMapFavorite';
 import { Fragment } from 'react';
-import { Image, ScrollView, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, ScrollView, TouchableOpacity, View } from 'react-native';
 
 interface DaedongPlaceListSheetProps {
   places: MapCategoryPin[];
   onPlacePress?: (place: MapCategoryPin) => void;
+  isFetchingNextPage?: boolean;
 }
 
 // 대동명지도 목록 표시 시트
 export default function DaedongPlaceListSheet({
   places,
   onPlacePress,
+  isFetchingNextPage,
 }: DaedongPlaceListSheetProps) {
   const toggleFavorite = useToggleMapFavorite();
 
@@ -81,6 +83,11 @@ export default function DaedongPlaceListSheet({
             </TouchableOpacity>
           </Fragment>
         ))
+      )}
+      {isFetchingNextPage && (
+        <View className="items-center py-4">
+          <ActivityIndicator />
+        </View>
       )}
     </ScrollView>
   );

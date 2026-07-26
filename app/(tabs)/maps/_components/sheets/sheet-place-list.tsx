@@ -3,12 +3,13 @@ import { BuildingIcon, FavoriteIcon } from '@/components/icons/map';
 import { Text } from '@/components/ui/text';
 import { useToggleMapFavorite } from '@/hooks/useToggleMapFavorite';
 import { ComponentType, Fragment } from 'react';
-import { Image, ScrollView, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, ScrollView, TouchableOpacity, View } from 'react-native';
 import CATEGORIES from '../../_constants/category-data';
 
 interface PlaceListSheetProps {
   places: MapCategoryPin[];
   onPlacePress?: (place: MapCategoryPin) => void;
+  isFetchingNextPage?: boolean;
 }
 
 // 칩의 카테고리 코드로 아이콘 조회 (일치하는 칩이 없으면 기본 건물 아이콘 사용)
@@ -25,7 +26,11 @@ function resolvePlaceIcon(categoryCode: string): {
 }
 
 // 장소 목록 표시 시트
-export default function PlaceListSheet({ places, onPlacePress }: PlaceListSheetProps) {
+export default function PlaceListSheet({
+  places,
+  onPlacePress,
+  isFetchingNextPage,
+}: PlaceListSheetProps) {
   const toggleFavorite = useToggleMapFavorite();
 
   if (places.length === 0) {
@@ -90,6 +95,11 @@ export default function PlaceListSheet({ places, onPlacePress }: PlaceListSheetP
           </Fragment>
         );
       })}
+      {isFetchingNextPage && (
+        <View className="items-center py-4">
+          <ActivityIndicator />
+        </View>
+      )}
     </ScrollView>
   );
 }

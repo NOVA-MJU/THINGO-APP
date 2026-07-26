@@ -140,6 +140,7 @@ type ApiResponse<T> = {
 
 export const MAP_SEARCH_PAGE_SIZE = 20;
 export const MAP_SEARCH_SUGGESTION_LIMIT = 10;
+export const MAP_CATEGORY_PINS_PAGE_SIZE = 20;
 
 export async function getMapSearchResults({
   keyword,
@@ -165,7 +166,7 @@ export async function getCategoryPins(
   lat?: number,
   lng?: number,
   page = 0,
-  size = 20
+  size = MAP_CATEGORY_PINS_PAGE_SIZE
 ): Promise<MapCategoryPin[]> {
   const { data } = await client.get<ApiResponse<MapCategoryPin[]>>(`/map/categories/${code}/pins`, {
     params: { lat, lng, page, size },
