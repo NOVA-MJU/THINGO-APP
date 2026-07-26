@@ -3,6 +3,7 @@ import {
   getBuildings,
   getCategoryPins,
   getPlaceDetail,
+  MAP_CATEGORY_PINS_PAGE_SIZE,
   type MapCategoryPin,
 } from '@/api/maps';
 import { SearchIcon, ThingoLogoSmall } from '@/components/icons';
@@ -10,11 +11,19 @@ import { NaverMap, NaverMapHandle, UserLocationData } from '@/components/naver-m
 import { Text } from '@/components/ui/text';
 import { BUS_STOPS, type BusStopStation } from '@/lib/maps/bus-stops';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
-import { Platform, Pressable, ScrollView, TouchableOpacity, View } from 'react-native';
+import {
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  Platform,
+  Pressable,
+  ScrollView,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BuildingDetailSheet from './_components/sheets/sheet-building-detail';
 import BusInfoSheet from './_components/sheets/bus-info';
@@ -136,13 +145,41 @@ export default function MapsScreen() {
     placeholderData: keepPreviousData,
   });
 
-  // 칩 클릭 시 장소/건물 목록 조회
-  const { data: categoryPins = [] } = useQuery({
+  // 칩 클릭 시 장소/건물 목록 조회 (무한 스크롤 페이지네이션)
+  const {
+    data: categoryPinsPages,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: ['map-category-pins', selectedCategoryCode, CAMPUS_LATITUDE, CAMPUS_LONGITUDE],
-    queryFn: () => getCategoryPins(selectedCategoryCode!, CAMPUS_LATITUDE, CAMPUS_LONGITUDE),
+    queryFn: ({ pageParam }) =>
+      getCategoryPins(selectedCategoryCode!, CAMPUS_LATITUDE, CAMPUS_LONGITUDE, pageParam),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.length < MAP_CATEGORY_PINS_PAGE_SIZE ? undefined : allPages.length,
     enabled: selectedCategoryCode !== null,
     placeholderData: keepPreviousData,
   });
+
+  const categoryPins = React.useMemo(
+    () => categoryPinsPages?.pages.flat() ?? [],
+    [categoryPinsPages]
+  );
+
+  function onCategoryPinsEndReached() {
+    if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+  }
+
+  // 바텀시트 스크롤이 하단에 가까워지면 다음 페이지 로드
+  // (장소 목록 시트는 BottomSheetScrollView 안에 중첩된 ScrollView라 실제 스크롤은 바깥쪽에서 일어남)
+  function onBottomSheetScroll({ nativeEvent }: NativeSyntheticEvent<NativeScrollEvent>) {
+    if (selectedSheetMode !== 'places' || !selectedCategoryCode) return;
+
+    const { contentOffset, contentSize, layoutMeasurement } = nativeEvent;
+    const isCloseToBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 100;
+    if (isCloseToBottom) onCategoryPinsEndReached();
+  }
 
   // 건물 상세 조회가 완료되면 그때 시트를 건물 상세로 교체 (조회 중에는 기존 시트 유지)
   React.useEffect(() => {
@@ -460,9 +497,21 @@ export default function MapsScreen() {
 
     if (selectedSheetMode === 'places' && selectedCategoryCode) {
       if (selectedCategoryCode === 'daedong') {
-        return <DaedongPlaceListSheet places={categoryPins} onPlacePress={selectCategoryPin} />;
+        return (
+          <DaedongPlaceListSheet
+            places={categoryPins}
+            onPlacePress={selectCategoryPin}
+            isFetchingNextPage={isFetchingNextPage}
+          />
+        );
       }
-      return <PlaceListSheet places={categoryPins} onPlacePress={selectCategoryPin} />;
+      return (
+        <PlaceListSheet
+          places={categoryPins}
+          onPlacePress={selectCategoryPin}
+          isFetchingNextPage={isFetchingNextPage}
+        />
+      );
     }
 
     return <CategoryList onChipPress={onQuickChipPress} />;
@@ -612,7 +661,9 @@ export default function MapsScreen() {
         topInset={insets.top}
         onChange={setBottomSheetIndex}
       >
-        <BottomSheetScrollView>{renderBottomSheetContent()}</BottomSheetScrollView>
+        <BottomSheetScrollView onScroll={onBottomSheetScroll}>
+          {renderBottomSheetContent()}
+        </BottomSheetScrollView>
       </BottomSheet>
     </View>
   );
