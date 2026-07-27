@@ -123,7 +123,7 @@ export default function ProfileEditScreen() {
         <AppHeader title="프로필 수정" />
       </View>
       <ScrollView contentContainerClassName="flex-grow">
-        <View className="flex-1 px-4">
+        <View className="mb-14 flex-1 px-4">
           {/* 계정 정보 */}
           <View className="mt-5 flex-row">
             <Text className="text-title01 text-black">계정 정보</Text>
@@ -323,7 +323,7 @@ export default function ProfileEditScreen() {
         </View>
 
         {/* 앱 푸터 */}
-        <Footer className="mt-14" />
+        <Footer />
       </ScrollView>
     </View>
   );

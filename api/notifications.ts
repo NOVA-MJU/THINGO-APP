@@ -15,21 +15,32 @@ export type NotificationType = 'NOTICE' | 'MJU_CALENDAR' | 'COMMUNITY' | 'WEEKLY
 export type NotificationItem = {
   id: number;
   matchedKeyword: string;
+  keyword: string;
   type: NotificationType;
+  categoryCode: string;
+  category: string;
   title: string;
   link: string | null;
   read: boolean;
   sentAt: string;
+  timestamp: number;
 };
 
 export type NotificationPage = {
   content: NotificationItem[];
+  unreadCount: number;
+  hasUnread: boolean;
   totalElements: number;
   totalPages: number;
-  number: number;
+  page: number;
   size: number;
   first: boolean;
   last: boolean;
+};
+
+export type UnreadStatus = {
+  unreadCount: number;
+  hasUnread: boolean;
 };
 
 export type DevicePlatform = 'ANDROID' | 'IOS' | 'WEB';
@@ -110,11 +121,22 @@ export async function getNotifications(
   return data.data;
 }
 
+export async function getUnreadNotificationStatus(): Promise<UnreadStatus> {
+  const { data } = await client.get<ApiResponse<UnreadStatus>>('/notifications/unread-status');
+  return data.data;
+}
+
 export async function markNotificationAsRead(id: number): Promise<void> {
   await client.patch(`/notifications/${id}/read`);
 }
 
-export async function markAllNotificationsAsRead(): Promise<number> {
-  const { data } = await client.patch<ApiResponse<number>>('/notifications/read-all');
+export type MarkAllReadResult = {
+  updatedCount: number;
+  unreadCount: number;
+  hasUnread: boolean;
+};
+
+export async function markAllNotificationsAsRead(): Promise<MarkAllReadResult> {
+  const { data } = await client.patch<ApiResponse<MarkAllReadResult>>('/notifications/read-all');
   return data.data;
 }

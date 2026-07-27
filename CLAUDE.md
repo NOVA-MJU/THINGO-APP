@@ -63,6 +63,13 @@ pnpm expo run:android
   - **웹**: 탭마다 실제 URL이 따로 있음 (`/`, `/meal`, `/posts`, `/notices`, `/academic-calendar`, `/newspaper`, `/news` — `TAB_PATHS` 배열 참고). `/`로 이동해도 `tab` 파라미터는 무시되고 `AllScreen`만 렌더링됨
 - 게시판 목록으로 되돌아가거나 새로고침 신호(`refreshBoards`, `boardCategory`)를 넘길 때, `Platform.OS`로 분기해서 모바일은 `pathname: '/'` + `tab: 'board'`, 웹은 `pathname: '/posts'`(`tab` 파라미터 불필요)로 이동해야 함
 
+## auth (`context/auth-context.tsx`)
+
+- 로그인 상태 확인은 `useAuth()` 훅 사용: `{ user, setUser, isInitializing, logout }` 반환. `user`가 `null`이면 미로그인, `MemberInfo` 객체면 로그인 상태
+- 화면 진입 자체를 막아야 할 때(예: `app/notifications/index.tsx`): `isInitializing`이 끝난 뒤 `!user`면 `<Redirect href="/login" />`로 가드
+- 버튼 클릭 등 액션 단위로 로그인 여부만 체크해 분기할 때는 `context/login-required-modal-context.tsx`의 `useLoginRequiredModal()` → `showLoginRequiredModal()` 사용 (파라미터 없음, 모달의 "로그인" 버튼을 누르면 내부적으로 `/login`으로 이동까지 처리됨). 커스텀 안내 문구·디자인이 필요하면 `components/ui/dialog.tsx`의 `Dialog`로 직접 구현
+- 푸시 알림 토큰 등록/해제는 `AuthProvider`가 자동 처리 (`user`가 세팅되면 `registerCurrentDeviceForPush()`, `logout()` 호출 시 `unregisterCurrentDeviceForPush()`) — 화면에서 별도로 호출할 필요 없음
+
 ## lib utilities
 
 - Tailwind 클래스 병합 시 `cn()` 사용 (`lib/utils.ts`)
