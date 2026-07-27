@@ -24,9 +24,12 @@ type MemberInfoResponse = {
 
 export type ProfileStats = {
   nickname: string;
+  mapFavoriteCount: number;
   postCount: number;
   commentCount: number;
   likedPostCount: number;
+  keywordAlarmCount: number;
+  blockedUserCount: number;
 };
 
 type ProfileStatsResponse = {

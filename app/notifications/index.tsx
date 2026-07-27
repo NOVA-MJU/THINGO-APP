@@ -5,24 +5,16 @@ import {
   type NotificationItem as NotificationItemType,
 } from '@/api/notifications';
 import { AppHeader } from '@/components/app-header';
-import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { useAuth } from '@/context/auth-context';
 import { showAlert } from '@/lib/alert';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Redirect, useRouter } from 'expo-router';
 import * as React from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  Linking,
-  Platform,
-  Pressable,
-  RefreshControl,
-  View,
-} from 'react-native';
+import { FlatList, Linking, Platform, RefreshControl, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NotificationItem } from './_components/notification-item';
+import { NotificationIcon, SettingsIcon } from '@/components/icons';
 
 const NOTIFICATIONS_QUERY_KEY = ['notifications'] as const;
 
@@ -36,7 +28,7 @@ export default function NotificationsScreen() {
     queryKey: NOTIFICATIONS_QUERY_KEY,
     queryFn: ({ pageParam }) => getNotifications(pageParam),
     initialPageParam: 0,
-    getNextPageParam: (lastPage) => (lastPage.last ? undefined : lastPage.number + 1),
+    getNextPageParam: (lastPage) => (lastPage.last ? undefined : lastPage.page + 1),
     enabled: !!user,
     staleTime: 0,
     refetchOnMount: 'always',
@@ -68,6 +60,7 @@ export default function NotificationsScreen() {
   const readMutation = useMutation({
     mutationFn: markNotificationAsRead,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_QUERY_KEY }),
+    onError: () => showAlert('알림', '읽음 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
   });
   const readAllMutation = useMutation({
     mutationFn: markAllNotificationsAsRead,
@@ -92,78 +85,86 @@ export default function NotificationsScreen() {
     }
   }
 
+  // 로그인 안된 경우
   if (!isInitializing && !user) return <Redirect href="/login" />;
 
   return (
-    <View className="flex-1 bg-grey-02">
-      <View style={{ paddingTop: insets.top }} className="bg-white">
-        <AppHeader title="알림" />
-        <View className="h-12 flex-row items-center justify-between border-b border-grey-10 px-4">
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => readAllMutation.mutate()}
-            disabled={!hasUnread || readAllMutation.isPending}
-            hitSlop={8}
-          >
-            <Text className={hasUnread ? 'text-body05 text-blue-35' : 'text-body05 text-grey-20'}>
-              {readAllMutation.isPending ? '처리 중' : '모두 읽음'}
-            </Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.push('/profile/keyword-alarms' as never)}
-            hitSlop={8}
-          >
-            <Text className="text-body05 text-grey-60">알림 설정</Text>
-          </Pressable>
-        </View>
+    <View className="flex-1 bg-white">
+      {/* 앱 헤더 */}
+      <View style={{ paddingTop: insets.top }}>
+        <AppHeader
+          title="알림"
+          right={
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="알림 설정"
+              onPress={() => router.push('/notifications/keyword-alarms' as never)}
+              hitSlop={8}
+            >
+              <SettingsIcon className="text-grey-30" />
+            </TouchableOpacity>
+          }
+        />
       </View>
 
-      {notificationsQuery.isLoading || isInitializing ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator />
-        </View>
-      ) : notificationsQuery.isError ? (
-        <View className="flex-1 items-center justify-center px-4">
-          <Text className="text-body05 text-grey-60">알림을 불러오지 못했어요.</Text>
-          <Button variant="outline" className="mt-4" onPress={() => notificationsQuery.refetch()}>
-            <Text>다시 시도</Text>
-          </Button>
-        </View>
-      ) : (
-        <FlatList
-          data={notifications}
-          keyExtractor={(item) => String(item.id)}
-          renderItem={({ item }) => (
-            <NotificationItem item={item} onPress={() => openNotification(item)} />
-          )}
-          ItemSeparatorComponent={() => <View className="h-2" />}
-          contentContainerStyle={{ flexGrow: 1, paddingTop: 12, paddingBottom: insets.bottom + 24 }}
-          ListEmptyComponent={
-            <View className="flex-1 items-center justify-center px-4 py-20">
-              <Text className="text-body04 text-grey-60">받은 알림이 없습니다.</Text>
-              <Text className="mt-1 text-body05 text-grey-40">
-                키워드를 등록하면 새로운 소식을 알려드릴게요.
-              </Text>
+      {/* 알림 목록 렌더링 */}
+      <FlatList
+        data={notifications}
+        keyExtractor={(item) => String(item.id)}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + 24 }}
+        /**
+         * 알림 아이템
+         */
+        renderItem={({ item }) => (
+          <NotificationItem item={item} onPress={() => openNotification(item)} />
+        )}
+        /**
+         * 모두 읽음 버튼
+         */
+        ListHeaderComponent={
+          notifications.length > 0 ? (
+            <View className="items-end p-4">
+              <TouchableOpacity
+                onPress={() => readAllMutation.mutate()}
+                disabled={!hasUnread || readAllMutation.isPending}
+                hitSlop={4}
+              >
+                <Text
+                  className={
+                    hasUnread ? 'text-caption02 text-blue-20' : 'text-caption02 text-grey-30'
+                  }
+                >
+                  모두 읽음
+                </Text>
+              </TouchableOpacity>
             </View>
+          ) : null
+        }
+        /**
+         * 알림 목록이 비어 있는 경우
+         */
+        ListEmptyComponent={
+          <View className="flex-1 items-center justify-center gap-3">
+            <NotificationIcon className="text-grey-10" size={36} />
+            <Text className="text-body03 text-grey-30">새로운 알림이 없어요</Text>
+          </View>
+        }
+        /**
+         * 새로고침 ui
+         */
+        refreshControl={
+          <RefreshControl refreshing={false} onRefresh={() => notificationsQuery.refetch()} />
+        }
+        /**
+         * 무한 스크롤 트리거
+         */
+        onEndReached={() => {
+          if (notificationsQuery.hasNextPage && !notificationsQuery.isFetchingNextPage) {
+            notificationsQuery.fetchNextPage();
           }
-          ListFooterComponent={
-            notificationsQuery.isFetchingNextPage ? <ActivityIndicator className="py-5" /> : null
-          }
-          refreshControl={
-            <RefreshControl
-              refreshing={notificationsQuery.isRefetching && !notificationsQuery.isFetchingNextPage}
-              onRefresh={() => notificationsQuery.refetch()}
-            />
-          }
-          onEndReached={() => {
-            if (notificationsQuery.hasNextPage && !notificationsQuery.isFetchingNextPage) {
-              notificationsQuery.fetchNextPage();
-            }
-          }}
-          onEndReachedThreshold={0.4}
-        />
-      )}
+        }}
+        onEndReachedThreshold={0.4}
+      />
     </View>
   );
 }

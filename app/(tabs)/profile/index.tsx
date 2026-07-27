@@ -49,7 +49,7 @@ export default function ProfileScreen() {
       className="bg-grey-02"
       contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top }}
     >
-      <View className="flex-1">
+      <View className="mb-10 flex-1">
         <View className="px-4 pt-5">
           <Text className="text-title01 text-black">마이페이지</Text>
 
@@ -87,7 +87,7 @@ export default function ProfileScreen() {
               onPress={() => router.push('/profile/maps' as never)}
             >
               <Text className="flex-1 text-body04 text-grey-80">명지도 즐겨찾기</Text>
-              <Text className="text-body04 text-grey-40">- 개</Text>
+              <Text className="text-body04 text-grey-40">{stats?.mapFavoriteCount ?? '-'}개</Text>
               <ArrowRightIcon size={20} className="text-grey-30" />
             </TouchableOpacity>
             <TouchableOpacity
@@ -119,7 +119,7 @@ export default function ProfileScreen() {
               onPress={() => router.push('/profile/keyword-alarms' as never)}
             >
               <Text className="flex-1 text-body04 text-grey-80">키워드 알림 설정</Text>
-              <Text className="text-body04 text-grey-40">- 개</Text>
+              <Text className="text-body04 text-grey-40">{stats?.keywordAlarmCount ?? '-'}개</Text>
               <ArrowRightIcon size={20} className="text-grey-30" />
             </TouchableOpacity>
             <TouchableOpacity
@@ -127,7 +127,7 @@ export default function ProfileScreen() {
               onPress={() => router.push('/profile/blocked-users' as never)}
             >
               <Text className="flex-1 text-body04 text-grey-80">차단한 사용자</Text>
-              <Text className="text-body04 text-grey-40">- 개</Text>
+              <Text className="text-body04 text-grey-40">{stats?.blockedUserCount ?? '-'}개</Text>
               <ArrowRightIcon size={20} className="text-grey-30" />
             </TouchableOpacity>
           </View>
@@ -184,7 +184,7 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
       </View>
-      <Footer className="mt-10" />
+      <Footer />
     </ScrollView>
   );
 }
