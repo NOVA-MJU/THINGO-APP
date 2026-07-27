@@ -55,10 +55,13 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// 서버 타임스탬프 응답값 뒤에 Z가 없는 경우 자동으로 추가
 export function parseUTCDate(dateStr: string): Date {
+  if (dateStr.endsWith('Z')) return new Date(dateStr);
   return new Date(dateStr + 'Z');
 }
 
+// `n분 전` `어제` 같은 상대시간으로 변경
 export function formatTimeAgo(dateStr: string): string {
   const date = parseUTCDate(dateStr);
   const diffMs = Date.now() - date.getTime();

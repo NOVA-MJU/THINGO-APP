@@ -1,6 +1,8 @@
-import { HamburgerIcon, SearchIcon, ThingoLogoSmall } from '@/components/icons';
+import { NotificationIcon, SearchIcon, ThingoLogoSmall } from '@/components/icons';
 import Sidebar from '@/components/sidebar';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Text } from '@/components/ui/text';
+import { useAuth } from '@/context/auth-context';
 import { Link, router, useLocalSearchParams } from 'expo-router';
 import * as React from 'react';
 import { Dimensions, Keyboard, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
@@ -14,6 +16,7 @@ import AcademicCalendarScreen from './_components/academic-calendar-screen';
 import NewspaperScreen from './_components/newspaper-screen';
 import { Button } from '@/components/ui/button';
 import { TabBar } from '@/components/ui/tab-bar';
+import { useNotificationBadge } from '@/hooks/useNotificationBadge';
 
 const { width } = Dimensions.get('window');
 const TABS = ['ALL', '학식', '게시판', '공지사항', '학사일정', '명대신문', '명대뉴스'];
@@ -27,9 +30,21 @@ export default function Screen() {
   const targetTab = Array.isArray(tab) ? tab[0] : tab;
 
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const scrollRef = React.useRef<ScrollView>(null);
   const [currentTab, setCurrentTab] = React.useState(TABS[0]);
   const [sidebarVisible, setSidebarVisible] = React.useState(false);
+  const [notificationDialogVisible, setNotificationDialogVisible] = React.useState(false);
+  const hasUnreadNotification = useNotificationBadge();
+
+  // 헤더 알림 버튼 클릭
+  const handleNotificationPress = () => {
+    if (!user) {
+      setNotificationDialogVisible(true);
+    } else {
+      router.push('/notifications');
+    }
+  };
 
   const handleTabPress = (index: number) => {
     setCurrentTab(TABS[index]);
@@ -64,7 +79,11 @@ export default function Screen() {
       {/* 앱 헤더 */}
       <View style={{ paddingTop: insets.top }}>
         <View className="h-15 w-screen flex-row items-center px-3 pb-1 pt-2">
-          <TouchableOpacity onPress={() => handleTabPress(0)}>
+          <TouchableOpacity
+            onPress={() => handleTabPress(0)}
+            accessibilityRole="button"
+            accessibilityLabel="ALL 탭으로 이동"
+          >
             <ThingoLogoSmall />
           </TouchableOpacity>
           <View className="flex-1 p-1.5">
@@ -75,9 +94,15 @@ export default function Screen() {
               </TouchableOpacity>
             </Link>
           </View>
-          <Button className="h-fit p-1" variant="ghost" onPress={() => setSidebarVisible(true)}>
-            <HamburgerIcon />
-          </Button>
+          <TouchableOpacity
+            className="h-fit p-1"
+            onPress={handleNotificationPress}
+            hitSlop={4}
+            accessibilityRole="button"
+            accessibilityLabel="알림"
+          >
+            <NotificationIcon className="text-grey-80" showBadge={hasUnreadNotification} />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -115,6 +140,33 @@ export default function Screen() {
         {/* 명대뉴스 */}
         <NewsScreen />
       </ScrollView>
+
+      {/* 로그인 유도 dialog */}
+      <Dialog open={notificationDialogVisible} onOpenChange={setNotificationDialogVisible}>
+        <DialogContent className="w-80 items-center gap-4 p-5" showCloseButton={false}>
+          <DialogTitle className="text-body04 text-grey-80">
+            로그인이 필요한 서비스입니다.
+          </DialogTitle>
+          <View className="w-full flex-row items-center gap-2">
+            <Button
+              className="flex-1 py-[7.5px]"
+              variant="outline"
+              onPress={() => setNotificationDialogVisible(false)}
+            >
+              <Text>취소</Text>
+            </Button>
+            <Button
+              className="flex-1 py-[7.5px]"
+              onPress={() => {
+                setNotificationDialogVisible(false);
+                router.push('/login');
+              }}
+            >
+              <Text>로그인</Text>
+            </Button>
+          </View>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

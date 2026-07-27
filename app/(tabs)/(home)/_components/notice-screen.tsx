@@ -103,9 +103,9 @@ export default function NoticeScreen() {
         currentPage={currentPage}
         totalPages={totalPages}
         onPageChange={handlePageChange}
-        className="mt-6"
+        className="mb-9 mt-6"
       />
-      <Footer className="mt-9" />
+      <Footer />
     </ScrollView>
   );
 }

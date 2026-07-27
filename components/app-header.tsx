@@ -1,13 +1,15 @@
 import { ArrowLeftIcon } from '@/components/icons';
 import { Text } from '@/components/ui/text';
 import { useRouter } from 'expo-router';
+import type { ReactNode } from 'react';
 import { TouchableOpacity, View } from 'react-native';
 
 interface AppHeaderProps {
   title: string;
+  right?: ReactNode;
 }
 
-export function AppHeader({ title }: AppHeaderProps) {
+export function AppHeader({ title, right }: AppHeaderProps) {
   const router = useRouter();
 
   return (
@@ -19,8 +21,12 @@ export function AppHeader({ title }: AppHeaderProps) {
         <ArrowLeftIcon size={24} className="text-black" />
       </TouchableOpacity>
       <Text className="flex-1 text-center text-body02 text-black">{title}</Text>
-      {/* 오른쪽 여백 — 왼쪽 버튼 너비(24+2padding)와 대칭 */}
-      <View className="w-[24px]" />
+      {/* 오른쪽 여백 — 왼쪽 버튼 너비(24+2padding)와 대칭. right가 주어지면 대신 렌더링 */}
+      {right ? (
+        <View className="mr-1 flex-row items-center justify-center">{right}</View>
+      ) : (
+        <View className="w-[24px]" />
+      )}
     </View>
   );
 }

@@ -1,72 +1,7 @@
-import type {
-  NotificationItem as NotificationItemType,
-  NotificationType,
-} from '@/api/notifications';
-import { Icon } from '@/components/ui/icon';
+import type { NotificationItem as NotificationItemType } from '@/api/notifications';
 import { Text } from '@/components/ui/text';
-import { cn } from '@/lib/utils';
-import {
-  CalendarDays,
-  ChevronRight,
-  Megaphone,
-  MessageSquare,
-  Utensils,
-} from 'lucide-react-native';
+import { cn, formatTimeAgo } from '@/lib/utils';
 import { Pressable, View } from 'react-native';
-
-const TYPE_META: Record<
-  NotificationType,
-  { label: string; icon: typeof Megaphone; iconClassName: string; backgroundClassName: string }
-> = {
-  NOTICE: {
-    label: '공지사항',
-    icon: Megaphone,
-    iconClassName: 'text-blue-35',
-    backgroundClassName: 'bg-blue-05',
-  },
-  MJU_CALENDAR: {
-    label: '학사일정',
-    icon: CalendarDays,
-    iconClassName: 'text-mju-secondary',
-    backgroundClassName: 'bg-blue-02',
-  },
-  COMMUNITY: {
-    label: '게시판',
-    icon: MessageSquare,
-    iconClassName: 'text-grey-60',
-    backgroundClassName: 'bg-grey-02',
-  },
-  WEEKLY_MENU: {
-    label: '학식',
-    icon: Utensils,
-    iconClassName: 'text-error',
-    backgroundClassName: 'bg-grey-02',
-  },
-};
-
-function parseSentAt(value: string): Date {
-  const hasTimeZone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(value);
-  return new Date(hasTimeZone ? value : `${value}Z`);
-}
-
-function formatNotificationTime(value: string): string {
-  const date = parseSentAt(value);
-  if (Number.isNaN(date.getTime())) return '';
-
-  const diffMs = Math.max(0, Date.now() - date.getTime());
-  const diffMinutes = Math.floor(diffMs / 60_000);
-  if (diffMinutes < 1) return '방금 전';
-  if (diffMinutes < 60) return `${diffMinutes}분 전`;
-
-  const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) return `${diffHours}시간 전`;
-  if (diffHours < 48) return '어제';
-
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}.${month}.${day}`;
-}
 
 type NotificationItemProps = {
   item: NotificationItemType;
@@ -74,43 +9,42 @@ type NotificationItemProps = {
 };
 
 export function NotificationItem({ item, onPress }: NotificationItemProps) {
-  const meta = TYPE_META[item.type];
-
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${meta.label} 알림, ${item.title}`}
+      accessibilityLabel={`${item.category} 알림, ${item.title}`}
       onPress={onPress}
       className={cn(
-        'mx-4 flex-row items-center rounded-xl border px-3 py-3 active:opacity-70',
-        item.read ? 'border-grey-10 bg-white' : 'border-blue-10 bg-blue-02'
+        'gap-1.5 border-t-[1.5px] border-grey-02 px-4 py-2.5',
+        item.read ? 'bg-white' : 'bg-blue-02'
       )}
     >
-      <View className={cn('mr-3 rounded-lg p-2.5', meta.backgroundClassName)}>
-        <Icon as={meta.icon} size={22} className={meta.iconClassName} />
-      </View>
-      <View className="min-w-0 flex-1">
-        <View className="flex-row items-center gap-1.5">
-          <Text className={cn('text-caption01', item.read ? 'text-grey-40' : 'text-blue-35')}>
-            {meta.label}
-          </Text>
-          {item.matchedKeyword ? (
-            <Text className="max-w-[96px] text-caption02 text-grey-40" numberOfLines={1}>
-              #{item.matchedKeyword}
-            </Text>
-          ) : null}
-          <Text className="ml-auto text-caption02 text-grey-30">
-            {formatNotificationTime(item.sentAt)}
+      <View className="flex-row items-center gap-1">
+        {/* 카테고리 표시 */}
+        <View
+          className={cn(
+            'w-fit rounded-[4px] px-[5.5px] py-[1.5px]',
+            item.read ? 'bg-blue-05' : 'bg-white'
+          )}
+        >
+          <Text className={cn('text-caption05', item.read ? 'text-blue-10' : 'text-blue-20')}>
+            {item.category}
           </Text>
         </View>
-        <Text
-          className={cn('mt-1', item.read ? 'text-body05 text-grey-60' : 'text-body04 text-black')}
-          numberOfLines={1}
-        >
-          {item.title}
-        </Text>
+
+        {/* 등록 키워드 표시 */}
+        <Text className="text-caption02 text-grey-40">{`#${item.keyword}`}</Text>
       </View>
-      <Icon as={ChevronRight} size={20} className="ml-2 text-grey-30" />
+
+      {/* 알림 제목 */}
+      <Text className="w-full text-body05 text-black" numberOfLines={2}>
+        {item.title}
+      </Text>
+
+      {/* 알림 날짜 */}
+      <Text className="text-caption02 text-grey-20" numberOfLines={1}>
+        {formatTimeAgo(item.sentAt)}
+      </Text>
     </Pressable>
   );
 }
