@@ -109,6 +109,7 @@ export default function MapsScreen() {
               id: `search:${selectedSearchResult.type}:${selectedSearchResult.id}`,
               latitude: selectedSearchResult.latitude,
               longitude: selectedSearchResult.longitude,
+              name: selectedSearchResult.name,
             },
           ]
         : [],
@@ -234,6 +235,7 @@ export default function MapsScreen() {
         id: String(pin.id),
         latitude: pin.latitude,
         longitude: pin.longitude,
+        name: pin.name,
       })),
     [categoryPins]
   );
