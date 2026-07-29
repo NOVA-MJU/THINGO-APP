@@ -34,17 +34,10 @@ import MapSearchSummary from './_components/sheets/map-search-summary';
 import PlaceListSheet from './_components/sheets/sheet-place-list';
 import SheetHandle from './_components/sheets/sheet-handle';
 import CATEGORIES from './_constants/category-data';
-import {
-  BuildingIcon,
-  CurrentLocationIcon,
-  MoreIcon,
-  ResetIcon,
-  RestaurantIcon,
-  StarIcon,
-} from '@/components/icons/map';
+import { CurrentLocationIcon, MoreIcon, ResetIcon, StarIcon } from '@/components/icons/map';
 import { useMapSearchSelection } from '@/context/map-search-selection';
 import { showAlert } from '@/lib/alert';
-import { getMapIcon } from '@/lib/maps/icons';
+import { getMapIconKey } from '@/lib/maps/icons';
 
 const QUICK_CHIP_IDS = ['bus', 'daedong', 'printer', 'lounge', 'bank'];
 
@@ -119,7 +112,7 @@ export default function MapsScreen() {
   const searchResultMarkerIcon = React.useMemo(
     () =>
       selectedSearchResult
-        ? getMapIcon(selectedSearchResult.iconKey, selectedSearchResult.categoryCode)
+        ? getMapIconKey(selectedSearchResult.iconKey, selectedSearchResult.categoryCode)
         : undefined,
     [selectedSearchResult]
   );
@@ -257,13 +250,13 @@ export default function MapsScreen() {
 
   // 칩 조회 결과 마커에 표시할 아이콘 (선택된 칩의 아이콘 사용, 대동명지도는 RestaurantIcon 고정)
   const categoryMarkerIcon = React.useMemo(() => {
-    if (selectedCategoryCode === 'daedong') return RestaurantIcon;
+    if (selectedCategoryCode === 'daedong') return 'RestaurantIcon';
 
     for (const category of CATEGORIES) {
       const chip = category.chips.find((c) => c.id === selectedCategoryCode);
-      if (chip) return chip.Icon;
+      if (chip) return chip.iconKey;
     }
-    return BuildingIcon;
+    return 'BuildingIcon';
   }, [selectedCategoryCode]);
 
   React.useEffect(() => {
