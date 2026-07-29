@@ -34,17 +34,10 @@ import MapSearchSummary from './_components/sheets/map-search-summary';
 import PlaceListSheet from './_components/sheets/sheet-place-list';
 import SheetHandle from './_components/sheets/sheet-handle';
 import CATEGORIES from './_constants/category-data';
-import {
-  BuildingIcon,
-  CurrentLocationIcon,
-  MoreIcon,
-  ResetIcon,
-  RestaurantIcon,
-  StarIcon,
-} from '@/components/icons/map';
+import { CurrentLocationIcon, MoreIcon, ResetIcon, StarIcon } from '@/components/icons/map';
 import { useMapSearchSelection } from '@/context/map-search-selection';
 import { showAlert } from '@/lib/alert';
-import { getMapIcon } from '@/lib/maps/icons';
+import { getMapIconKey } from '@/lib/maps/icons';
 
 const QUICK_CHIP_IDS = ['bus', 'daedong', 'printer', 'lounge', 'bank'];
 
@@ -109,6 +102,7 @@ export default function MapsScreen() {
               id: `search:${selectedSearchResult.type}:${selectedSearchResult.id}`,
               latitude: selectedSearchResult.latitude,
               longitude: selectedSearchResult.longitude,
+              name: selectedSearchResult.name,
             },
           ]
         : [],
@@ -118,7 +112,7 @@ export default function MapsScreen() {
   const searchResultMarkerIcon = React.useMemo(
     () =>
       selectedSearchResult
-        ? getMapIcon(selectedSearchResult.iconKey, selectedSearchResult.categoryCode)
+        ? getMapIconKey(selectedSearchResult.iconKey, selectedSearchResult.categoryCode)
         : undefined,
     [selectedSearchResult]
   );
@@ -188,13 +182,21 @@ export default function MapsScreen() {
     setSelectedSheetMode('building');
   }, [selectedBuildingId, selectedBuildingDetail]);
 
-  // 시트가 접혀있던 경우, 건물 상세 콘텐츠 렌더링이 끝난 뒤에 시트를 펼친다
+  /**
+   * 시트가 접혀있던 경우, 건물 상세 콘텐츠 렌더링이 끝난 뒤에 시트를 펼친다
+   * (같은 건물 선택에 대해 한 번만 펼치도록 ref로 추적 — 아니면 사용자가 나중에 직접 시트를 내려도
+   * bottomSheetIndex가 0으로 바뀌는 순간 이 effect가 다시 실행되어 도로 펼쳐지는 버그가 생긴다)
+   */
+  const autoExpandedBuildingIdRef = React.useRef<number | null>(null);
   React.useEffect(() => {
     if (selectedSheetMode !== 'building' || !selectedBuildingDetail) return;
-    if (bottomSheetIndex !== 0) return;
+    if (autoExpandedBuildingIdRef.current === selectedBuildingId) return;
 
-    bottomSheetRef.current?.snapToIndex(1);
-  }, [selectedSheetMode, selectedBuildingDetail, bottomSheetIndex]);
+    autoExpandedBuildingIdRef.current = selectedBuildingId;
+    if (bottomSheetIndex === 0) {
+      bottomSheetRef.current?.snapToIndex(1);
+    }
+  }, [selectedSheetMode, selectedBuildingDetail, selectedBuildingId, bottomSheetIndex]);
 
   // 장소 상세 조회가 완료되면 그때 시트를 장소 상세로 교체하고 지도를 이동시킨다
   React.useEffect(() => {
@@ -208,13 +210,20 @@ export default function MapsScreen() {
     );
   }, [selectedPlaceId, selectedPlaceDetail]);
 
-  // 시트가 접혀있던 경우, 장소 상세 콘텐츠 렌더링이 끝난 뒤에 시트를 펼친다
+  /**
+   * 시트가 접혀있던 경우, 장소 상세 콘텐츠 렌더링이 끝난 뒤에 시트를 펼친다
+   * (같은 장소 선택에 대해 한 번만 펼치도록 ref로 추적 — 건물 상세와 동일한 이유)
+   */
+  const autoExpandedPlaceIdRef = React.useRef<number | null>(null);
   React.useEffect(() => {
     if (selectedSheetMode !== 'place' || !selectedPlaceDetail) return;
-    if (bottomSheetIndex !== 0) return;
+    if (autoExpandedPlaceIdRef.current === selectedPlaceId) return;
 
-    bottomSheetRef.current?.snapToIndex(1);
-  }, [selectedSheetMode, selectedPlaceDetail, bottomSheetIndex]);
+    autoExpandedPlaceIdRef.current = selectedPlaceId;
+    if (bottomSheetIndex === 0) {
+      bottomSheetRef.current?.snapToIndex(1);
+    }
+  }, [selectedSheetMode, selectedPlaceDetail, selectedPlaceId, bottomSheetIndex]);
 
   // 캠퍼스 건물 마커
   const buildingMarkers = React.useMemo(
@@ -234,19 +243,20 @@ export default function MapsScreen() {
         id: String(pin.id),
         latitude: pin.latitude,
         longitude: pin.longitude,
+        name: pin.name,
       })),
     [categoryPins]
   );
 
   // 칩 조회 결과 마커에 표시할 아이콘 (선택된 칩의 아이콘 사용, 대동명지도는 RestaurantIcon 고정)
   const categoryMarkerIcon = React.useMemo(() => {
-    if (selectedCategoryCode === 'daedong') return RestaurantIcon;
+    if (selectedCategoryCode === 'daedong') return 'RestaurantIcon';
 
     for (const category of CATEGORIES) {
       const chip = category.chips.find((c) => c.id === selectedCategoryCode);
-      if (chip) return chip.Icon;
+      if (chip) return chip.iconKey;
     }
-    return BuildingIcon;
+    return 'BuildingIcon';
   }, [selectedCategoryCode]);
 
   React.useEffect(() => {

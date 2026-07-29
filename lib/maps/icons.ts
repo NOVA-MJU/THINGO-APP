@@ -103,6 +103,15 @@ export function getMapIcon(iconKey: string, categoryCode: string): MapIconCompon
   return ICONS_BY_KEY[iconKey] ?? ICONS_BY_KEY[categoryIconKey] ?? PinIcon;
 }
 
+// getMapIcon과 동일한 우선순위로, 컴포넌트 대신 assets/map-markers(CATEGORY_MARKER_IMAGES)
+// 조회용 키 문자열을 리턴한다 (마커를 PNG 이미지로 그릴 때 사용).
+export function getMapIconKey(iconKey: string, categoryCode: string): string {
+  const categoryIconKey = ICON_KEYS_BY_CATEGORY[categoryCode.toLowerCase()];
+  if (iconKey in ICONS_BY_KEY) return iconKey;
+  if (categoryIconKey in ICONS_BY_KEY) return categoryIconKey;
+  return 'PinIcon';
+}
+
 export function getMapIconClassName(categoryCode: string) {
   switch (categoryCode.toLowerCase()) {
     case 'cafe':

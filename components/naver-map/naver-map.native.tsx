@@ -3,12 +3,25 @@ import {
   NaverMapMarkerOverlay,
   NaverMapViewRef,
 } from '@mj-studio/react-native-naver-map';
-import BusStopMarker from '@/app/(tabs)/maps/_components/markers/bus-stop-marker';
-import BuildingMarker from '@/app/(tabs)/maps/_components/markers/building-marker';
-import PlaceMarker from '@/app/(tabs)/maps/_components/markers/place-marker';
+import {
+  BUILDING_MARKER_EMPTY_IMAGE,
+  BUILDING_MARKER_IMAGES,
+  CATEGORY_MARKER_IMAGES,
+} from '@/assets/map-markers';
 import * as React from 'react';
-import type { ComponentType } from 'react';
 import { StyleSheet } from 'react-native';
+
+/**
+ * 원형 PNG 마커라 좌표가 원 중앙에 오도록 앵커를 중앙으로 지정 (SDK 기본값 {0.5,1}은 핀 끝이
+ * 좌표를 가리키는 방식이라, 그대로 두면 원이 좌표보다 위쪽에 떠 보인다).
+ */
+const MARKER_ANCHOR = { x: 0.5, y: 0.5 };
+
+/**
+ * 바텀시트가 항상 화면 하단을 가리고 있어, 카메라 이동 대상 좌표가 화면 정중앙(0.5) 대신
+ * 상단 1/3 지점에 오도록 피벗을 옮긴다.
+ */
+const CAMERA_PIVOT = { x: 0.5, y: 2 / 5 };
 
 export interface BusStopMarkerData {
   id: string;
@@ -26,6 +39,7 @@ export interface PlaceMarkerData {
   id: string;
   latitude: number;
   longitude: number;
+  name?: string;
 }
 
 export interface UserLocationData {
@@ -46,7 +60,8 @@ interface Props {
   busStopMarkers?: BusStopMarkerData[];
   buildingMarkers?: BuildingMarkerData[];
   placeMarkers?: PlaceMarkerData[];
-  placeMarkerIcon?: ComponentType<{ size?: number; className?: string }>;
+  // assets/map-markers의 CATEGORY_MARKER_IMAGES 조회용 키
+  placeMarkerIcon?: string;
   userLocation?: UserLocationData | null;
   onBusStopMarkerPress?: (id: string) => void;
   onBuildingMarkerPress?: (id: string) => void;
@@ -60,7 +75,7 @@ export interface NaverMapHandle {
 type PendingCamera = {
   latitude: number;
   longitude: number;
-  zoom: number;
+  zoom?: number;
 };
 
 export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMap(
@@ -87,13 +102,21 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
   React.useImperativeHandle(
     ref,
     () => ({
-      animateCameraTo: (latitude, longitude, zoom = 16) => {
+      // zoom을 생략하면 SDK가 현재 줌 레벨을 유지한 채로 카메라만 이동시킨다
+      // (네이티브 SDK가 zoom 미지정 시 내부적으로 NULL_NUMBER 센티널을 넘겨 "줌 변경 없음"으로 처리함)
+      animateCameraTo: (latitude, longitude, zoom) => {
         if (!isInitializedRef.current) {
           pendingCameraRef.current = { latitude, longitude, zoom };
           return;
         }
 
-        mapRef.current?.animateCameraTo({ latitude, longitude, zoom, duration: 500 });
+        mapRef.current?.animateCameraTo({
+          latitude,
+          longitude,
+          zoom,
+          duration: 500,
+          pivot: CAMERA_PIVOT,
+        });
       },
     }),
     []
@@ -109,6 +132,7 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
     mapRef.current?.animateCameraTo({
       ...pendingCamera,
       duration: 500,
+      pivot: CAMERA_PIVOT,
     });
   }
 
@@ -140,12 +164,12 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
           key={marker.id}
           latitude={marker.latitude}
           longitude={marker.longitude}
-          width={32}
-          height={32}
+          width={24}
+          height={24}
+          anchor={MARKER_ANCHOR}
+          image={CATEGORY_MARKER_IMAGES.BusIcon}
           onTap={() => onBusStopMarkerPress?.(marker.id)}
-        >
-          <BusStopMarker />
-        </NaverMapMarkerOverlay>
+        />
       ))}
       {buildingMarkers.map((marker) => (
         <NaverMapMarkerOverlay
@@ -154,10 +178,10 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
           longitude={marker.longitude}
           width={24}
           height={24}
+          anchor={MARKER_ANCHOR}
+          image={BUILDING_MARKER_IMAGES[marker.id] ?? BUILDING_MARKER_EMPTY_IMAGE}
           onTap={() => onBuildingMarkerPress?.(marker.id)}
-        >
-          <BuildingMarker id={marker.id} />
-        </NaverMapMarkerOverlay>
+        />
       ))}
       {placeMarkerIcon &&
         placeMarkers.map((marker) => (
@@ -165,12 +189,18 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
             key={marker.id}
             latitude={marker.latitude}
             longitude={marker.longitude}
-            width={32}
-            height={32}
+            width={24}
+            height={24}
+            anchor={MARKER_ANCHOR}
+            image={CATEGORY_MARKER_IMAGES[placeMarkerIcon]}
             onTap={() => onPlaceMarkerPress?.(marker.id)}
-          >
-            <PlaceMarker Icon={placeMarkerIcon} />
-          </NaverMapMarkerOverlay>
+            caption={
+              marker.name
+                ? { text: marker.name, color: '#0B1215', haloColor: '#FFFFFF' }
+                : undefined
+            }
+            isHideCollidedCaptions
+          />
         ))}
     </NaverMapView>
   );
