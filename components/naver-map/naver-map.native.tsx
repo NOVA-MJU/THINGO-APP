@@ -5,7 +5,7 @@ import {
 } from '@mj-studio/react-native-naver-map';
 import BusStopMarker from '@/app/(tabs)/maps/_components/markers/bus-stop-marker';
 import BuildingMarker from '@/app/(tabs)/maps/_components/markers/building-marker';
-import PlaceMarker from '@/app/(tabs)/maps/_components/markers/place-marker';
+import MapPinMarker from '@/app/(tabs)/maps/_components/markers/map-pin';
 import * as React from 'react';
 import type { ComponentType } from 'react';
 import { StyleSheet } from 'react-native';
@@ -26,6 +26,7 @@ export interface PlaceMarkerData {
   id: string;
   latitude: number;
   longitude: number;
+  name?: string;
 }
 
 export interface UserLocationData {
@@ -140,8 +141,8 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
           key={marker.id}
           latitude={marker.latitude}
           longitude={marker.longitude}
-          width={32}
-          height={32}
+          width={24}
+          height={24}
           onTap={() => onBusStopMarkerPress?.(marker.id)}
         >
           <BusStopMarker />
@@ -165,11 +166,17 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
             key={marker.id}
             latitude={marker.latitude}
             longitude={marker.longitude}
-            width={32}
-            height={32}
+            width={24}
+            height={24}
             onTap={() => onPlaceMarkerPress?.(marker.id)}
+            caption={
+              marker.name
+                ? { text: marker.name, color: '#0B1215', haloColor: '#FFFFFF' }
+                : undefined
+            }
+            isHideCollidedCaptions
           >
-            <PlaceMarker Icon={placeMarkerIcon} />
+            <MapPinMarker Icon={placeMarkerIcon} />
           </NaverMapMarkerOverlay>
         ))}
     </NaverMapView>
