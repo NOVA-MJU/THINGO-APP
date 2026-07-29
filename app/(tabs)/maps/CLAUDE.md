@@ -28,6 +28,19 @@
 
 `react-naver-maps`의 `Marker.icon`은 `naver.maps.ImageIcon` 타입을 요구하는데, 이 타입은 `@types/navermaps` 패키지에서 오며 현재 프로젝트에 설치돼 있지 않다. 그래서 web에서는 커스텀 PNG 없이 기본 마커 핀으로만 사용자 위치를 표시한다. web에서도 동일한 아이콘을 쓰려면 `pnpm add -D @types/navermaps` 후 `ImageIcon`으로 `anchor`/`size`를 지정해야 한다.
 
+## 장소 마커 이름 라벨(caption)
+
+칩 조회(`categoryMarkers`)·검색 결과(`searchResultMarkers`) 마커에 상점 이름을 표시한다. 마커가 많을 때 라벨끼리 겹치지 않는 선에서 최대한 많이 표시하는 방식이 native/web에서 서로 다르다.
+
+- **native**: `NaverMapMarkerOverlay`의 `caption`/`isHideCollidedCaptions` prop이 SDK 차원에서 자동으로 처리해준다 (`components/naver-map/naver-map.native.tsx`). 아이콘은 항상 표시되고, 겹치는 캡션만 SDK가 알아서 숨긴다.
+- **web**: `react-naver-maps`가 감싸는 네이버 지도 JS SDK v3에는 이에 대응하는 자동 겹침 처리 기능이 없다 (`isHideCollidedMarkers`/`isHideCollidedCaptions` 같은 옵션 자체가 없음, 유사한 `collisionBehavior`/`collisionBoxSize`는 GL 서브모듈 전용이고 그마저도 마커 아이콘 간 충돌만 다루고 텍스트 캡션과는 무관). 그래서 `components/naver-map/naver-map.web.tsx`에 겹침 판정을 직접 구현했다:
+  - `map.getProjection().fromCoordToOffset()`로 각 마커의 화면 픽셀 좌표를 구하고, 캔버스 `measureText()`로 이름 텍스트의 실제 렌더링 폭을 측정
+  - 마커 배열 순서대로 순회하며 캡션 사각형(AABB)이 이미 확정된 다른 캡션과 겹치는지 검사 — 안 겹치면 채택, 겹치면 그 라벨만 숨김(아이콘은 항상 유지)
+  - 지도 이동/줌이 끝나는 `onIdle` 이벤트와 마커 목록이 바뀔 때 재계산 (`recomputeCaptionVisibility`)
+  - 라벨은 `CustomOverlay`(React portal 기반)로 마커 좌표 바로 아래에 렌더링, `pointerEvents: 'none'`으로 클릭 방해 방지
+  - 텍스트 스타일: `12px`, `font-weight 600`, 색상 `#0b1215`, 4방향 1px `text-shadow`로 `#ffffff` 외곽선(halo) 구현 (`-webkit-text-stroke`는 브라우저 호환성이 불안정해 사용 안 함). native `caption`의 `color`/`haloColor`도 동일한 값으로 맞춰뒀다.
+  - 캔버스 측정 폭과 실제 DOM 렌더링 폭은 미세하게 다를 수 있어, 겹침 판정에 여유 폭(`CAPTION_PADDING_X`)을 더해둔 상태
+
 ## 바텀시트 동작 방식 (`app/(tabs)/maps/index.tsx`)
 
 `@gorhom/bottom-sheet`의 `BottomSheet`를 `SNAP_POINTS = ['10%', '50%', '100%']`(인덱스 0/1/2)로 사용한다. **어떤 콘텐츠를 보여줄지(state)와 시트를 얼마나 펼칠지(snap index)는 서로 다른 메커니즘으로 제어된다.**
@@ -46,9 +59,11 @@
 
 1. `onBuildingMarkerPress` / `selectCategoryPin`은 `selectedBuildingId`(또는 `selectedPlaceId`)만 세팅하고 카메라만 이동시킨다. `selectedSheetMode`는 그대로 둬서, 상세 쿼리가 로딩되는 동안 시트에는 기존 콘텐츠가 계속 보인다 (빈 화면 깜빡임 방지).
 2. 상세 쿼리(`selectedBuildingDetail`/`selectedPlaceDetail`)가 로드 완료되면 별도 `useEffect`가 그제서야 `selectedSheetMode`를 `'building'`/`'place'`로 바꾼다.
-3. 또 다른 `useEffect`가 `[selectedSheetMode, 상세데이터, bottomSheetIndex]`를 지켜보다가, 시트가 접혀 있었으면(`bottomSheetIndex === 0`) `snapToIndex(1)`로 펼친다. 콘텐츠가 이미 렌더링된 뒤에 펼치는 순서이므로 빈 시트가 펼쳐지는 깜빡임이 없다.
+3. 또 다른 `useEffect`가 `[selectedSheetMode, 상세데이터, 식별자, bottomSheetIndex]`를 지켜보다가, 시트가 접혀 있었으면(`bottomSheetIndex === 0`) `snapToIndex(1)`로 펼친다. 콘텐츠가 이미 렌더링된 뒤에 펼치는 순서이므로 빈 시트가 펼쳐지는 깜빡임이 없다.
 
 새로운 상세 모드를 추가할 때는 이 3단계(식별자 세팅 → 로드 완료 시 모드 전환 → 모드 전환 후 펼침)를 그대로 따라야 깜빡임 없이 동작한다.
+
+**주의**: 3번 effect는 `bottomSheetIndex`를 의존성으로 갖기 때문에, 가드 없이 `if (bottomSheetIndex !== 0) return;`만 두면 상세 진입 직후뿐 아니라 **사용자가 나중에 손으로 시트를 10%까지 내릴 때도** `bottomSheetIndex`가 0으로 바뀌면서 effect가 재실행되어 시트가 도로 펼쳐지는 버그가 생긴다 (드래그로 접으면 잠시 후 다시 튀어오르는 현상). 그래서 `autoExpandedBuildingIdRef`/`autoExpandedPlaceIdRef`로 "이 식별자에 대해 이미 한 번 펼쳤는지"를 추적해, 같은 선택에 대해서는 `bottomSheetIndex`가 아무리 바뀌어도 다시 펼치지 않도록 막아둔다. 새로운 상세 모드를 추가할 때도 동일하게 식별자 기준 ref 가드를 넣어야 한다.
 
 ### 즉시 스냅하는 경우
 
