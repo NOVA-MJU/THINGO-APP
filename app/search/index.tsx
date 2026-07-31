@@ -13,6 +13,7 @@ import { TabBar } from '@/components/ui/tab-bar';
 import { Text } from '@/components/ui/text';
 import {
   getAiSummary,
+  getSearchAutocomplete,
   getTopSearchKeywords,
   searchAll,
   type AiSummary,
@@ -21,11 +22,20 @@ import {
 import { openLink } from '@/lib/open-link';
 import { parseUTCDate } from '@/lib/utils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
 import { YoutubeEmbed } from '@/components/youtube-embed';
-import { Image, FlatList, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Image,
+  FlatList,
+  ScrollView,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const TABS = ['ALL', '게시판', '공지사항', '학사일정', '명대신문', '명대뉴스'];
@@ -38,6 +48,7 @@ const SECTION_RESULT_MAP: Record<string, keyof SearchResults> = {
 };
 const MAX_RECENT_SEARCH_COUNT = 10;
 const RECENT_SEARCHES_KEY = 'recent_searches';
+const AUTOCOMPLETE_DEBOUNCE_MS = 250;
 const EMPTY_RESULTS: SearchResults = {
   notices: [],
   communities: [],
@@ -65,11 +76,22 @@ const SUGGESTED_SEARCHES_BY_MONTH: Record<number, string[]> = {
   9: ['와이파이', '유고결석계', '수강정정', '등록금', '장학금'],
 };
 
+function useDebouncedValue<T>(value: T, delay: number) {
+  const [debouncedValue, setDebouncedValue] = React.useState(value);
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(timer);
+  }, [delay, value]);
+
+  return debouncedValue;
+}
+
 export default function SearchScreen() {
   const router = useRouter();
   const { q, tab } = useLocalSearchParams<{ q?: string; tab?: string }>();
 
-  const submittedQuery = q ?? '';
+  const submittedQuery = (q ?? '').trim();
   const currentTab = tab && TABS.includes(tab) ? tab : TABS[0];
 
   const insets = useSafeAreaInsets();
@@ -82,6 +104,18 @@ export default function SearchScreen() {
   const [isAiSummaryLoading, setIsAiSummaryLoading] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const isRecentSearchesLoaded = React.useRef(false);
+
+  const trimmedQuery = query.trim();
+  const debouncedQuery = useDebouncedValue(trimmedQuery, AUTOCOMPLETE_DEBOUNCE_MS);
+  const shouldShowAutocomplete = !!trimmedQuery && trimmedQuery !== submittedQuery;
+  const shouldShowEmptyState = !trimmedQuery;
+  const shouldShowSearchResults = !!submittedQuery && trimmedQuery === submittedQuery;
+  const autocompleteQuery = useQuery({
+    queryKey: ['search-autocomplete', debouncedQuery],
+    queryFn: () => getSearchAutocomplete(debouncedQuery),
+    enabled: !!debouncedQuery && debouncedQuery === trimmedQuery && shouldShowAutocomplete,
+    staleTime: 30_000,
+  });
 
   const suggestedSearchKeywords = SUGGESTED_SEARCHES_BY_MONTH[new Date().getMonth() + 1] ?? [];
   const hasResults =
@@ -280,8 +314,18 @@ export default function SearchScreen() {
           </View>
         </View>
 
+        {shouldShowAutocomplete && (
+          <AutocompleteList
+            query={trimmedQuery}
+            suggestions={autocompleteQuery.data ?? []}
+            isPending={debouncedQuery !== trimmedQuery || autocompleteQuery.isPending}
+            isError={autocompleteQuery.isError}
+            onPress={submitSearch}
+          />
+        )}
+
         {/* 검색어 미입력 */}
-        {!submittedQuery && (
+        {shouldShowEmptyState && (
           <View>
             {/* 최근 검색어 */}
             <View className="mt-8 gap-2.5">
@@ -359,7 +403,7 @@ export default function SearchScreen() {
         )}
 
         {/* 검색 결과 */}
-        {!!submittedQuery && (
+        {shouldShowSearchResults && (
           <View>
             {!isLoading && (
               <TabBar
@@ -663,5 +707,58 @@ export default function SearchScreen() {
         )}
       </View>
     </ScrollView>
+  );
+}
+
+function AutocompleteList({
+  query,
+  suggestions,
+  isPending,
+  isError,
+  onPress,
+}: {
+  query: string;
+  suggestions: string[];
+  isPending: boolean;
+  isError: boolean;
+  onPress: (keyword: string) => void;
+}) {
+  if (isPending) {
+    return (
+      <View className="items-center py-8">
+        <ActivityIndicator />
+      </View>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Text className="px-4 py-6 text-body05 text-grey-40">검색어 제안을 불러올 수 없습니다.</Text>
+    );
+  }
+
+  if (suggestions.length === 0) {
+    return (
+      <Text className="px-4 py-6 text-body05 text-grey-40">{query}에 대한 제안이 없습니다.</Text>
+    );
+  }
+
+  return (
+    <View className="pt-2">
+      {suggestions.map((suggestion, index) => (
+        <TouchableOpacity
+          key={`${suggestion}:${index}`}
+          activeOpacity={0.7}
+          onPress={() => onPress(suggestion)}
+        >
+          <View className="flex-row items-center gap-3 border-b border-grey-02 px-4 py-3">
+            <SearchIcon size={20} className="text-grey-30" />
+            <Text className="min-w-0 flex-1 text-body04 text-black" numberOfLines={1}>
+              {suggestion}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      ))}
+    </View>
   );
 }
