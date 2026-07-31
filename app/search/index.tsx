@@ -277,6 +277,7 @@ export default function SearchScreen() {
 
   return (
     <ScrollView
+      keyboardShouldPersistTaps="handled"
       contentContainerStyle={{ paddingTop: insets.top, paddingBottom: insets.bottom, flexGrow: 1 }}
     >
       <View className="flex-1">
