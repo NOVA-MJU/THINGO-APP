@@ -1,5 +1,9 @@
 # THINGO APP
 
+## response language
+
+- Claude는 항상 한글로 답변할 것
+
 ## environment
 
 - Node.js: v20.20.2

@@ -1,13 +1,20 @@
 import { Text } from '@/components/ui/text';
 import { Image, ScrollView, TouchableOpacity, View } from 'react-native';
 import { FavoriteIcon, InfoIcon } from '@/components/icons/map';
+import { XIcon } from '@/components/icons';
 import type { MapPlaceDetail } from '@/api/maps';
 import { formatMapDistance } from '@/lib/maps/format';
 import { getMapIcon, getMapIconClassName } from '@/lib/maps/icons';
 import { useToggleMapFavorite } from '@/hooks/useToggleMapFavorite';
 
 // 명지도 장소(비건물) 상세보기 시트 - 건물 상세와 달리 강의실 코드·운영시간은 없고 위치·추가정보(infoText)를 제공
-export default function PlaceDetailSheet({ place }: { place: MapPlaceDetail }) {
+export default function PlaceDetailSheet({
+  place,
+  onClose,
+}: {
+  place: MapPlaceDetail;
+  onClose?: () => void;
+}) {
   const Icon = getMapIcon(place.iconKey ?? '', place.categoryCode);
   const toggleFavorite = useToggleMapFavorite();
 
@@ -30,6 +37,13 @@ export default function PlaceDetailSheet({ place }: { place: MapPlaceDetail }) {
           </View>
           <TouchableOpacity hitSlop={4} onPress={() => toggleFavorite(place.id)}>
             <FavoriteIcon size={28} active={place.favorite} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            hitSlop={4}
+            onPress={onClose}
+            className="h-7 w-7 items-center justify-center rounded-full bg-grey-02"
+          >
+            <XIcon size={14} className="text-grey-30" />
           </TouchableOpacity>
         </View>
 

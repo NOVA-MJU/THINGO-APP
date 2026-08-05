@@ -1,5 +1,6 @@
 import { MapCategoryPin } from '@/api/maps';
 import { FavoriteIcon, MyeongwolIcon, RestaurantIcon } from '@/components/icons/map';
+import { XIcon } from '@/components/icons';
 import { Text } from '@/components/ui/text';
 import { useToggleMapFavorite } from '@/hooks/useToggleMapFavorite';
 import { Fragment } from 'react';
@@ -9,6 +10,7 @@ interface DaedongPlaceListSheetProps {
   places: MapCategoryPin[];
   onPlacePress?: (place: MapCategoryPin) => void;
   isFetchingNextPage?: boolean;
+  onClose?: () => void;
 }
 
 // 대동명지도 목록 표시 시트
@@ -16,6 +18,7 @@ export default function DaedongPlaceListSheet({
   places,
   onPlacePress,
   isFetchingNextPage,
+  onClose,
 }: DaedongPlaceListSheetProps) {
   const toggleFavorite = useToggleMapFavorite();
 
@@ -25,6 +28,13 @@ export default function DaedongPlaceListSheet({
         <Text className="text-title03 text-black">대동명지도</Text>
         <Text className="me-1 ms-3 text-body05 text-grey-80">by 명월</Text>
         <MyeongwolIcon size={24} />
+        <TouchableOpacity
+          hitSlop={4}
+          onPress={onClose}
+          className="ml-auto h-7 w-7 items-center justify-center rounded-full bg-grey-02"
+        >
+          <XIcon size={14} className="text-grey-30" />
+        </TouchableOpacity>
       </View>
       <View className="py-2.5">
         <View className="h-1 bg-grey-02" />

@@ -1,5 +1,6 @@
 import { MapCategoryPin } from '@/api/maps';
 import { BuildingIcon, FavoriteIcon } from '@/components/icons/map';
+import { XIcon } from '@/components/icons';
 import { Text } from '@/components/ui/text';
 import { useToggleMapFavorite } from '@/hooks/useToggleMapFavorite';
 import { ComponentType, Fragment } from 'react';
@@ -10,6 +11,7 @@ interface PlaceListSheetProps {
   places: MapCategoryPin[];
   onPlacePress?: (place: MapCategoryPin) => void;
   isFetchingNextPage?: boolean;
+  onClose?: () => void;
 }
 
 // 칩의 카테고리 코드로 아이콘 조회 (일치하는 칩이 없으면 기본 건물 아이콘 사용)
@@ -30,19 +32,40 @@ export default function PlaceListSheet({
   places,
   onPlacePress,
   isFetchingNextPage,
+  onClose,
 }: PlaceListSheetProps) {
   const toggleFavorite = useToggleMapFavorite();
 
   if (places.length === 0) {
     return (
-      <View className="items-center px-4 py-10">
-        <Text className="text-body04 text-grey-40">표시할 장소가 없습니다.</Text>
+      <View>
+        <View className="flex-row justify-end px-4">
+          <TouchableOpacity
+            hitSlop={4}
+            onPress={onClose}
+            className="h-7 w-7 items-center justify-center rounded-full bg-grey-02"
+          >
+            <XIcon size={14} className="text-grey-30" />
+          </TouchableOpacity>
+        </View>
+        <View className="items-center px-4 py-10">
+          <Text className="text-body04 text-grey-40">표시할 장소가 없습니다.</Text>
+        </View>
       </View>
     );
   }
 
   return (
     <ScrollView>
+      <View className="flex-row justify-end px-4">
+        <TouchableOpacity
+          hitSlop={4}
+          onPress={onClose}
+          className="h-7 w-7 items-center justify-center rounded-full bg-grey-02"
+        >
+          <XIcon size={14} className="text-grey-30" />
+        </TouchableOpacity>
+      </View>
       {places.map((place, index) => {
         const { Icon, iconClassName } = resolvePlaceIcon(place.categoryCode);
 

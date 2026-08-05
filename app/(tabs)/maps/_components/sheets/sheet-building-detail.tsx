@@ -1,7 +1,7 @@
 import { Text } from '@/components/ui/text';
 import * as React from 'react';
 import { Image, ScrollView, TouchableOpacity, View } from 'react-native';
-import { ArrowDownIcon, ArrowRightIcon } from '@/components/icons';
+import { ArrowDownIcon, ArrowRightIcon, XIcon } from '@/components/icons';
 import {
   BankIcon,
   BreakRoomIcon,
@@ -94,7 +94,13 @@ function resolveMapIcon(iconKey: string | null): MapIconComponent {
 }
 
 // 명지대학교 캠퍼스 건물 전용 상세 보기 시트
-export default function BuildingDetailSheet({ building }: { building: MapBuildingDetail }) {
+export default function BuildingDetailSheet({
+  building,
+  onClose,
+}: {
+  building: MapBuildingDetail;
+  onClose?: () => void;
+}) {
   const [selectedCategoryCode, setSelectedCategoryCode] = React.useState<string | null>(null);
   const toggleFavorite = useToggleMapFavorite();
 
@@ -117,6 +123,13 @@ export default function BuildingDetailSheet({ building }: { building: MapBuildin
           </View>
           <TouchableOpacity hitSlop={4} onPress={() => toggleFavorite(building.id)}>
             <FavoriteIcon size={28} active={building.favorite} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            hitSlop={4}
+            onPress={onClose}
+            className="h-7 w-7 items-center justify-center rounded-full bg-grey-02"
+          >
+            <XIcon size={14} className="text-grey-30" />
           </TouchableOpacity>
         </View>
         <View className="mt-2.5 gap-0.5 px-4">
