@@ -14,8 +14,10 @@ import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import Head from 'expo-router/head';
 import * as React from 'react';
 import {
+  ActivityIndicator,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
@@ -33,17 +35,15 @@ import PlaceDetailSheet from './_components/sheets/sheet-place-detail';
 import MapSearchSummary from './_components/sheets/map-search-summary';
 import PlaceListSheet from './_components/sheets/sheet-place-list';
 import SheetHandle from './_components/sheets/sheet-handle';
+import SheetStackLayer from './_components/sheet-stack-layer';
 import CATEGORIES from './_constants/category-data';
 import { CurrentLocationIcon, MoreIcon, ResetIcon, StarIcon } from '@/components/icons/map';
 import { useMapSearchSelection } from '@/context/map-search-selection';
 import { showAlert } from '@/lib/alert';
+import { CAMPUS_LATITUDE, CAMPUS_LONGITUDE, CAMPUS_ZOOM } from '@/lib/maps/campus';
 import { getMapIconKey } from '@/lib/maps/icons';
 
 const QUICK_CHIP_IDS = ['bus', 'daedong', 'printer', 'lounge', 'bank'];
-
-const CAMPUS_LATITUDE = 37.579711;
-const CAMPUS_LONGITUDE = 126.923186;
-const CAMPUS_ZOOM = 16;
 
 const QUICK_CHIPS = CATEGORIES.flatMap((c) =>
   c.chips.map((chip) => ({ ...chip, iconClassName: c.iconClassName }))
@@ -60,6 +60,22 @@ const MAP_CONTROL_SHADOW = {
   elevation: 5,
 };
 
+// base(카테고리) 시트를 가리키는 키. 스택 레이어들과 동일한 index-복원 로직을 타도록 맞춰둔 값
+const BASE_LAYER_KEY = '__base__';
+const PAGE_TITLE = '명지대 캠퍼스 명지도 | 띵고 Thingo';
+const PAGE_DESCRIPTION =
+  '명지대 캠퍼스를 내 손 안에. 강의실 찾아 헤매는 건 끝, 건물과 층별 안내도를 명지도에서 찾아보세요!';
+
+// 카테고리 시트 위에 쌓이는 스택 레이어. 마운트 상태를 유지한 채 index 0으로 접혔다가 복귀하므로
+// (places 목록의) 스크롤 위치·페이지네이션이 자동으로 보존된다.
+// 주의: 현재 UI 흐름상 스택에 동시에 존재하는 places/building/place는 각각 최대 1개라 아래 useQuery들도
+// 하나씩만 두면 충분하다 — 나중에 같은 종류를 여러 겹 쌓는 흐름이 생기면 레이어별로 쿼리를 분리해야 한다.
+type SheetScreenInit =
+  | { kind: 'places'; categoryCode: string }
+  | { kind: 'building'; buildingId: number }
+  | { kind: 'place'; placeId: number };
+type SheetScreen = SheetScreenInit & { key: string; initialIndex: number };
+
 export default function MapsScreen() {
   const router = useRouter();
   const { exactMatch, expanded, placeId } = useLocalSearchParams<{
@@ -69,18 +85,102 @@ export default function MapsScreen() {
   }>();
   const { selectedSearchResult, clearSearchResult } = useMapSearchSelection();
   const insets = useSafeAreaInsets();
-  const [selectedPlaceId, setSelectedPlaceId] = React.useState<number | null>(null);
-  const [selectedBuildingId, setSelectedBuildingId] = React.useState<number | null>(null);
-  const [selectedSheetMode, setSelectedSheetMode] = React.useState<
-    'category' | 'bus' | 'building' | 'place' | 'places'
-  >('category');
-  const [selectedCategoryCode, setSelectedCategoryCode] = React.useState<string | null>(null);
+  const [sheetStack, setSheetStack] = React.useState<SheetScreen[]>([]);
+  const [selectedSheetMode, setSelectedSheetMode] = React.useState<'category' | 'bus'>('category');
   const [selectedStation, setSelectedStation] = React.useState<BusStopStation | null>(null);
-  const [bottomSheetIndex, setBottomSheetIndex] = React.useState(0);
   const [userLocation, setUserLocation] = React.useState<UserLocationData | null>(null);
   const mapRef = React.useRef<NaverMapHandle>(null);
   const bottomSheetRef = React.useRef<BottomSheet>(null);
   const locationSubscriptionRef = React.useRef<Location.LocationSubscription | null>(null);
+
+  // 스택 레이어별 ref/현재 index/가려지기 전 index 를 추적 (렌더링 없이 즉시 스냅해야 해서 state가 아닌 ref로 관리)
+  const layerRefsRef = React.useRef(new Map<string, React.RefObject<BottomSheet | null>>());
+  const layerIndexRef = React.useRef(new Map<string, number>([[BASE_LAYER_KEY, 0]]));
+  const restoreIndexRef = React.useRef(new Map<string, number>());
+  // close()로 완전히 숨긴 레이어의 key. close()는 index -1에 도달하면 항상 onClose를 발생시키는데,
+  // 위에 새 레이어가 덮여서 숨겨진 것도 실제 pop과 똑같이 onClose가 발생하므로 이 표시로 구분해서
+  // handleLayerClosed가 "덮여서 숨겨진 것"은 스택에서 제거하지 않고 그냥 무시하도록 한다.
+  const suppressCloseRef = React.useRef(new Set<string>());
+
+  function getLayerRef(key: string): React.RefObject<BottomSheet | null> {
+    if (key === BASE_LAYER_KEY) return bottomSheetRef;
+    let ref = layerRefsRef.current.get(key);
+    if (!ref) {
+      ref = React.createRef<BottomSheet>();
+      layerRefsRef.current.set(key, ref);
+    }
+    return ref;
+  }
+
+  function updateLayerIndex(key: string, index: number) {
+    layerIndexRef.current.set(key, index);
+  }
+
+  // 새 레이어를 스택 맨 위에 push. 지금 맨 위에 있던 레이어(또는 base)는 애니메이션 없이 즉시 완전히 숨긴다(close)
+  function pushSheet(screen: SheetScreenInit, initialIndex = 1) {
+    const belowKey = sheetStack.length > 0 ? sheetStack[sheetStack.length - 1].key : BASE_LAYER_KEY;
+    restoreIndexRef.current.set(belowKey, layerIndexRef.current.get(belowKey) ?? 1);
+    if (belowKey !== BASE_LAYER_KEY) suppressCloseRef.current.add(belowKey);
+    getLayerRef(belowKey).current?.close({ duration: 0 });
+
+    const key = `${screen.kind}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    setSheetStack((prev) => [...prev, { ...screen, key, initialIndex }]);
+  }
+
+  // 맨 위 레이어를 pop (닫힘 애니메이션이 끝나면 handleLayerClosed에서 실제로 스택/아래 레이어 복원 처리)
+  function popSheet() {
+    if (sheetStack.length === 0) return;
+    const top = sheetStack[sheetStack.length - 1];
+    getLayerRef(top.key).current?.close({ duration: 0 });
+  }
+
+  // 레이어 하나의 닫힘이 끝났을 때: 위에 새 레이어가 덮여서 숨겨진 것이면 무시하고,
+  // 실제로 pop된 것이면 스택에서 제거하고 가려져 있던 아래 레이어를 원래 index로 즉시 복원
+  function handleLayerClosed(key: string, belowKey: string) {
+    if (suppressCloseRef.current.has(key)) {
+      suppressCloseRef.current.delete(key);
+      return;
+    }
+
+    setSheetStack((prev) => {
+      const index = prev.findIndex((s) => s.key === key);
+      return index === -1 ? prev : prev.slice(0, index);
+    });
+    layerRefsRef.current.delete(key);
+
+    const restoreIndex = restoreIndexRef.current.get(belowKey) ?? 1;
+    restoreIndexRef.current.delete(belowKey);
+    getLayerRef(belowKey).current?.snapToIndex(restoreIndex, { duration: 0 });
+  }
+
+  // 스택을 통째로 비움 (애니메이션 없이 즉시 언마운트 — bus/칩 재선택처럼 완전히 다른 컨텍스트로 전환할 때 사용)
+  function resetStack() {
+    setSheetStack([]);
+    layerRefsRef.current.clear();
+    restoreIndexRef.current.clear();
+    suppressCloseRef.current.clear();
+  }
+
+  // 스택에서 각 종류별 활성 식별자 도출 (현재는 종류당 최대 1개만 존재하므로 find로 충분)
+  const selectedCategoryCode = React.useMemo(
+    () =>
+      sheetStack.find((s): s is Extract<SheetScreen, { kind: 'places' }> => s.kind === 'places')
+        ?.categoryCode ?? null,
+    [sheetStack]
+  );
+  const selectedBuildingId = React.useMemo(
+    () =>
+      sheetStack.find((s): s is Extract<SheetScreen, { kind: 'building' }> => s.kind === 'building')
+        ?.buildingId ?? null,
+    [sheetStack]
+  );
+  const selectedPlaceId = React.useMemo(
+    () =>
+      sheetStack.find((s): s is Extract<SheetScreen, { kind: 'place' }> => s.kind === 'place')
+        ?.placeId ?? null,
+    [sheetStack]
+  );
+
   const selectedCamera = React.useMemo(
     () =>
       selectedSearchResult
@@ -124,19 +224,20 @@ export default function MapsScreen() {
   });
 
   // 캠퍼스 건물 상세 조회
+  // placeholderData(keepPreviousData)를 쓰지 않는다: 스택 레이어는 building이 바뀌면 새로 push되는데,
+  // 이전 건물의 데이터를 placeholder로 유지하면 renderStackScreenContent의 로딩 스피너 분기가
+  // 건너뛰어져서 새 레이어에 이전 건물 정보가 잠깐 그대로 보이는 버그가 생긴다.
   const { data: selectedBuildingDetail } = useQuery({
     queryKey: ['map-building-detail', selectedBuildingId],
     queryFn: () => getBuildingDetail(selectedBuildingId!, CAMPUS_LATITUDE, CAMPUS_LONGITUDE),
     enabled: selectedBuildingId !== null,
-    placeholderData: keepPreviousData,
   });
 
-  // 장소(비건물) 상세 조회
+  // 장소(비건물) 상세 조회 (건물 상세와 동일한 이유로 placeholderData 미사용)
   const { data: selectedPlaceDetail } = useQuery({
     queryKey: ['map-place-detail', selectedPlaceId],
     queryFn: () => getPlaceDetail(selectedPlaceId!, CAMPUS_LATITUDE, CAMPUS_LONGITUDE),
     enabled: selectedPlaceId !== null,
-    placeholderData: keepPreviousData,
   });
 
   // 칩 클릭 시 장소/건물 목록 조회 (무한 스크롤 페이지네이션)
@@ -165,65 +266,12 @@ export default function MapsScreen() {
     if (hasNextPage && !isFetchingNextPage) fetchNextPage();
   }
 
-  // 바텀시트 스크롤이 하단에 가까워지면 다음 페이지 로드
-  // (장소 목록 시트는 BottomSheetScrollView 안에 중첩된 ScrollView라 실제 스크롤은 바깥쪽에서 일어남)
-  function onBottomSheetScroll({ nativeEvent }: NativeSyntheticEvent<NativeScrollEvent>) {
-    if (selectedSheetMode !== 'places' || !selectedCategoryCode) return;
-
+  // places 스택 레이어 스크롤이 하단에 가까워지면 다음 페이지 로드
+  function onPlacesScroll({ nativeEvent }: NativeSyntheticEvent<NativeScrollEvent>) {
     const { contentOffset, contentSize, layoutMeasurement } = nativeEvent;
     const isCloseToBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 100;
     if (isCloseToBottom) onCategoryPinsEndReached();
   }
-
-  // 건물 상세 조회가 완료되면 그때 시트를 건물 상세로 교체 (조회 중에는 기존 시트 유지)
-  React.useEffect(() => {
-    if (selectedBuildingId === null || !selectedBuildingDetail) return;
-
-    setSelectedSheetMode('building');
-  }, [selectedBuildingId, selectedBuildingDetail]);
-
-  /**
-   * 시트가 접혀있던 경우, 건물 상세 콘텐츠 렌더링이 끝난 뒤에 시트를 펼친다
-   * (같은 건물 선택에 대해 한 번만 펼치도록 ref로 추적 — 아니면 사용자가 나중에 직접 시트를 내려도
-   * bottomSheetIndex가 0으로 바뀌는 순간 이 effect가 다시 실행되어 도로 펼쳐지는 버그가 생긴다)
-   */
-  const autoExpandedBuildingIdRef = React.useRef<number | null>(null);
-  React.useEffect(() => {
-    if (selectedSheetMode !== 'building' || !selectedBuildingDetail) return;
-    if (autoExpandedBuildingIdRef.current === selectedBuildingId) return;
-
-    autoExpandedBuildingIdRef.current = selectedBuildingId;
-    if (bottomSheetIndex === 0) {
-      bottomSheetRef.current?.snapToIndex(1);
-    }
-  }, [selectedSheetMode, selectedBuildingDetail, selectedBuildingId, bottomSheetIndex]);
-
-  // 장소 상세 조회가 완료되면 그때 시트를 장소 상세로 교체하고 지도를 이동시킨다
-  React.useEffect(() => {
-    if (selectedPlaceId === null || !selectedPlaceDetail) return;
-
-    setSelectedSheetMode('place');
-    mapRef.current?.animateCameraTo(
-      selectedPlaceDetail.latitude,
-      selectedPlaceDetail.longitude,
-      17
-    );
-  }, [selectedPlaceId, selectedPlaceDetail]);
-
-  /**
-   * 시트가 접혀있던 경우, 장소 상세 콘텐츠 렌더링이 끝난 뒤에 시트를 펼친다
-   * (같은 장소 선택에 대해 한 번만 펼치도록 ref로 추적 — 건물 상세와 동일한 이유)
-   */
-  const autoExpandedPlaceIdRef = React.useRef<number | null>(null);
-  React.useEffect(() => {
-    if (selectedSheetMode !== 'place' || !selectedPlaceDetail) return;
-    if (autoExpandedPlaceIdRef.current === selectedPlaceId) return;
-
-    autoExpandedPlaceIdRef.current = selectedPlaceId;
-    if (bottomSheetIndex === 0) {
-      bottomSheetRef.current?.snapToIndex(1);
-    }
-  }, [selectedSheetMode, selectedPlaceDetail, selectedPlaceId, bottomSheetIndex]);
 
   // 캠퍼스 건물 마커
   const buildingMarkers = React.useMemo(
@@ -259,25 +307,23 @@ export default function MapsScreen() {
     return 'BuildingIcon';
   }, [selectedCategoryCode]);
 
+  // 딥링크(placeId 쿼리 파라미터)로 진입한 경우: place 레이어를 바로 push (expanded=true면 100%로)
   React.useEffect(() => {
     const rawPlaceId = Array.isArray(placeId) ? placeId[0] : placeId;
     const numericPlaceId = rawPlaceId ? Number(rawPlaceId) : NaN;
     if (Number.isNaN(numericPlaceId)) return;
 
-    setSelectedSheetMode('category');
     clearSearchResult();
-    setSelectedCategoryCode(null);
-    setSelectedBuildingId(null);
-    setSelectedPlaceId(numericPlaceId);
-    bottomSheetRef.current?.snapToIndex(expanded === 'true' ? 2 : 1);
+    resetStack();
+    setSelectedSheetMode('category');
+    pushSheet({ kind: 'place', placeId: numericPlaceId }, expanded === 'true' ? 2 : 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clearSearchResult, expanded, exactMatch, placeId]);
 
   React.useEffect(() => {
     if (!selectedSearchResult) return;
 
-    setSelectedPlaceId(null);
-    setSelectedBuildingId(null);
-    setSelectedCategoryCode(null);
+    resetStack();
     setSelectedSheetMode('category');
     mapRef.current?.animateCameraTo(
       selectedSearchResult.latitude,
@@ -287,31 +333,28 @@ export default function MapsScreen() {
     bottomSheetRef.current?.snapToIndex(1);
   }, [selectedSearchResult]);
 
-  // 캠퍼스 건물 마커 클릭 (상세 조회가 끝나면 아래 useEffect에서 시트를 교체)
+  // 캠퍼스 건물 마커 클릭 → building 레이어를 base 위에 바로 push
   function onBuildingMarkerPress(id: string) {
     const building = buildings.find((b) => String(b.id) === id);
     if (!building) return;
 
-    setSelectedPlaceId(null);
     clearSearchResult();
-    setSelectedCategoryCode(null);
-    setSelectedBuildingId(building.id);
+    resetStack();
     mapRef.current?.animateCameraTo(building.latitude, building.longitude);
+    pushSheet({ kind: 'building', buildingId: building.id });
   }
 
-  // 칩 조회 결과 핀 선택 (건물 핀이면 건물 상세, 그 외는 장소 상세로 조회) - 마커 클릭과 리스트 항목 클릭에서 공통으로 사용
+  // 칩 조회 결과 핀 선택 (건물 핀이면 건물 상세, 그 외는 장소 상세로 조회) - places 목록 위에 push
+  // 마커 클릭과 리스트 항목 클릭에서 공통으로 사용
   function selectCategoryPin(pin: MapCategoryPin) {
     clearSearchResult();
     mapRef.current?.animateCameraTo(pin.latitude, pin.longitude);
 
     if (pin.type === 'BUILDING') {
-      setSelectedPlaceId(null);
-      setSelectedBuildingId(pin.id);
+      pushSheet({ kind: 'building', buildingId: pin.id });
       return;
     }
-
-    setSelectedBuildingId(null);
-    setSelectedPlaceId(pin.id);
+    pushSheet({ kind: 'place', placeId: pin.id });
   }
 
   // 검색 결과 및 칩 조회 결과 마커 클릭
@@ -340,10 +383,8 @@ export default function MapsScreen() {
     const busStop = BUS_STOPS.find((s) => s.id === id);
     if (!busStop) return;
 
-    setSelectedPlaceId(null);
     clearSearchResult();
-    setSelectedBuildingId(null);
-    setSelectedCategoryCode(null);
+    resetStack();
     setSelectedSheetMode('bus');
     setSelectedStation(busStop.station);
     mapRef.current?.animateCameraTo(busStop.latitude, busStop.longitude);
@@ -359,10 +400,8 @@ export default function MapsScreen() {
   function onQuickChipPress(chipId: string) {
     // 버스 정류장 칩 클릭
     if (chipId === 'bus') {
-      setSelectedPlaceId(null);
       clearSearchResult();
-      setSelectedBuildingId(null);
-      setSelectedCategoryCode(null);
+      resetStack();
       setSelectedSheetMode('bus');
       setSelectedStation('A');
       const stationA = BUS_STOPS.find((s) => s.station === 'A');
@@ -372,12 +411,10 @@ export default function MapsScreen() {
     }
 
     // 그 외 칩 클릭 시 해당 카테고리의 장소/건물 목록 조회
-    setSelectedPlaceId(null);
     clearSearchResult();
-    setSelectedBuildingId(null);
-    setSelectedSheetMode('places');
-    setSelectedCategoryCode(chipId);
-    bottomSheetRef.current?.snapToIndex(1);
+    resetStack();
+    setSelectedSheetMode('category');
+    pushSheet({ kind: 'places', categoryCode: chipId });
   }
 
   // 사용자 위치 추적 시작 (native 전용, 지도의 현위치 오버레이 표시용)
@@ -468,9 +505,7 @@ export default function MapsScreen() {
 
   function onResetMapPress() {
     clearSearchResult();
-    setSelectedPlaceId(null);
-    setSelectedBuildingId(null);
-    setSelectedCategoryCode(null);
+    resetStack();
     setSelectedStation(null);
     setSelectedSheetMode('category');
     mapRef.current?.animateCameraTo(CAMPUS_LATITUDE, CAMPUS_LONGITUDE, CAMPUS_ZOOM);
@@ -479,39 +514,44 @@ export default function MapsScreen() {
 
   // 더보기 버튼 클릭 (카테고리 시트 표시)
   function handleMoreCategories() {
-    setSelectedSheetMode('category');
-    setSelectedPlaceId(null);
     clearSearchResult();
-    setSelectedBuildingId(null);
-    setSelectedCategoryCode(null);
+    resetStack();
+    setSelectedSheetMode('category');
     bottomSheetRef.current?.snapToIndex(1);
   }
 
-  // 바텀 시트 렌더링
-  function renderBottomSheetContent() {
+  // base 시트(카테고리/버스/검색 요약) 우측 상단 닫기 버튼 클릭 → category로 복귀 후 10%로 접음
+  // (places/building/place는 스택 레이어라 각자 popSheet로 처리 — 여기서 다루지 않음)
+  function handleCloseSheet() {
+    clearSearchResult();
+    setSelectedSheetMode('category');
+    setSelectedStation(null);
+    bottomSheetRef.current?.snapToIndex(0);
+  }
+
+  // base 시트 렌더링 (category / bus / 검색 요약만 담당)
+  function renderBaseSheetContent() {
     if (selectedSearchResult) {
-      return <MapSearchSummary item={selectedSearchResult} />;
+      return <MapSearchSummary item={selectedSearchResult} onClose={handleCloseSheet} />;
     }
 
     if (selectedSheetMode === 'bus' && selectedStation) {
-      return <BusInfoSheet station={selectedStation} />;
+      return <BusInfoSheet station={selectedStation} onClose={handleCloseSheet} />;
     }
 
-    if (selectedSheetMode === 'building' && selectedBuildingDetail) {
-      return <BuildingDetailSheet building={selectedBuildingDetail} />;
-    }
+    return <CategoryList onChipPress={onQuickChipPress} />;
+  }
 
-    if (selectedSheetMode === 'place' && selectedPlaceDetail) {
-      return <PlaceDetailSheet place={selectedPlaceDetail} />;
-    }
-
-    if (selectedSheetMode === 'places' && selectedCategoryCode) {
-      if (selectedCategoryCode === 'daedong') {
+  // 스택 레이어 하나의 콘텐츠 렌더링 (상세 데이터 로딩 중에는 스피너 표시)
+  function renderStackScreenContent(screen: SheetScreen) {
+    if (screen.kind === 'places') {
+      if (screen.categoryCode === 'daedong') {
         return (
           <DaedongPlaceListSheet
             places={categoryPins}
             onPlacePress={selectCategoryPin}
             isFetchingNextPage={isFetchingNextPage}
+            onClose={popSheet}
           />
         );
       }
@@ -520,15 +560,42 @@ export default function MapsScreen() {
           places={categoryPins}
           onPlacePress={selectCategoryPin}
           isFetchingNextPage={isFetchingNextPage}
+          onClose={popSheet}
         />
       );
     }
 
-    return <CategoryList onChipPress={onQuickChipPress} />;
+    if (screen.kind === 'building') {
+      if (!selectedBuildingDetail) {
+        return (
+          <View className="items-center py-8">
+            <ActivityIndicator />
+          </View>
+        );
+      }
+      return <BuildingDetailSheet building={selectedBuildingDetail} onClose={popSheet} />;
+    }
+
+    if (!selectedPlaceDetail) {
+      return (
+        <View className="items-center py-8">
+          <ActivityIndicator />
+        </View>
+      );
+    }
+    return <PlaceDetailSheet place={selectedPlaceDetail} onClose={popSheet} />;
   }
 
   return (
     <View style={{ flex: 1 }}>
+      {Platform.OS === 'web' && (
+        <Head>
+          <title>{PAGE_TITLE}</title>
+          <meta name="description" content={PAGE_DESCRIPTION} />
+          <meta property="og:title" content={PAGE_TITLE} />
+          <meta property="og:description" content={PAGE_DESCRIPTION} />
+        </Head>
+      )}
       {/* 네이버 지도 */}
       <NaverMap
         ref={mapRef}
@@ -662,19 +729,36 @@ export default function MapsScreen() {
         </Pressable>
       </View>
 
-      {/* 바텀시트 */}
+      {/* 바텀시트 (base: category/bus/검색 요약) */}
       <BottomSheet
         ref={bottomSheetRef}
         index={0}
         snapPoints={SNAP_POINTS}
         handleComponent={SheetHandle}
         topInset={insets.top}
-        onChange={setBottomSheetIndex}
+        onChange={(index) => updateLayerIndex(BASE_LAYER_KEY, index)}
       >
-        <BottomSheetScrollView onScroll={onBottomSheetScroll}>
-          {renderBottomSheetContent()}
-        </BottomSheetScrollView>
+        <BottomSheetScrollView>{renderBaseSheetContent()}</BottomSheetScrollView>
       </BottomSheet>
+
+      {/* base 위에 쌓이는 스택 레이어 (places → building/place 드릴다운) */}
+      {sheetStack.map((screen, i) => {
+        const belowKey = i === 0 ? BASE_LAYER_KEY : sheetStack[i - 1].key;
+        return (
+          <SheetStackLayer
+            key={screen.key}
+            sheetRef={getLayerRef(screen.key)}
+            initialIndex={screen.initialIndex}
+            snapPoints={SNAP_POINTS}
+            topInset={insets.top}
+            onChange={(index) => updateLayerIndex(screen.key, index)}
+            onClose={() => handleLayerClosed(screen.key, belowKey)}
+            onScroll={screen.kind === 'places' ? onPlacesScroll : undefined}
+          >
+            {renderStackScreenContent(screen)}
+          </SheetStackLayer>
+        );
+      })}
     </View>
   );
 }

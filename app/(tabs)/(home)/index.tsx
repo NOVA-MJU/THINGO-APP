@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Text } from '@/components/ui/text';
 import { useAuth } from '@/context/auth-context';
 import { Link, router, useLocalSearchParams } from 'expo-router';
+import Head from 'expo-router/head';
 import * as React from 'react';
 import { Dimensions, Keyboard, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,6 +22,7 @@ import { useNotificationBadge } from '@/hooks/useNotificationBadge';
 const { width } = Dimensions.get('window');
 const TABS = ['ALL', '학식', '게시판', '공지사항', '학사일정', '명대신문', '명대뉴스'];
 const TAB_PATHS = ['/', '/meal', '/posts', '/notices', '/academic-calendar', '/newspaper', '/news'];
+const HOME_TITLE = '띵고 Thingo - 명지대학교 통합 정보 탐색 플랫폼';
 
 export default function Screen() {
   const { tab } = useLocalSearchParams<{
@@ -66,7 +68,15 @@ export default function Screen() {
 
   // web: 헤더·TabBar는 _layout.tsx 제공, AllScreen만 렌더링
   if (Platform.OS === 'web') {
-    return <AllScreen onNavigate={(index) => router.replace(TAB_PATHS[index] as any)} />;
+    return (
+      <>
+        <Head>
+          <title>{HOME_TITLE}</title>
+          <meta property="og:title" content={HOME_TITLE} />
+        </Head>
+        <AllScreen onNavigate={(index) => router.replace(TAB_PATHS[index] as any)} />
+      </>
+    );
   }
 
   return (

@@ -7,9 +7,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as React from 'react';
 import { ActivityIndicator, ScrollView, TouchableOpacity, View } from 'react-native';
 import { BusIcon, FavoriteIcon } from '@/components/icons/map';
+import { XIcon } from '@/components/icons';
 
 interface Props {
   station: BusStopStation;
+  onClose?: () => void;
 }
 
 const CONGESTION_STYLE: Record<string, { containerClassName: string; textClassName: string }> = {
@@ -35,7 +37,7 @@ function formatSeconds(total: number): string {
   return m === 0 ? `${s}초` : `${m}분 ${s}초`;
 }
 
-export default function BusInfoSheet({ station }: Props) {
+export default function BusInfoSheet({ station, onClose }: Props) {
   const { user } = useAuth();
   const { showLoginRequiredModal } = useLoginRequiredModal();
   const queryClient = useQueryClient();
@@ -99,7 +101,14 @@ export default function BusInfoSheet({ station }: Props) {
       <View className="gap-3.5 px-4">
         {/* 헤더 */}
         <View className="flex-row items-center gap-2">
-          <Text className="text-title03 text-black">{data.stationName}</Text>
+          <Text className="flex-1 text-title03 text-black">{data.stationName}</Text>
+          <TouchableOpacity
+            hitSlop={4}
+            onPress={onClose}
+            className="h-7 w-7 items-center justify-center rounded-full bg-grey-02"
+          >
+            <XIcon size={14} className="text-grey-30" />
+          </TouchableOpacity>
         </View>
 
         {/* 버스 목록 */}

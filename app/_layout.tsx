@@ -9,7 +9,7 @@ import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { useFonts, type FontSource } from 'expo-font';
 import { PortalHost } from '@rn-primitives/portal';
 import Head from 'expo-router/head';
-import { Stack } from 'expo-router';
+import { Stack, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import * as React from 'react';
@@ -37,8 +37,14 @@ export {
   ErrorBoundary,
 } from 'expo-router';
 
+const siteUrl = 'https://thingo.kr';
+const SITE_DESCRIPTION =
+  '명지대학교의 모든 정보를 내 손 안에. 번거로운 탐색은 끝, 필요한 소식을 가장 빠르게 확인해보세요!';
+
 export default function RootLayout() {
   const [queryClient] = React.useState(() => new QueryClient());
+  const pathname = usePathname();
+  const canonicalUrl = `${siteUrl}${pathname === '/' ? '' : pathname}`;
   const [fontsLoaded, fontError] = useFonts(nativeFonts);
   const isReady = Platform.OS === 'web' || fontsLoaded || !!fontError;
 
@@ -70,7 +76,19 @@ export default function RootLayout() {
             <LoginRequiredModalProvider>
               {Platform.OS === 'web' && (
                 <Head>
-                  <title>Thingo</title>
+                  <title>띵고 Thingo</title>
+                  {/* 페이지별 <Head>가 없을 때 쓰이는 기본값 (helmet은 나중에 선언된 쪽이 이김) */}
+                  <meta name="description" content={SITE_DESCRIPTION} />
+                  <meta property="og:title" content="띵고 Thingo" />
+                  <meta property="og:description" content={SITE_DESCRIPTION} />
+                  {/*
+                    웹 정적 export 시 `(tabs)`, `(home)` 같은 그룹 경로 복사본이 함께 생성됨.
+                    usePathname()은 그룹이 제거된 경로를 반환하므로,
+                    복사본들도 모두 이 정규 URL 하나를 가리키게 됨.
+                    og:url도 같은 값을 써야 공유 링크가 홈으로 쏠리지 않음
+                  */}
+                  <link rel="canonical" href={canonicalUrl} />
+                  <meta property="og:url" content={canonicalUrl} />
                 </Head>
               )}
               <StatusBar style="dark" />

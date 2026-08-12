@@ -1,7 +1,8 @@
 import { Text } from '@/components/ui/text';
+import { useRouter } from 'expo-router';
 import * as React from 'react';
 import { Image, ScrollView, TouchableOpacity, View } from 'react-native';
-import { ArrowDownIcon, ArrowRightIcon } from '@/components/icons';
+import { ArrowDownIcon, ArrowRightIcon, XIcon } from '@/components/icons';
 import {
   BankIcon,
   BreakRoomIcon,
@@ -94,9 +95,25 @@ function resolveMapIcon(iconKey: string | null): MapIconComponent {
 }
 
 // 명지대학교 캠퍼스 건물 전용 상세 보기 시트
-export default function BuildingDetailSheet({ building }: { building: MapBuildingDetail }) {
+export default function BuildingDetailSheet({
+  building,
+  onClose,
+}: {
+  building: MapBuildingDetail;
+  onClose?: () => void;
+}) {
+  const router = useRouter();
   const [selectedCategoryCode, setSelectedCategoryCode] = React.useState<string | null>(null);
   const toggleFavorite = useToggleMapFavorite();
+
+  // 층별 시설 리스트의 화살표 클릭 → 해당 건물/층의 층별 안내도 화면으로 이동
+  // (floorLabel이 도면 파일명과 동일한 식별자라 floorId 대신 이 값을 넘긴다 — assets/map-floors 참고)
+  function onFloorPress(floorLabel: string) {
+    router.push({
+      pathname: '/maps/floor',
+      params: { buildingId: String(building.id), floorLabel },
+    });
+  }
 
   const HeaderIcon = resolveMapIcon(building.iconKey);
   const statusLabel = building.operatingStatus ?? '운영 정보가 없습니다';
@@ -117,6 +134,13 @@ export default function BuildingDetailSheet({ building }: { building: MapBuildin
           </View>
           <TouchableOpacity hitSlop={4} onPress={() => toggleFavorite(building.id)}>
             <FavoriteIcon size={28} active={building.favorite} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            hitSlop={4}
+            onPress={onClose}
+            className="h-7 w-7 items-center justify-center rounded-full bg-grey-02"
+          >
+            <XIcon size={14} className="text-grey-30" />
           </TouchableOpacity>
         </View>
         <View className="mt-2.5 gap-0.5 px-4">
@@ -213,7 +237,13 @@ export default function BuildingDetailSheet({ building }: { building: MapBuildin
                 <Text className="flex-1 text-body05 text-black">
                   {places.map((place) => place.name).join(', ')}
                 </Text>
-                <TouchableOpacity hitSlop={8} className="self-center">
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel={`${formatMapFloorLabel(floor.floorLabel)} 층별 안내도 보기`}
+                  hitSlop={8}
+                  className="self-center"
+                  onPress={() => onFloorPress(floor.floorLabel)}
+                >
                   <ArrowRightIcon size={20} className="text-grey-20" />
                 </TouchableOpacity>
               </View>

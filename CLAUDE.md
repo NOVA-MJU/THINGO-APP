@@ -1,5 +1,9 @@
 # THINGO APP
 
+## response language
+
+- Claude는 항상 한글로 답변할 것
+
 ## environment
 
 - Node.js: v20.20.2
@@ -62,6 +66,24 @@ pnpm expo run:android
   - **모바일**: 라우트는 항상 `/` 하나이고 `tab` 쿼리 파라미터로 어느 탭인지 구분 (`app/(tabs)/(home)/index.tsx`가 스와이프 뷰로 렌더링)
   - **웹**: 탭마다 실제 URL이 따로 있음 (`/`, `/meal`, `/posts`, `/notices`, `/academic-calendar`, `/newspaper`, `/news` — `TAB_PATHS` 배열 참고). `/`로 이동해도 `tab` 파라미터는 무시되고 `AllScreen`만 렌더링됨
 - 게시판 목록으로 되돌아가거나 새로고침 신호(`refreshBoards`, `boardCategory`)를 넘길 때, `Platform.OS`로 분기해서 모바일은 `pathname: '/'` + `tab: 'board'`, 웹은 `pathname: '/posts'`(`tab` 파라미터 불필요)로 이동해야 함
+
+## app/ 하위 `_components` (라우트가 아닌 파일)
+
+- Next.js와 달리 **Expo Router에는 private folder 규칙이 없다**. `_` 접두사가 붙어도 `_layout`만 특별 취급되고, `app/` 안의 모든 `.tsx`가 라우트로 등록됨
+- 그래서 `app/**/_components/*.tsx`에는 **`export default`가 반드시 있어야 한다**. 없으면 앱 실행 때마다 `Route "..." is missing the required default export` 경고가 뜸
+- `export default function X()` 형태로 쓰고, import하는 쪽도 default import로 맞출 것 (named export를 겸하면 관례가 섞임)
+- 이 파일들은 죽은 라우트로 등록되어 웹 배포 시 `/_components/all-screen` 같은 URL이 실제로 생성된다. 노출 자체를 막으려면 `components/` 아래로 옮기는 방법뿐 — 새로 만드는 컴포넌트는 가능하면 `app/` 밖에 둘 것
+
+## web seo (메타 태그)
+
+- 웹 전용 메타 태그는 `expo-router/head`의 `<Head>`로 넣는다. 내부적으로 react-helmet이라 **나중에 선언된 쪽이 이김** (하위 페이지가 `_layout.tsx` 기본값을 덮어씀)
+- **`app/+html.tsx`에는 페이지마다 값이 달라지는 태그를 넣지 말 것.** 이 파일의 태그는 helmet이 관리하지 않아서, 페이지가 같은 태그를 `<Head>`로 넣으면 **태그가 두 개 생긴다**
+  - 페이지별로 관리하는 태그: `title`, `description`, `og:title`, `og:description`, `og:url`, `canonical` — 기본값은 `app/_layout.tsx`의 `<Head>`에 있음
+  - `+html.tsx`에 남기는 태그: `og:type`, `og:site_name`, `og:image*`, `twitter:card`, `twitter:image` 등 사이트 공통 값만
+  - `twitter:title`/`twitter:description`은 두지 않음 — 없으면 `og:*`로 대체되므로 페이지별 값이 자동 적용됨
+- 색인 대상 페이지(`public/sitemap.xml`에 등재된 것)를 새로 추가하면 `<Head>`에 `title`, `description`, `og:title`, `og:description`을 함께 넣을 것. 제목·설명 문자열은 파일 상단 상수로 묶어 `<title>`과 `og:*`가 어긋나지 않게 함
+- `Platform.OS === 'web'` 분기는 모바일과 공용인 화면에서만 필요. `app/(tabs)/(home)/meal.tsx`처럼 웹 전용 라우트 파일은 분기 없이 `<Head>`를 써도 됨
+- `public/robots.txt`에서 **`/_expo/`를 차단하면 안 된다** — CSS·JS 번들이 이 경로에 있고, 콘텐츠를 클라이언트에서 그리기 때문에 막으면 크롤러가 빈 페이지를 보게 됨
 
 ## auth (`context/auth-context.tsx`)
 

@@ -1,0 +1,30 @@
+User-agent: *
+Allow: /
+
+# Expo Router 그룹 경로(/(tabs)/profile 등)는 여기서 차단하지 않음.
+# 차단하면 크롤러가 페이지의 canonical 태그를 읽지 못해 중복 정리가 안 됨.
+# app/_layout.tsx의 <link rel="canonical">이 정규 URL로 통합해 줌
+
+# 라우트가 아닌 내부 파일 - app/ 하위에 있어 Expo Router가 자동 등록함
+Disallow: /_components/
+Disallow: /maps/_constants/
+Disallow: /_sitemap
+
+# /_expo/ 는 차단하지 않는다.
+# CSS·JS 번들이 이 경로에 있고, 이 앱은 콘텐츠를 클라이언트에서 그리기 때문에
+# 번들을 막으면 크롤러가 빈 페이지를 보게 된다
+
+# 로그인이 필요하거나 개인화된 페이지
+Disallow: /login
+Disallow: /signup
+Disallow: /forgot-password
+Disallow: /profile
+Disallow: /notifications
+Disallow: /posts/write
+Disallow: /posts/edit/
+
+# 검색 결과 페이지 - 색인 가치가 없고 무한한 조합이 생성됨
+Disallow: /search
+Disallow: /maps/search
+
+Sitemap: https://thingo.kr/sitemap.xml
