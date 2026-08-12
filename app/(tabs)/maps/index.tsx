@@ -14,6 +14,7 @@ import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import Head from 'expo-router/head';
 import * as React from 'react';
 import {
   ActivityIndicator,
@@ -61,6 +62,9 @@ const MAP_CONTROL_SHADOW = {
 
 // base(카테고리) 시트를 가리키는 키. 스택 레이어들과 동일한 index-복원 로직을 타도록 맞춰둔 값
 const BASE_LAYER_KEY = '__base__';
+const PAGE_TITLE = '명지대 캠퍼스 명지도 | 띵고 Thingo';
+const PAGE_DESCRIPTION =
+  '명지대 캠퍼스를 내 손 안에. 강의실 찾아 헤매는 건 끝, 건물과 층별 안내도를 명지도에서 찾아보세요!';
 
 // 카테고리 시트 위에 쌓이는 스택 레이어. 마운트 상태를 유지한 채 index 0으로 접혔다가 복귀하므로
 // (places 목록의) 스크롤 위치·페이지네이션이 자동으로 보존된다.
@@ -584,6 +588,14 @@ export default function MapsScreen() {
 
   return (
     <View style={{ flex: 1 }}>
+      {Platform.OS === 'web' && (
+        <Head>
+          <title>{PAGE_TITLE}</title>
+          <meta name="description" content={PAGE_DESCRIPTION} />
+          <meta property="og:title" content={PAGE_TITLE} />
+          <meta property="og:description" content={PAGE_DESCRIPTION} />
+        </Head>
+      )}
       {/* 네이버 지도 */}
       <NaverMap
         ref={mapRef}
