@@ -82,6 +82,7 @@ export default function ProfileScreen() {
           {/* 나의 활동 */}
           <Text className="mt-4 text-title03 text-grey-80">나의 활동</Text>
           <View className="mt-2 gap-3">
+            {/* TODO: app/(tabs)/profile/maps 라우트가 아직 없어 타입 단언으로 막아둠 */}
             <TouchableOpacity
               className="flex-row items-center gap-4 rounded-xl bg-white px-4 py-6"
               onPress={() => router.push('/profile/maps' as never)}
@@ -116,7 +117,7 @@ export default function ProfileScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               className="flex-row items-center gap-4 rounded-xl bg-white px-4 py-6"
-              onPress={() => router.push('/profile/keyword-alarms' as never)}
+              onPress={() => router.push('/profile/keyword-alarms')}
             >
               <Text className="flex-1 text-body04 text-grey-80">키워드 알림 설정</Text>
               <Text className="text-body04 text-grey-40">{stats?.keywordAlarmCount ?? '-'}개</Text>
@@ -124,7 +125,7 @@ export default function ProfileScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               className="flex-row items-center gap-4 rounded-xl bg-white px-4 py-6"
-              onPress={() => router.push('/profile/blocked-users' as never)}
+              onPress={() => router.push('/profile/blocked-users')}
             >
               <Text className="flex-1 text-body04 text-grey-80">차단한 사용자</Text>
               <Text className="text-body04 text-grey-40">{stats?.blockedUserCount ?? '-'}개</Text>

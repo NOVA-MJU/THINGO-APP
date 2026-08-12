@@ -1,5 +1,6 @@
 import type { MapSearchItem } from '@/api/maps';
 import { FavoriteIcon } from '@/components/icons/map';
+import { XIcon } from '@/components/icons';
 import { Text } from '@/components/ui/text';
 import { useToggleMapFavorite } from '@/hooks/useToggleMapFavorite';
 import { formatMapDistance, getOperatingStatusClassName } from '@/lib/maps/format';
@@ -10,9 +11,10 @@ import { Image, TouchableOpacity, View } from 'react-native';
 
 interface MapSearchSummaryProps {
   item: MapSearchItem;
+  onClose?: () => void;
 }
 
-export default function MapSearchSummary({ item }: MapSearchSummaryProps) {
+export default function MapSearchSummary({ item, onClose }: MapSearchSummaryProps) {
   const Icon = getMapIcon(item.iconKey, item.categoryCode);
   const secondaryText = item.classroomCode || item.location;
   const toggleFavorite = useToggleMapFavorite();
@@ -42,6 +44,13 @@ export default function MapSearchSummary({ item }: MapSearchSummaryProps) {
           onPress={() => toggleFavorite(item.id, { onToggled: setFavorite })}
         >
           <FavoriteIcon size={28} active={favorite} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          hitSlop={4}
+          onPress={onClose}
+          className="h-7 w-7 items-center justify-center rounded-full bg-grey-02"
+        >
+          <XIcon size={14} className="text-grey-30" />
         </TouchableOpacity>
       </View>
 

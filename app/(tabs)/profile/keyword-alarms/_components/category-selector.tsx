@@ -19,7 +19,7 @@ type CategorySelectorProps = {
   variant?: 'default' | 'sheet';
 };
 
-export function CategorySelector({
+export default function CategorySelector({
   value,
   onChange,
   onReset,

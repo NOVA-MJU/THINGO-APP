@@ -43,32 +43,25 @@
 
 ## 바텀시트 동작 방식 (`app/(tabs)/maps/index.tsx`)
 
-`@gorhom/bottom-sheet`의 `BottomSheet`를 `SNAP_POINTS = ['10%', '50%', '100%']`(인덱스 0/1/2)로 사용한다. **어떤 콘텐츠를 보여줄지(state)와 시트를 얼마나 펼칠지(snap index)는 서로 다른 메커니즘으로 제어된다.**
+`@gorhom/bottom-sheet`를 **base 시트 1개 + 스택 레이어 N개**로 구성한다. base는 category(기본 화면)/bus/검색 요약처럼 서로 배타적인 화면을 콘텐츠 교체 방식으로 보여주고, places 목록 → building/place 상세로 이어지는 드릴다운은 각 화면을 실제 별도의 `BottomSheet` 인스턴스(스택 레이어)로 쌓아 올린다. `BottomSheetModal`은 쓰지 않는다 — `@gorhom/portal`로 앱 루트에 렌더링되기 때문에 `(tabs)` 하단 네비게이션 바까지 덮어버린다 (포털을 안 쓰는 일반 `BottomSheet`는 탭 화면 콘텐츠 영역 안에 그대로 자식으로 렌더링되므로 이 문제가 없다).
 
-### 콘텐츠 결정 상태
+### base 시트 (`bottomSheetRef`)
 
-- `selectedSheetMode`: `'category' | 'bus' | 'building' | 'place' | 'places'`
-- `selectedBuildingId` / `selectedPlaceId` / `selectedCategoryCode` / `selectedStation`: 각 모드에 필요한 식별자. 동시에 해당 상세/목록 `useQuery`의 `enabled` 트리거 역할도 함
-- `selectedSearchResult`(`useMapSearchSelection` 컨텍스트): 검색 결과 선택 상태로, `renderBottomSheetContent`에서 **다른 모든 모드보다 우선** 확인됨
+- `selectedSheetMode`: `'category' | 'bus'`만 담당. `selectedSearchResult`(컨텍스트)가 있으면 `renderBaseSheetContent`에서 모드보다 우선 표시됨
+- `selectedStation`: bus 모드에 필요한 식별자
+- 항상 마운트돼 있고, 스택 레이어가 하나라도 떠 있으면 완전히 숨겨짐(`close()`)
 
-`renderBottomSheetContent`의 우선순위: `selectedSearchResult` → `bus` → `building`(상세 로드 완료 시) → `place`(상세 로드 완료 시) → `places` → 기본값 `CategoryList`.
+### 스택 레이어 (`sheetStack` + `_components/sheet-stack-layer.tsx`)
 
-### 건물/장소 상세: 2단계 전환 패턴
-
-마커를 누르는 즉시 모드를 바꾸지 않는다. 이렇게 나뉘어 있다:
-
-1. `onBuildingMarkerPress` / `selectCategoryPin`은 `selectedBuildingId`(또는 `selectedPlaceId`)만 세팅하고 카메라만 이동시킨다. `selectedSheetMode`는 그대로 둬서, 상세 쿼리가 로딩되는 동안 시트에는 기존 콘텐츠가 계속 보인다 (빈 화면 깜빡임 방지).
-2. 상세 쿼리(`selectedBuildingDetail`/`selectedPlaceDetail`)가 로드 완료되면 별도 `useEffect`가 그제서야 `selectedSheetMode`를 `'building'`/`'place'`로 바꾼다.
-3. 또 다른 `useEffect`가 `[selectedSheetMode, 상세데이터, 식별자, bottomSheetIndex]`를 지켜보다가, 시트가 접혀 있었으면(`bottomSheetIndex === 0`) `snapToIndex(1)`로 펼친다. 콘텐츠가 이미 렌더링된 뒤에 펼치는 순서이므로 빈 시트가 펼쳐지는 깜빡임이 없다.
-
-새로운 상세 모드를 추가할 때는 이 3단계(식별자 세팅 → 로드 완료 시 모드 전환 → 모드 전환 후 펼침)를 그대로 따라야 깜빡임 없이 동작한다.
-
-**주의**: 3번 effect는 `bottomSheetIndex`를 의존성으로 갖기 때문에, 가드 없이 `if (bottomSheetIndex !== 0) return;`만 두면 상세 진입 직후뿐 아니라 **사용자가 나중에 손으로 시트를 10%까지 내릴 때도** `bottomSheetIndex`가 0으로 바뀌면서 effect가 재실행되어 시트가 도로 펼쳐지는 버그가 생긴다 (드래그로 접으면 잠시 후 다시 튀어오르는 현상). 그래서 `autoExpandedBuildingIdRef`/`autoExpandedPlaceIdRef`로 "이 식별자에 대해 이미 한 번 펼쳤는지"를 추적해, 같은 선택에 대해서는 `bottomSheetIndex`가 아무리 바뀌어도 다시 펼치지 않도록 막아둔다. 새로운 상세 모드를 추가할 때도 동일하게 식별자 기준 ref 가드를 넣어야 한다.
-
-### 즉시 스냅하는 경우
-
-비동기 상세 조회가 없거나(버스 정류장) 이미 로드된 데이터를 쓰는 경우(칩 클릭, 검색 결과 선택, "더보기")는 핸들러 안에서 바로 `bottomSheetRef.current?.snapToIndex(1)`을 호출한다.
+- `sheetStack: SheetScreen[]` — `{ kind: 'places' | 'building' | 'place', ...식별자, key, initialIndex }`. places → building/place 드릴다운만 이 스택을 탄다 (bus/검색은 base에서 처리, 서로 배타적이라 스택 진입 시 항상 `resetStack()`으로 비움)
+- `selectedCategoryCode`/`selectedBuildingId`/`selectedPlaceId`는 더 이상 독립 state가 아니라 `sheetStack`에서 해당 kind를 찾아 파생시킨 값이다(`useMemo`). 상세/목록 `useQuery`는 이 파생값을 그대로 쓰므로 기존과 동일하게 동작한다. **현재 UI 흐름상 스택에 동시에 존재하는 places/building/place는 각 kind당 최대 1개**라 `.find()`로 충분하다 — 같은 kind를 여러 겹 쌓는 흐름이 생기면 레이어별로 쿼리를 분리해야 한다.
+- `pushSheet(screen, initialIndex?)`: 지금 맨 위에 있는 레이어(또는 base)를 **애니메이션 없이**(`close({ duration: 0 })`) 즉시 완전히 숨기고, 새 레이어를 스택에 추가한다. `snapToIndex(0)`이 아니라 `close()`를 쓰는 이유는 `snapToIndex(0)`은 snapPoints의 첫 값(`'10%'`)으로 이동할 뿐이라 완전히 안 가려지기 때문. 새 레이어는 `index` prop으로 마운트되며 `animateOnMount` 기본 동작으로 아래에서 슬라이드 올라온다. 언마운트 없이 숨기기만 하므로 **가려진 레이어의 스크롤 위치·페이지네이션(`useInfiniteQuery`)이 그대로 보존**된다.
+- `popSheet()`: 맨 위 레이어에 `.close({ duration: 0 })`를 호출해 애니메이션 없이 즉시 닫는다. `onClose` 콜백(`handleLayerClosed`)에서 실제로 스택 배열에서 제거하고, 그 아래 있던 레이어를 `push` 시점에 기록해둔 index로 즉시 복원한다.
+- **주의**: `close()`는 index가 -1에 도달하면 항상 `onClose`를 발생시키는데(`node_modules/@gorhom/bottom-sheet/src/components/bottomSheet/BottomSheet.tsx`의 `animateToPositionCompleted`), `pushSheet`가 아래 레이어를 가리려고 호출하는 `close()`도 똑같이 `onClose`를 발생시킨다. 이게 실제 pop과 구분 없이 `handleLayerClosed`를 타면 "덮여서 숨겨진 것"이 스택에서 제거돼버리므로, `suppressCloseRef`에 "덮여서 닫힌" 키를 표시해두고 `handleLayerClosed`가 그 키를 보면 무시하도록 한다.
+- `resetStack()`: 스택을 통째로 즉시 언마운트(애니메이션 없음, `close()`도 호출하지 않으므로 `onClose`/`suppressCloseRef`와 무관). bus/칩 재선택처럼 완전히 다른 컨텍스트로 전환할 때 사용.
+- `BuildingDetailSheet`/`PlaceDetailSheet`/`PlaceListSheet`/`DaedongPlaceListSheet`의 닫기(X) 버튼은 전부 `onClose={popSheet}`로 연결돼 있다 — "한 단계 뒤로"와 "닫기"가 스택 모델에서는 같은 동작이라 별도 back 버튼이 필요 없다 (places 목록에서 들어온 상세는 popSheet 시 목록으로, 지도에서 바로 들어온 상세는 popSheet 시 category로 돌아감 — 스택 깊이가 자동으로 그 차이를 반영함).
+- `selectCategoryPin`(장소/건물 마커 클릭·목록 항목 클릭 공용)은 항상 `pushSheet`만 호출한다 — 이미 상세가 열려 있는 상태에서 다른 핀을 클릭하면 그 위에 새 레이어가 또 쌓인다(뒤로가기 시 이전에 보던 핀으로 돌아감).
 
 ### 딥링크 진입
 
-`useLocalSearchParams`로 받은 `placeId`/`expanded` 쿼리 파라미터로 화면에 진입한 경우, 상세 로드를 기다리는 2단계 패턴을 타지 않고 `expanded === 'true'`면 인덱스 2(전체), 아니면 1(절반)로 즉시 스냅한다 (TanStack Query 캐시로 상세 데이터가 이미 있을 수 있어서 기다릴 필요가 없음).
+`placeId`/`expanded` 쿼리 파라미터로 진입한 경우 `pushSheet({ kind: 'place', placeId }, expanded === 'true' ? 2 : 1)`로 바로 push한다. 상세 쿼리가 아직 로딩 중이면 레이어 안에서 스피너를 보여주고(`renderStackScreenContent`), 로드되면 자동으로 콘텐츠가 바뀐다 — 예전처럼 "쿼리 완료를 기다렸다가 모드 전환" 하는 별도 처리가 필요 없다(레이어가 이미 push된 상태라 로딩 중에도 자리 자체는 바로 보이기 때문).

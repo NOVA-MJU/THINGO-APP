@@ -29,3 +29,5 @@ export { default as RadioIcon } from './radio';
 export { default as MoreVerticalIcon } from './more-vertical';
 export { default as NotificationIcon } from './notification';
 export { default as SettingsIcon } from './settings';
+export { default as PlusIcon } from './plus';
+export { default as FilterIcon } from './filter';

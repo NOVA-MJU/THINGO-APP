@@ -19,7 +19,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CategorySelector } from './category-selector';
+import CategorySelector from './category-selector';
 
 type KeywordEditModalProps = {
   alarm: KeywordAlarm | null;
@@ -46,7 +46,7 @@ function KeywordGuideIcon({ invalid }: { invalid: boolean }) {
   );
 }
 
-export function KeywordEditModal({
+export default function KeywordEditModal({
   alarm,
   saving,
   deleting,

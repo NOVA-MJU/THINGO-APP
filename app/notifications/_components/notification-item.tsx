@@ -8,7 +8,7 @@ type NotificationItemProps = {
   onPress: () => void;
 };
 
-export function NotificationItem({ item, onPress }: NotificationItemProps) {
+export default function NotificationItem({ item, onPress }: NotificationItemProps) {
   return (
     <Pressable
       accessibilityRole="button"
