@@ -18,7 +18,7 @@ export function AppHeader({ title, right }: AppHeaderProps) {
         onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
         hitSlop={8}
       >
-        <ArrowLeftIcon size={24} className="text-black" />
+        <ArrowLeftIcon size={24} className="text-grey-40" />
       </TouchableOpacity>
       <Text className="flex-1 text-center text-body02 text-black">{title}</Text>
       {/* 오른쪽 여백 — 왼쪽 버튼 너비(24+2padding)와 대칭. right가 주어지면 대신 렌더링 */}

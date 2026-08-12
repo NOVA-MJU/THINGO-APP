@@ -14,7 +14,8 @@ import * as React from 'react';
 import { FlatList, Linking, Platform, RefreshControl, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NotificationItem } from './_components/notification-item';
-import { NotificationIcon, SettingsIcon } from '@/components/icons';
+import { FilterIcon, NotificationIcon, PlusIcon } from '@/components/icons';
+import { Button } from '@/components/ui/button';
 
 const NOTIFICATIONS_QUERY_KEY = ['notifications'] as const;
 
@@ -98,10 +99,10 @@ export default function NotificationsScreen() {
             <TouchableOpacity
               accessibilityRole="button"
               accessibilityLabel="알림 설정"
-              onPress={() => router.push('/notifications/keyword-alarms' as never)}
+              onPress={() => router.push('/notifications/keyword-alarms')}
               hitSlop={8}
             >
-              <SettingsIcon className="text-grey-30" />
+              <FilterIcon size={24} className="text-grey-30" />
             </TouchableOpacity>
           }
         />
@@ -147,6 +148,13 @@ export default function NotificationsScreen() {
           <View className="flex-1 items-center justify-center gap-3">
             <NotificationIcon className="text-grey-10" size={36} />
             <Text className="text-body03 text-grey-30">새로운 알림이 없어요</Text>
+            <Button
+              className="flex-row items-center gap-1 rounded-xl pe-[16px] ps-[14px]"
+              onPress={() => router.push('/notifications/keyword-alarms')}
+            >
+              <PlusIcon size={16} className="text-white" />
+              <Text className="text-body04">키워드 추가하기</Text>
+            </Button>
           </View>
         }
         /**
