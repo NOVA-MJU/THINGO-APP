@@ -39,13 +39,10 @@ import CATEGORIES from './_constants/category-data';
 import { CurrentLocationIcon, MoreIcon, ResetIcon, StarIcon } from '@/components/icons/map';
 import { useMapSearchSelection } from '@/context/map-search-selection';
 import { showAlert } from '@/lib/alert';
+import { CAMPUS_LATITUDE, CAMPUS_LONGITUDE, CAMPUS_ZOOM } from '@/lib/maps/campus';
 import { getMapIconKey } from '@/lib/maps/icons';
 
 const QUICK_CHIP_IDS = ['bus', 'daedong', 'printer', 'lounge', 'bank'];
-
-const CAMPUS_LATITUDE = 37.579711;
-const CAMPUS_LONGITUDE = 126.923186;
-const CAMPUS_ZOOM = 16;
 
 const QUICK_CHIPS = CATEGORIES.flatMap((c) =>
   c.chips.map((chip) => ({ ...chip, iconClassName: c.iconClassName }))
