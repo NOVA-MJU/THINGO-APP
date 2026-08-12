@@ -12,7 +12,7 @@ type KeywordItemProps = {
   onToggleEnabled: () => void;
 };
 
-export function KeywordItem({
+export default function KeywordItem({
   alarm,
   disabled = false,
   onEdit,

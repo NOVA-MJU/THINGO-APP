@@ -13,7 +13,7 @@ import { Redirect, useRouter } from 'expo-router';
 import * as React from 'react';
 import { FlatList, Linking, Platform, RefreshControl, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { NotificationItem } from './_components/notification-item';
+import NotificationItem from './_components/notification-item';
 import { FilterIcon, NotificationIcon, PlusIcon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 

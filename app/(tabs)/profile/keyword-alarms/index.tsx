@@ -31,9 +31,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { CategorySelector } from './_components/category-selector';
-import { KeywordEditModal } from './_components/keyword-edit-modal';
-import { KeywordItem } from './_components/keyword-item';
+import CategorySelector from './_components/category-selector';
+import KeywordEditModal from './_components/keyword-edit-modal';
+import KeywordItem from './_components/keyword-item';
 
 const KEYWORD_ALARMS_QUERY_KEY = ['keyword-alarms'] as const;
 const RECOMMENDED_KEYWORDS_QUERY_KEY = ['keyword-alarms', 'recommended'] as const;
