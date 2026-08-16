@@ -396,6 +396,11 @@ export default function MapsScreen() {
     router.push('/maps/search');
   }
 
+  // 즐겨찾기 버튼 클릭
+  function onFavoritesButtonPress() {
+    router.push('/maps/favorites');
+  }
+
   // 칩 클릭 동작 정의
   function onQuickChipPress(chipId: string) {
     // 버스 정류장 칩 클릭
@@ -646,7 +651,11 @@ export default function MapsScreen() {
                 boxShadow: '0px 2px 6px rgba(23,23,27,0.15), 0px 1px 4px rgba(23,23,27,0.15)',
               }}
             >
-              <TouchableOpacity className="items-center gap-[1px] px-1.5 py-[2.5px]" hitSlop={4}>
+              <TouchableOpacity
+                className="items-center gap-[1px] px-1.5 py-[2.5px]"
+                hitSlop={4}
+                onPress={onFavoritesButtonPress}
+              >
                 <StarIcon size={24} className="text-blue-05" />
                 <Text className="text-caption05 text-blue-05" style={{ fontSize: 9 }}>
                   즐겨찾기
