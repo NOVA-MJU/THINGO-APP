@@ -1,9 +1,13 @@
 import { AppHeader } from '@/components/app-header';
 import { ArrowDownIcon, MoreVerticalIcon, PlusIcon } from '@/components/icons';
 import { FavoriteBadgeIcon, PinIcon } from '@/components/icons/map';
+import GroupEditSheet from '@/app/(tabs)/maps/favorites/_components/group-edit-sheet';
 import { Text } from '@/components/ui/text';
+import { useAuth } from '@/context/auth-context';
+import { useLoginRequiredModal } from '@/context/login-required-modal-context';
 import { showAlert } from '@/lib/alert';
 import { cn } from '@/lib/utils';
+import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
 import type { GestureResponderEvent } from 'react-native';
@@ -49,11 +53,15 @@ const DUMMY_FAVORITE_GROUPS: FavoriteGroup[] = [
 export default function MapsFavoritesScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
+  const { showLoginRequiredModal } = useLoginRequiredModal();
   const [isSortMenuOpen, setSortMenuOpen] = React.useState(false);
   const [sortOption, setSortOption] = React.useState<SortOption>('최신순');
   // 케밥 메뉴가 열려있는 그룹 id와, 눌린 위치(pageY) — 메뉴를 그 아래에 띄우는 데 사용
   const [openGroupMenuId, setOpenGroupMenuId] = React.useState<string | null>(null);
   const [groupMenuAnchorY, setGroupMenuAnchorY] = React.useState(0);
+  // "새 그룹 추가" 바텀시트
+  const newGroupSheetRef = React.useRef<BottomSheetModal>(null);
 
   // TODO: 실제 즐겨찾기 그룹 API 연동 전까지 더미 데이터 사용
   const favoriteGroups = DUMMY_FAVORITE_GROUPS;
@@ -63,7 +71,13 @@ export default function MapsFavoritesScreen() {
   );
 
   function onNewGroupPress() {
-    showAlert('안내', '준비 중인 기능입니다.');
+    if (!user) {
+      showLoginRequiredModal();
+      return;
+    }
+    setSortMenuOpen(false);
+    setOpenGroupMenuId(null);
+    newGroupSheetRef.current?.present();
   }
 
   // 그룹 아이템 클릭 — 해당 그룹의 즐겨찾기 장소 목록 페이지로 이동
@@ -255,6 +269,9 @@ export default function MapsFavoritesScreen() {
         <PlusIcon size={14} className="text-blue-35" />
         <Text className="text-body04 text-blue-35">새 그룹 추가</Text>
       </TouchableOpacity>
+
+      {/* 새 그룹 추가 바텀시트 */}
+      <GroupEditSheet sheetRef={newGroupSheetRef} />
     </View>
   );
 }

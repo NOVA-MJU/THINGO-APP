@@ -37,10 +37,10 @@ import PlaceListSheet from './_components/sheets/sheet-place-list';
 import SheetHandle from './_components/sheets/sheet-handle';
 import SheetStackLayer from './_components/sheet-stack-layer';
 import CATEGORIES from './_constants/category-data';
-import { CurrentLocationIcon, MoreIcon, ResetIcon, StarIcon } from '@/components/icons/map';
+import { CurrentLocationIcon, MoreIcon, StarIcon } from '@/components/icons/map';
 import { useMapSearchSelection } from '@/context/map-search-selection';
 import { showAlert } from '@/lib/alert';
-import { CAMPUS_LATITUDE, CAMPUS_LONGITUDE, CAMPUS_ZOOM } from '@/lib/maps/campus';
+import { CAMPUS_LATITUDE, CAMPUS_LONGITUDE } from '@/lib/maps/campus';
 import { getMapIconKey } from '@/lib/maps/icons';
 
 const QUICK_CHIP_IDS = ['bus', 'daedong', 'printer', 'lounge', 'bank'];
@@ -508,15 +508,6 @@ export default function MapsScreen() {
     }
   }
 
-  function onResetMapPress() {
-    clearSearchResult();
-    resetStack();
-    setSelectedStation(null);
-    setSelectedSheetMode('category');
-    mapRef.current?.animateCameraTo(CAMPUS_LATITUDE, CAMPUS_LONGITUDE, CAMPUS_ZOOM);
-    bottomSheetRef.current?.snapToIndex(0);
-  }
-
   // 더보기 버튼 클릭 (카테고리 시트 표시)
   function handleMoreCategories() {
     clearSearchResult();
@@ -726,15 +717,6 @@ export default function MapsScreen() {
           style={MAP_CONTROL_SHADOW}
         >
           <CurrentLocationIcon size={28} className="text-blue-35" />
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="지도 보기 초기화"
-          onPress={onResetMapPress}
-          className="h-10 w-10 items-center justify-center rounded-full bg-white active:bg-grey-02 active:opacity-80"
-          style={MAP_CONTROL_SHADOW}
-        >
-          <ResetIcon size={22} className="text-grey-40" />
         </Pressable>
       </View>
 

@@ -1,28 +1,21 @@
-# THINGO APP
+- 에이전트 룰 작성해달라는 요청을 받을 경우 하이픈을 넣고 1~2줄로 룰 작성. 특수문자나 markdown 문법은 최소화 할 것.
 
-## response language
+- 한글로 답변 생성해주세요.
 
-- Claude는 항상 한글로 답변할 것
+- node 버전 - 20.20.2
 
-## environment
+- 패키지 매니저 - pnpm (npm, yarn 절대 사용금지)
 
-- Node.js: v20.20.2
-- 패키지 매니저: **pnpm** (npm, yarn 사용 금지)
+- android, ios, web 모두 호환 가능하도록 구현해주세요.
 
-## target
-
-- android, ios, web 모두 동작 가능해야한다.
-
-## installation
-
-패키지 설치 명령어는 직접 실행하지 말고 사용자가 실행할 수 있도록 출력:
+- 패키지 설치 명령어는 절대 스스로 실행하지 말고 대신 사용자가 직접 실행할 수 있도록 명령어를 출력해주세요.
 
 ```
 pnpm add <package>
 pnpm expo install <package>
 ```
 
-네이티브 모듈 추가 후 prebuild 필요한 경우 사용자에게 지시:
+- 네이티브 모듈 추가 후 prebuild 필요한 경우 사용자에게 알려주세요.
 
 ```
 pnpm expo prebuild
@@ -72,7 +65,6 @@ pnpm expo run:android
 - Next.js와 달리 **Expo Router에는 private folder 규칙이 없다**. `_` 접두사가 붙어도 `_layout`만 특별 취급되고, `app/` 안의 모든 `.tsx`가 라우트로 등록됨
 - 그래서 `app/**/_components/*.tsx`에는 **`export default`가 반드시 있어야 한다**. 없으면 앱 실행 때마다 `Route "..." is missing the required default export` 경고가 뜸
 - `export default function X()` 형태로 쓰고, import하는 쪽도 default import로 맞출 것 (named export를 겸하면 관례가 섞임)
-- 이 파일들은 죽은 라우트로 등록되어 웹 배포 시 `/_components/all-screen` 같은 URL이 실제로 생성된다. 노출 자체를 막으려면 `components/` 아래로 옮기는 방법뿐 — 새로 만드는 컴포넌트는 가능하면 `app/` 밖에 둘 것
 
 ## web seo (메타 태그)
 

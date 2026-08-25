@@ -1,4 +1,4 @@
-import { toggleMapFavorite } from '@/api/maps';
+import { toggleMapFavorite } from '@/api/maps-favorites';
 import { useAuth } from '@/context/auth-context';
 import { useLoginRequiredModal } from '@/context/login-required-modal-context';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
