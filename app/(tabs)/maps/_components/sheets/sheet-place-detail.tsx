@@ -30,10 +30,13 @@ export default function PlaceDetailSheet({
   const [reviews, setReviews] = React.useState<PlaceReview[]>([]);
   const [reviewMediaItems, setReviewMediaItems] = React.useState<PlaceReviewMediaStripItem[]>([]);
 
-  const loadReviews = React.useCallback(async (sort: PlaceReviewSort = 'latest') => {
-    const nextReviews = await getPlaceReviews(place.id, { sort });
-    setReviews(nextReviews);
-  }, [place.id]);
+  const loadReviews = React.useCallback(
+    async (sort: PlaceReviewSort = 'latest') => {
+      const nextReviews = await getPlaceReviews(place.id, { sort });
+      setReviews(nextReviews);
+    },
+    [place.id]
+  );
 
   const loadReviewMediaItems = React.useCallback(async () => {
     const nextMediaItems = await getPlaceReviewMediaStrip(place.id);
@@ -111,7 +114,9 @@ export default function PlaceDetailSheet({
           reviewMediaItems={reviewMediaItems}
           onReviewsChange={setReviews}
           onReviewDeleted={(reviewId) => {
-            setReviewMediaItems((previous) => previous.filter((item) => item.reviewId !== reviewId));
+            setReviewMediaItems((previous) =>
+              previous.filter((item) => item.reviewId !== reviewId)
+            );
           }}
           onSortChange={(sort) => void loadReviews(sort)}
           onWriteReview={() =>

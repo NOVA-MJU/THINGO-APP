@@ -326,11 +326,7 @@ export default function MapsScreen() {
     const searchResult = selectedSearchResult;
     resetStack();
     setSelectedSheetMode('category');
-    mapRef.current?.animateCameraTo(
-      searchResult.latitude,
-      searchResult.longitude,
-      17
-    );
+    mapRef.current?.animateCameraTo(searchResult.latitude, searchResult.longitude, 17);
 
     if (searchResult.type === 'BUILDING') {
       pushSheet({ kind: 'building', buildingId: searchResult.id });

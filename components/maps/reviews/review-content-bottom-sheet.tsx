@@ -3,7 +3,15 @@ import { Text } from '@/components/ui/text';
 import { getPlaceReviewKeyword, type PlaceReview } from '@/lib/maps/place-reviews';
 import { format, parseISO } from 'date-fns';
 import * as React from 'react';
-import { Animated, Image, PanResponder, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  Animated,
+  Image,
+  PanResponder,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const KOREAN_WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];

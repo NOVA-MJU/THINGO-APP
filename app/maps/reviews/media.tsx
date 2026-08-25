@@ -66,15 +66,14 @@ export default function PlaceReviewMediaScreen() {
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const { user } = useAuth();
-  const { imageUrl, reviewId, placeName, placeId, mediaIndex, mediaSource } =
-    useLocalSearchParams<{
-      imageUrl?: string | string[];
-      reviewId?: string | string[];
-      placeName?: string | string[];
-      placeId?: string | string[];
-      mediaIndex?: string | string[];
-      mediaSource?: string | string[];
-    }>();
+  const { imageUrl, reviewId, placeName, placeId, mediaIndex, mediaSource } = useLocalSearchParams<{
+    imageUrl?: string | string[];
+    reviewId?: string | string[];
+    placeName?: string | string[];
+    placeId?: string | string[];
+    mediaIndex?: string | string[];
+    mediaSource?: string | string[];
+  }>();
   const resolvedImageUrl = Array.isArray(imageUrl) ? imageUrl[0] : imageUrl;
   const resolvedReviewId = Array.isArray(reviewId) ? reviewId[0] : reviewId;
   const resolvedPlaceName = Array.isArray(placeName) ? placeName[0] : placeName;
@@ -142,7 +141,14 @@ export default function PlaceReviewMediaScreen() {
           },
         ]
       : [];
-  }, [isPlaceMediaSource, placeMediaItems, resolvedImageUrl, resolvedReviewId, review, reviewDetailsById]);
+  }, [
+    isPlaceMediaSource,
+    placeMediaItems,
+    resolvedImageUrl,
+    resolvedReviewId,
+    review,
+    reviewDetailsById,
+  ]);
 
   const mediaItems = React.useMemo(
     () => mediaEntries.map((entry) => entry.mediaItem),
@@ -161,8 +167,8 @@ export default function PlaceReviewMediaScreen() {
     contentSheetVisible || mediaOrientation === 'landscape' ? 'contain' : 'cover';
   const shouldShowReviewGradient = Boolean(
     activeReview &&
-      !contentSheetVisible &&
-      shouldRenderReviewGradient(activeMediaItem, mediaOrientation)
+    !contentSheetVisible &&
+    shouldRenderReviewGradient(activeMediaItem, mediaOrientation)
   );
   const isStoryPlaybackPaused = isStoryPaused || isZooming || isMediaZoomed;
   const canAdvanceMedia = activeIndex < mediaItems.length - 1;

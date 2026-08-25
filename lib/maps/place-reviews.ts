@@ -241,7 +241,11 @@ export async function getPlaceReviews(
 
 export async function getPlaceReviewPage(
   placeId: number,
-  { sort = 'latest', cursor, size = DEFAULT_REVIEW_PAGE_SIZE }: {
+  {
+    sort = 'latest',
+    cursor,
+    size = DEFAULT_REVIEW_PAGE_SIZE,
+  }: {
     sort?: PlaceReviewSort;
     cursor?: string | null;
     size?: number;
@@ -327,7 +331,9 @@ export async function getPlaceReviewMediaStrip(
     .filter(isNonNullable);
 }
 
-export async function getPlaceReviewKeywordCatalog(placeId?: number): Promise<PlaceReviewKeyword[]> {
+export async function getPlaceReviewKeywordCatalog(
+  placeId?: number
+): Promise<PlaceReviewKeyword[]> {
   const { data } = await client.get<ApiSuccess<BackendKeywordCatalog>>('/reviews/keywords', {
     params: Number.isFinite(placeId) ? { pinId: placeId } : undefined,
   });
@@ -406,7 +412,9 @@ function normalizeKeyword(
   };
 }
 
-function toLocalKeywordGroup(group?: BackendKeywordGroup | string | null): PlaceReviewKeywordGroup | null {
+function toLocalKeywordGroup(
+  group?: BackendKeywordGroup | string | null
+): PlaceReviewKeywordGroup | null {
   switch (group) {
     case 'FOOD_PRICE':
       return 'food';

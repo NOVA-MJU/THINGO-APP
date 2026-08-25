@@ -8,10 +8,7 @@ type ReviewVideoThumbnailProps = {
   label?: string;
 };
 
-export function ReviewVideoThumbnail({
-  thumbnailUrl,
-  label = '영상',
-}: ReviewVideoThumbnailProps) {
+export function ReviewVideoThumbnail({ thumbnailUrl, label = '영상' }: ReviewVideoThumbnailProps) {
   return (
     <View className="h-full w-full overflow-hidden bg-[#111217]">
       {thumbnailUrl ? (

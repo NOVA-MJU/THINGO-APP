@@ -142,8 +142,9 @@ export default function PlaceCommunitySection({
   const [isDeletingReview, setIsDeletingReview] = React.useState(false);
   const [isReportSubmitting, setIsReportSubmitting] = React.useState(false);
   const [isBlockingReviewAuthor, setIsBlockingReviewAuthor] = React.useState(false);
-  const [selectedReportReasonId, setSelectedReportReasonId] =
-    React.useState<ReportReason | null>(null);
+  const [selectedReportReasonId, setSelectedReportReasonId] = React.useState<ReportReason | null>(
+    null
+  );
   const [reportEtcText, setReportEtcText] = React.useState('');
   const [selfLikeDialogOpen, setSelfLikeDialogOpen] = React.useState(false);
   const selectedSortLabel =
@@ -225,12 +226,7 @@ export default function PlaceCommunitySection({
         ? reportEtcText.trim().length > 0
         : selectedReportReasonId !== null;
 
-    if (
-      !reportTargetReview ||
-      !selectedReportReasonId ||
-      !canSubmitReport ||
-      isReportSubmitting
-    ) {
+    if (!reportTargetReview || !selectedReportReasonId || !canSubmitReport || isReportSubmitting) {
       return;
     }
 
@@ -449,7 +445,10 @@ export default function PlaceCommunitySection({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!blockTargetReview} onOpenChange={(open) => !open && setBlockTargetReview(null)}>
+      <Dialog
+        open={!!blockTargetReview}
+        onOpenChange={(open) => !open && setBlockTargetReview(null)}
+      >
         <DialogContent showCloseButton={false} className="min-w-80 p-5">
           <View className="gap-4">
             <View>
