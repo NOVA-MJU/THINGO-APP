@@ -3,6 +3,7 @@ import { getAccessToken } from './token';
 
 export const DOMAIN_VALUES = [
   'COMMUNITY_POST',
+  'REVIEW_MEDIA',
   'PROFILE_IMAGE',
   'DEPARTMENT_LOGO',
   'DEPARTMENT_SCHEDULE',
@@ -18,21 +19,40 @@ type UploadResponse = {
   message?: string;
 };
 
+type UploadFileInput = {
+  uri: string;
+  domain: UploadDomain;
+  uuid?: string;
+  fileName?: string | null;
+  mimeType?: string | null;
+  file?: File | Blob | null;
+};
+
 const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL!;
 const UPLOAD_PATH = '/s3/upload';
+const UPLOAD_TIMEOUT_MS = 120_000;
+const GENERIC_UPLOAD_ERROR_MESSAGE = '업로드에 실패했습니다. 잠시 후 다시 시도해주세요.';
 
 export async function uploadImage(
   uri: string,
   domain: UploadDomain,
   uuid?: string
 ): Promise<string> {
-  const formData = await createUploadFormData(uri, domain, uuid);
-  const response = await fetch(`${BASE_URL}${UPLOAD_PATH}`, {
-    method: 'POST',
-    body: formData,
-    credentials: 'include',
-    headers: await createUploadHeaders(),
-  });
+  return uploadFile({ uri, domain, uuid });
+}
+
+export async function uploadFile(input: UploadFileInput): Promise<string> {
+  const formData = await createUploadFormData(input);
+  const response = await fetchWithTimeout(
+    `${BASE_URL}${UPLOAD_PATH}`,
+    {
+      method: 'POST',
+      body: formData,
+      credentials: 'include',
+      headers: await createUploadHeaders(),
+    },
+    UPLOAD_TIMEOUT_MS
+  );
 
   const responseText = await response.text();
 
@@ -43,18 +63,38 @@ export async function uploadImage(
   return parseUploadResponse(responseText).data;
 }
 
-async function createUploadFormData(uri: string, domain: UploadDomain, uuid?: string) {
+async function createUploadFormData({
+  uri,
+  domain,
+  uuid,
+  fileName,
+  mimeType,
+  file,
+}: UploadFileInput) {
   const formData = new FormData();
+  const browserFileName =
+    typeof File !== 'undefined' && file instanceof File ? file.name : undefined;
+  const browserMimeType = file?.type;
+  const resolvedFileName = getFileName(
+    uri,
+    fileName ?? browserFileName,
+    mimeType ?? browserMimeType
+  );
+  const resolvedMimeType = mimeType ?? browserMimeType ?? getMimeType(resolvedFileName);
 
   if (Platform.OS === 'web') {
-    const response = await fetch(uri);
-    const blob = await response.blob();
-    formData.append('file', blob, getFileName(uri));
+    if (file) {
+      formData.append('file', file, resolvedFileName);
+    } else {
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      formData.append('file', blob, resolvedFileName);
+    }
   } else {
     formData.append('file', {
       uri,
-      name: getFileName(uri),
-      type: getMimeType(uri),
+      name: resolvedFileName,
+      type: resolvedMimeType,
     } as unknown as Blob);
   }
 
@@ -76,6 +116,24 @@ async function createUploadHeaders() {
   return headers;
 }
 
+async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit, timeoutMs: number) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(
+        '업로드 시간이 초과되었습니다. 더 짧거나 용량이 작은 파일로 다시 시도해주세요.'
+      );
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 function parseUploadResponse(responseText: string): UploadResponse {
   try {
     const parsed = JSON.parse(responseText) as Partial<UploadResponse>;
@@ -89,14 +147,17 @@ function parseUploadResponse(responseText: string): UploadResponse {
       };
     }
   } catch {
-    // Fall through to the generic error below.
+    // 공통 에러 처리로 이동
   }
 
-  throw new Error('이미지 업로드 응답을 확인할 수 없습니다.');
+  throw new Error('업로드 응답을 확인할 수 없습니다.');
 }
 
 function getUploadErrorMessage(responseText: string, status: number) {
-  if (!responseText) return `이미지 업로드 실패: ${status}`;
+  if (status === 413) {
+    return '파일 용량이 너무 큽니다. 더 짧거나 용량이 작은 영상으로 다시 시도해주세요.';
+  }
+  if (!responseText) return GENERIC_UPLOAD_ERROR_MESSAGE;
 
   try {
     const parsed = JSON.parse(responseText) as { message?: unknown };
@@ -104,19 +165,43 @@ function getUploadErrorMessage(responseText: string, status: number) {
       return parsed.message;
     }
   } catch {
-    // Non-JSON error bodies are still useful enough to surface.
+    // 비JSON 응답 정규화로 이동
+  }
+
+  if (responseText.includes('413 Request Entity Too Large')) {
+    return '파일 용량이 너무 큽니다. 더 짧거나 용량이 작은 영상으로 다시 시도해주세요.';
+  }
+
+  if (isHtmlResponse(responseText) || isLikelyRawErrorPage(responseText)) {
+    return GENERIC_UPLOAD_ERROR_MESSAGE;
   }
 
   return responseText;
 }
 
-function getFileName(uri: string) {
-  const fileName = uri.split('/').pop()?.split('?')[0];
-  return fileName && /\.[a-z0-9]+$/i.test(fileName) ? fileName : 'image.jpg';
+function isHtmlResponse(responseText: string) {
+  const normalized = responseText.trim().toLowerCase();
+  return (
+    normalized.startsWith('<!doctype html') ||
+    normalized.startsWith('<html') ||
+    normalized.includes('<body') ||
+    normalized.includes('</html>')
+  );
 }
 
-function getMimeType(uri: string) {
-  const extension = getFileName(uri).split('.').pop()?.toLowerCase();
+function isLikelyRawErrorPage(responseText: string) {
+  return responseText.length > 300 || /<(head|title|center|hr)\b/i.test(responseText);
+}
+
+function getFileName(uri: string, preferredFileName?: string | null, mimeType?: string | null) {
+  const uriFileName = uri.split('/').pop()?.split('?')[0];
+  const fileName = preferredFileName || uriFileName;
+  if (fileName && /\.[a-z0-9]+$/i.test(fileName)) return fileName;
+  return mimeType?.startsWith('video/') ? 'upload.mp4' : 'upload.jpg';
+}
+
+function getMimeType(fileName: string) {
+  const extension = fileName.split('.').pop()?.toLowerCase();
 
   switch (extension) {
     case 'png':
@@ -127,6 +212,14 @@ function getMimeType(uri: string) {
       return 'image/heic';
     case 'heif':
       return 'image/heif';
+    case 'mp4':
+      return 'video/mp4';
+    case 'mov':
+      return 'video/quicktime';
+    case 'm4v':
+      return 'video/x-m4v';
+    case 'webm':
+      return 'video/webm';
     default:
       return 'image/jpeg';
   }
