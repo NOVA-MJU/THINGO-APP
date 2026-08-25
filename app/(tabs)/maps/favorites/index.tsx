@@ -25,7 +25,7 @@ import { useAuth } from '@/context/auth-context';
 import { showAlert } from '@/lib/alert';
 import { cn } from '@/lib/utils';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Redirect, useRouter } from 'expo-router';
+import { Redirect, useFocusEffect, useRouter } from 'expo-router';
 import * as React from 'react';
 import type { GestureResponderEvent } from 'react-native';
 import { ActivityIndicator, FlatList, Pressable, TouchableOpacity, View } from 'react-native';
@@ -66,6 +66,15 @@ export default function MapsFavoritesScreen() {
   const groupEditSheetRef = React.useRef<GroupEditSheetHandle>(null);
   // 삭제 확인 다이얼로그 대상 그룹. null이면 닫힌 상태
   const [deleteTargetGroup, setDeleteTargetGroup] = React.useState<FavoriteGroup | null>(null);
+  // 그룹 상세로 이동 중인 그룹 key. null이 아니면 다른 아이템 탭도 막는다 — 빠르게 여러 번 눌러서
+  // 상세 화면이 중복으로 push되는 걸 방지. 화면이 다시 포커스될 때(뒤로가기 등) 자동으로 풀린다.
+  const [pendingGroupKey, setPendingGroupKey] = React.useState<string | null>(null);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      setPendingGroupKey(null);
+    }, [])
+  );
 
   const queryClient = useQueryClient();
   const apiSort = SORT_OPTION_TO_API[sortOption];
@@ -106,6 +115,8 @@ export default function MapsFavoritesScreen() {
 
   // 그룹 아이템 클릭 — 해당 그룹의 즐겨찾기 장소 목록 페이지로 이동
   function onGroupItemPress(group: FavoriteGroup) {
+    if (pendingGroupKey !== null) return; // 이미 다른 항목으로 이동 중이면 무시
+
     if (group.type === 'SYSTEM_BUS') {
       // TODO: '버스' 그룹은 여러 정류장/노선 즐겨찾기를 합친 가상 항목이라 id가 없다.
       // 지금은 /maps 메인 화면의 바텀시트가 정류장 하나를 선택해야만 도착정보를 보여줄 수 있어서
@@ -113,6 +124,7 @@ export default function MapsFavoritesScreen() {
       showAlert('버스', '준비 중인 기능입니다.');
       return;
     }
+    setPendingGroupKey(getGroupKey(group));
     router.push(`/maps/favorites/${group.id}`);
   }
 
@@ -157,7 +169,7 @@ export default function MapsFavoritesScreen() {
         contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom }}
         // 정렬 옵션 버튼
         ListHeaderComponent={
-          <View className="items-end p-4">
+          <View className="items-end px-4 pt-4">
             <TouchableOpacity
               className="flex-row items-center gap-1"
               hitSlop={4}
@@ -175,7 +187,7 @@ export default function MapsFavoritesScreen() {
         }
         // 아이템 구분자
         ItemSeparatorComponent={() => (
-          <View className="p-4">
+          <View className="px-4">
             <View className="h-[1.5px] bg-grey-02" />
           </View>
         )}
@@ -192,35 +204,43 @@ export default function MapsFavoritesScreen() {
           </View>
         }
         // 아이템
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            className="flex-row items-center gap-3 px-4"
-            hitSlop={8}
-            onPress={() => onGroupItemPress(item)}
-          >
-            <FavoriteBadgeIcon size={28} className={getGroupBadgeClassName(item.color)} />
+        renderItem={({ item }) => {
+          const itemKey = getGroupKey(item);
+          const isPending = pendingGroupKey === itemKey;
 
-            <View className="min-w-0 flex-1 flex-row items-center">
-              <Text className="text-body06 text-black" numberOfLines={1}>
-                {item.name}
-              </Text>
-              <PinIcon size={12} className="ms-1.5 text-grey-30" />
-              <Text className="text-caption02 text-grey-30">{item.placeCount}</Text>
-            </View>
+          return (
+            <TouchableOpacity
+              className="flex-row items-center gap-3 p-4"
+              onPress={() => onGroupItemPress(item)}
+            >
+              <FavoriteBadgeIcon size={28} className={getGroupBadgeClassName(item.color)} />
 
-            {/* 시스템 기본 그룹('내 장소'/'버스')은 편집 메뉴(케밥)를 노출하지 않는다 */}
-            {!item.system && (
-              <TouchableOpacity
-                accessibilityRole="button"
-                accessibilityLabel={`${item.name} 그룹 메뉴`}
-                hitSlop={8}
-                onPress={(event) => onGroupMenuPress(item, event)}
-              >
-                <MoreVerticalIcon size={20} className="text-grey-30" />
-              </TouchableOpacity>
-            )}
-          </TouchableOpacity>
-        )}
+              <View className="min-w-0 flex-1 flex-row items-center">
+                <Text className="text-body06 text-black" numberOfLines={1}>
+                  {item.name}
+                </Text>
+                <PinIcon size={12} className="ms-1.5 text-grey-30" />
+                <Text className="text-caption02 text-grey-30">{item.placeCount}</Text>
+              </View>
+
+              {isPending ? (
+                <ActivityIndicator size="small" color="#2587ff" />
+              ) : (
+                // 시스템 기본 그룹('내 장소'/'버스')은 편집 메뉴(케밥)를 노출하지 않는다
+                !item.system && (
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel={`${item.name} 그룹 메뉴`}
+                    hitSlop={8}
+                    onPress={(event) => onGroupMenuPress(item, event)}
+                  >
+                    <MoreVerticalIcon size={20} className="text-grey-30" />
+                  </TouchableOpacity>
+                )
+              )}
+            </TouchableOpacity>
+          );
+        }}
       />
 
       {/* 정렬 드롭다운 메뉴. ListHeaderComponent 내부는 FlatList가 아이템별로 별도 셀에 감싸 렌더링해서

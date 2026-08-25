@@ -17,6 +17,9 @@ export function useToggleMapFavorite() {
       queryClient.invalidateQueries({ queryKey: ['map-place-detail'] });
       queryClient.invalidateQueries({ queryKey: ['map-category-pins'] });
       queryClient.invalidateQueries({ queryKey: ['map-search'] });
+      // 즐겨찾기 그룹 목록(개수)·그룹 상세(장소 목록)도 이 토글로 바뀌므로 같이 무효화
+      queryClient.invalidateQueries({ queryKey: ['favorite-groups'] });
+      queryClient.invalidateQueries({ queryKey: ['favorite-group-places'] });
     },
   });
 

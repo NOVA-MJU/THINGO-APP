@@ -42,6 +42,43 @@ export type UpdateFavoriteGroupParams = {
   color?: FavoriteGroupColor;
 };
 
+// 그룹 상세(장소 목록)의 정렬 기준. 그룹 목록 정렬(FavoriteGroupSort)과 달리 'latest'가 없다.
+export type FavoriteGroupPlaceSort = 'place_added' | 'name';
+
+// 그룹에 담긴 장소 카드 하나. MapCategoryPin(api/maps.ts)과 필드가 겹치지만 식별자 이름(pinId)과
+// memo/favorite(그룹 카드라 항상 true)가 달라서 별도 타입으로 둔다.
+export type FavoriteGroupPlace = {
+  pinId: number;
+  type: 'BUILDING' | 'PLACE';
+  name: string;
+  categoryCode: string;
+  iconKey: string | null;
+  imageUrl: string | null;
+  classroomCode: string | null;
+  location: string | null;
+  operatingStatus: string | null;
+  distanceMeters: number | null;
+  latitude: number;
+  longitude: number;
+  // 이 그룹 안에서만 붙는 메모
+  memo: string | null;
+  // 그룹에 담긴 카드이므로 항상 true
+  favorite: boolean;
+};
+
+export type FavoriteGroupDetail = {
+  group: FavoriteGroup;
+  places: FavoriteGroupPlace[];
+};
+
+export type GetFavoriteGroupPlacesParams = {
+  groupId: number;
+  sort?: FavoriteGroupPlaceSort;
+  // 있으면 장소별 distanceMeters를 계산해서 내려줌
+  lat?: number;
+  lng?: number;
+};
+
 type ApiResponse<T> = {
   status: string;
   data: T;
@@ -76,6 +113,30 @@ export async function getFavoriteGroups(
   });
 
   return data.data;
+}
+
+// 그룹 상세 — 그룹 헤더(이름/색상/개수)와 그 그룹에 담긴 장소 카드 목록을 함께 조회.
+// '버스'는 그룹으로 저장되지 않아 이 엔드포인트로 조회하지 않는다(버스 도착정보 화면에서 별도 처리).
+export async function getFavoriteGroupPlaces({
+  groupId,
+  sort = 'place_added',
+  lat,
+  lng,
+}: GetFavoriteGroupPlacesParams): Promise<FavoriteGroupDetail> {
+  const { data } = await client.get<ApiResponse<FavoriteGroupDetail>>(
+    `/map/favorites/groups/${groupId}/places`,
+    { params: { sort, lat, lng } }
+  );
+
+  return data.data;
+}
+
+// 그룹 상세에서 장소 카드의 별 아이콘을 눌러 이 그룹에서만 제거(멱등 — 원래 없어도 200).
+// toggleMapFavorite(POST /map/favorites)와 달리 전역 즐겨찾기가 아니라 "이 그룹 멤버십만" 지운다 —
+// 같은 핀이 다른 그룹에 담겨 있으면 그쪽엔 영향 없음. 다시 담는 API는 없어서, 별을 다시 누르면
+// 화면([favoriteId]/index.tsx)에서 로컬로만 별 표시를 되돌린다(서버엔 재등록 요청을 보내지 않음).
+export async function removeFavoriteGroupPlace(groupId: number, pinId: number): Promise<void> {
+  await client.delete<ApiResponse<null>>(`/map/favorites/groups/${groupId}/places/${pinId}`);
 }
 
 // 즐겨찾기 그룹명/색상 수정. 시스템 그룹(내 장소)은 수정 불가(FAVORITE_GROUP_SYSTEM_MODIFY_NOT_ALLOWED),
