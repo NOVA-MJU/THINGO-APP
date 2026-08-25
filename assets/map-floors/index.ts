@@ -42,12 +42,16 @@ import Building7F1 from './building-7/F1.svg';
 import Building7F2 from './building-7/F2.svg';
 import Building7F3 from './building-7/F3.svg';
 import Building7F4 from './building-7/F4.svg';
+import Building8F1 from './building-8/F1.svg';
+import Building8F2 from './building-8/F2.svg';
+import Building8F3 from './building-8/F3.svg';
+import Building8F4 from './building-8/F4.svg';
 
 // 층별 안내도 도면(Figma export SVG) 매니페스트.
 // 바깥 키는 건물 id(assets/map-markers의 building-{id}.png와 동일한 1~9 네임스페이스),
 // 안쪽 키는 건물 상세 API가 내려주는 floorLabel('B1', 'F1', 'F2'...)을 그대로 쓴다.
 // Metro는 동적 경로의 require()를 지원하지 않아, 도면별로 정적으로 나열해야 한다.
-// 도면이 아직 없는 건물(3, 6, 8, 9)과 층은 여기 없으면 화면에서 "준비 중"으로 처리된다.
+// 도면이 아직 없는 건물(3, 6, 9)과 층은 여기 없으면 화면에서 "준비 중"으로 처리된다.
 export const MAP_FLOOR_PLANS: Record<string, Record<string, React.FC<SvgProps>>> = {
   '1': {
     B1: Building1B1,
@@ -99,6 +103,12 @@ export const MAP_FLOOR_PLANS: Record<string, Record<string, React.FC<SvgProps>>>
     F2: Building7F2,
     F3: Building7F3,
     F4: Building7F4,
+  },
+  '8': {
+    F1: Building8F1,
+    F2: Building8F2,
+    F3: Building8F3,
+    F4: Building8F4,
   },
 };
 

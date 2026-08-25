@@ -230,23 +230,23 @@ export default function BuildingDetailSheet({
             if (places.length === 0) return null;
 
             return (
-              <View key={floor.floorId} className="flex-row gap-2 rounded-xl bg-grey-02 px-4 py-5">
+              <TouchableOpacity
+                key={floor.floorId}
+                accessibilityRole="button"
+                accessibilityLabel={`${formatMapFloorLabel(floor.floorLabel)} 층별 안내도 보기`}
+                className="flex-row gap-2 rounded-xl bg-grey-02 px-4 py-5"
+                onPress={() => onFloorPress(floor.floorLabel)}
+              >
                 <Text className="text-body04 text-blue-35">
                   {formatMapFloorLabel(floor.floorLabel)}
                 </Text>
                 <Text className="flex-1 text-body05 text-black">
                   {places.map((place) => place.name).join(', ')}
                 </Text>
-                <TouchableOpacity
-                  accessibilityRole="button"
-                  accessibilityLabel={`${formatMapFloorLabel(floor.floorLabel)} 층별 안내도 보기`}
-                  hitSlop={8}
-                  className="self-center"
-                  onPress={() => onFloorPress(floor.floorLabel)}
-                >
+                <View className="self-center">
                   <ArrowRightIcon size={20} className="text-grey-20" />
-                </TouchableOpacity>
-              </View>
+                </View>
+              </TouchableOpacity>
             );
           })}
         </View>
