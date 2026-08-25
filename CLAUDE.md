@@ -23,6 +23,12 @@ pnpm expo run:ios
 pnpm expo run:android
 ```
 
+- 앱은 한국어만 지원하고 locales/ko.json 는 한국어 감지용 형식적인 파일임
+
+- git commit, push 명령어 사용 금지
+
+- 기존 파일의 주석 삭제 금지. 주석은 "왜 이렇게 구현했는지"(현재 상태의 이유)를 적을 것. "예전에는 ~였는데" 같은 변경 이력·비교 서술은 나중에 그 배경을 모르는 사람이 읽으면 이해하기 어려우므로 지양
+
 ## scripts
 
 사용자에게 명령어를 안내할 때 `package.json` scripts에 있는 경우 스크립트를 우선 사용:
@@ -47,11 +53,6 @@ pnpm expo run:android
 | 설정·루트 스크립트       | 도구 관례 따름                    | `babel.config.js`, `metro.config.js`, `tailwind.config.js`                    |
 
 - 파일명에는 **공백·한글**을 쓰지 않음
-
-## localization
-
-- 앱은 한국어만 지원
-- `locales/ko.json`은 한국어 감지용 형식적인 파일이고 i18n키 추가하지 말 것
 
 ## routing (`app/(tabs)/(home)`)
 
@@ -90,11 +91,6 @@ pnpm expo run:android
 - 알림 표시 `Alert.alert` 직접 사용 금지(웹 미지원) - `showAlert()` 사용할 것 (`lib/alert.ts`)
 - 확인/취소 모달 표시 시에도 `Alert.alert` 직접 사용 금지(웹 미지원) - `showConfirm()` 사용할 것 (`lib/alert.ts`)
 - 외부 URL 열기 시 `WebBrowser.openBrowserAsync` 직접 사용 금지(웹에서 작은 팝업창으로 열림) - `openLink()` 사용할 것 (`lib/open-link.ts`, 모바일은 `WebBrowser`, 웹은 `Linking.openURL`로 새 탭 오픈)
-
-## comments
-
-- 기존 파일을 수정할 때 주석을 삭제하지 않는다
-- 주석은 "왜 이렇게 구현했는지"(현재 상태의 이유)를 적을 것. "예전에는 ~였는데" 같은 변경 이력·비교 서술은 나중에 그 배경을 모르는 사람이 읽으면 이해하기 어려우므로 지양
 
 ## icons
 

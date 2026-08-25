@@ -1,4 +1,9 @@
-import { createFavoriteGroup } from '@/api/maps-favorites';
+import {
+  createFavoriteGroup,
+  getFavoriteGroupErrorMessage,
+  updateFavoriteGroup,
+  type FavoriteGroup,
+} from '@/api/maps-favorites';
 import { XThinIcon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,30 +25,62 @@ import GROUP_COLORS, { type GroupColor } from '../_constants/group-colors';
 // 서버 기본값(미지정 시 BLUE, 띵고 색)과 맞춘 초기 선택 색상
 const DEFAULT_GROUP_COLOR = GROUP_COLORS.find((color) => color.label === 'BLUE') ?? GROUP_COLORS[0];
 
-type GroupEditSheetProps = {
-  sheetRef: React.RefObject<BottomSheetModal | null>;
+export type GroupEditSheetHandle = {
+  // group을 안 넘기면 "새 그룹 추가", 넘기면 그 그룹 값으로 채운 "그룹명 수정" 모드로 연다.
+  // 시스템 그룹(내 장소/버스)은 부모(favorites/index.tsx)가 케밥 메뉴 자체를 숨겨서 여기로 들어오지 않는다.
+  open: (group?: FavoriteGroup | null) => void;
 };
 
 // 즐겨찾기 "새 그룹 추가" / "그룹명 수정" 바텀시트.
 // BottomSheetModal은 @gorhom/portal로 앱 루트에 렌더링되어 (tabs) 하단 네비게이션 바까지 덮음
-export default function GroupEditSheet({ sheetRef }: GroupEditSheetProps) {
+const GroupEditSheet = React.forwardRef<GroupEditSheetHandle>(function GroupEditSheet(_props, ref) {
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
+  const sheetRef = React.useRef<BottomSheetModal>(null);
+  // null이면 새 그룹 추가 모드, 값이 있으면 그 그룹을 수정하는 모드
+  const [editingGroup, setEditingGroup] = React.useState<FavoriteGroup | null>(null);
   const [groupName, setGroupName] = React.useState('');
   const [selectedColor, setSelectedColor] = React.useState<GroupColor>(DEFAULT_GROUP_COLOR);
+  const isEditMode = editingGroup !== null;
+
+  React.useImperativeHandle(
+    ref,
+    () => ({
+      open(group) {
+        setEditingGroup(group ?? null);
+        setGroupName(group?.name ?? '');
+        setSelectedColor(
+          (group && GROUP_COLORS.find((color) => color.label === group.color)) ||
+            DEFAULT_GROUP_COLOR
+        );
+        sheetRef.current?.present();
+      },
+    }),
+    []
+  );
 
   const { mutate: saveGroup, isPending } = useMutation({
-    mutationFn: () => createFavoriteGroup({ name: groupName.trim(), color: selectedColor.label }),
+    mutationFn: () => {
+      // editingGroup이 있는데 id가 null인 경우는 없다 — id가 null인 건 '버스' 시스템 그룹뿐이고
+      // 시스템 그룹은 애초에 open()에 넘어오지 않는다(부모가 케밥 메뉴를 숨김). 방어적으로만 분기.
+      if (editingGroup && editingGroup.id !== null) {
+        return updateFavoriteGroup({
+          groupId: editingGroup.id,
+          name: groupName.trim(),
+          color: selectedColor.label,
+        });
+      }
+      return createFavoriteGroup({ name: groupName.trim(), color: selectedColor.label });
+    },
     onSuccess: () => {
-      // TODO: 즐겨찾기 그룹 목록이 실제 API로 바뀌면 그 쿼리 키로 맞춰야 함 — 지금은 favorites/index.tsx가
-      // 아직 더미 데이터라 무효화할 대상 쿼리가 없어서, 다음 리스트 연동 때 쓸 자리만 미리 잡아둔 것
       queryClient.invalidateQueries({ queryKey: ['favorite-groups'] });
-      setGroupName('');
-      setSelectedColor(DEFAULT_GROUP_COLOR);
       sheetRef.current?.dismiss();
     },
-    onError: () => {
-      showAlert('그룹 생성 실패', '잠시 후 다시 시도해주세요.');
+    onError: (error) => {
+      showAlert(
+        isEditMode ? '그룹 수정 실패' : '그룹 생성 실패',
+        getFavoriteGroupErrorMessage(error, '잠시 후 다시 시도해주세요.')
+      );
     },
   });
 
@@ -65,7 +102,9 @@ export default function GroupEditSheet({ sheetRef }: GroupEditSheetProps) {
     >
       <BottomSheetView className="px-4">
         <View className="flex-row items-center justify-center">
-          <Text className="text-title03 text-black">새 그룹 추가</Text>
+          <Text className="text-title03 text-black">
+            {isEditMode ? '그룹명 수정' : '새 그룹 추가'}
+          </Text>
           <TouchableOpacity
             className="absolute right-0"
             accessibilityRole="button"
@@ -98,7 +137,7 @@ export default function GroupEditSheet({ sheetRef }: GroupEditSheetProps) {
                 onPress={() => setSelectedColor(color)}
               >
                 <View className="h-6 w-6">
-                  <View className={cn('h-6 w-6 rounded-full', color.className)} />
+                  <View className={cn('h-6 w-6 rounded-full', color.swatchClassName)} />
                   {selectedColor.label === color.label && (
                     <View className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full border-[1.5px] border-white" />
                   )}
@@ -109,13 +148,17 @@ export default function GroupEditSheet({ sheetRef }: GroupEditSheetProps) {
         </View>
         <View className="mt-7" style={{ paddingBottom: insets.bottom + 20 }}>
           <Button onPress={onSavePress} disabled={groupName.trim().length === 0 || isPending}>
-            <Text className="text-white">{isPending ? '저장 중...' : '저장'}</Text>
+            <Text className="text-white">
+              {isPending ? (isEditMode ? '수정 중...' : '저장 중...') : '저장'}
+            </Text>
           </Button>
         </View>
       </BottomSheetView>
     </BottomSheetModal>
   );
-}
+});
+
+export default GroupEditSheet;
 
 function GroupEditSheetBackdrop(props: BottomSheetBackdropProps) {
   return (
