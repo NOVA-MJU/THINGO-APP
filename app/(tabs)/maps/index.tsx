@@ -323,14 +323,22 @@ export default function MapsScreen() {
   React.useEffect(() => {
     if (!selectedSearchResult) return;
 
+    const searchResult = selectedSearchResult;
     resetStack();
     setSelectedSheetMode('category');
     mapRef.current?.animateCameraTo(
-      selectedSearchResult.latitude,
-      selectedSearchResult.longitude,
+      searchResult.latitude,
+      searchResult.longitude,
       17
     );
-    bottomSheetRef.current?.snapToIndex(1);
+
+    if (searchResult.type === 'BUILDING') {
+      pushSheet({ kind: 'building', buildingId: searchResult.id });
+    } else {
+      pushSheet({ kind: 'place', placeId: searchResult.id });
+    }
+    clearSearchResult();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSearchResult]);
 
   // 캠퍼스 건물 마커 클릭 → building 레이어를 base 위에 바로 push
