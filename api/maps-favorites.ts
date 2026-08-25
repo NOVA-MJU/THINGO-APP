@@ -3,14 +3,14 @@ import { client } from './client';
 // 즐겨찾기 그룹 색상 팔레트 10색. UI 쪽 선택 팔레트(app/(tabs)/maps/favorites/_constants/group-colors.ts)의
 // GroupColor['label']이 이 타입을 그대로 참조해서, 팔레트에 서버가 모르는 색상이 섞이면 타입 에러로 걸러진다.
 export type FavoriteGroupColor =
-  | 'PINK'
+  | 'CORAL'
   | 'RED'
   | 'ORANGE'
-  | 'YELLOW'
-  | 'YELLOWGREEN'
+  | 'AMBER'
+  | 'LIME'
   | 'GREEN'
+  | 'SKY'
   | 'BLUE'
-  | 'NAVYBLUE'
   | 'PURPLE'
   | 'GRAY';
 
