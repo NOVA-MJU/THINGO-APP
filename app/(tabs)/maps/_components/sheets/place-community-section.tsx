@@ -409,36 +409,36 @@ export default function PlaceCommunitySection({
 
       <Dialog open={!!deleteTargetReview} onOpenChange={handleDeleteDialogOpenChange}>
         <DialogContent
-          className="w-[320px] max-w-[320px] gap-4 rounded-[12px] border-2 border-grey-02 bg-white p-[24px]"
+          className="w-[320px] max-w-[320px] gap-4 rounded-[12px] border-2 border-grey-02 bg-white p-5"
           showCloseButton={false}
         >
-          <DialogHeader className="gap-[2px]">
-            <DialogTitle className="text-center text-body02 text-black">
-              리뷰를 삭제할까요?
+          <DialogHeader className="gap-1">
+            <DialogTitle className="text-center text-body04 text-grey-80">
+              리뷰를 삭제하시겠습니까?
             </DialogTitle>
-            <DialogDescription className="text-center text-body06 text-grey-80">
-              삭제된 리뷰는 복구할 수 없습니다.
+            <DialogDescription className="text-center text-caption02 text-grey-80">
+              삭제한 리뷰는 복구할 수 없습니다.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="h-[36px] flex-row gap-2">
             <TouchableOpacity
               onPress={() => setDeleteTargetReview(null)}
               disabled={isDeletingReview}
-              className="h-[36px] flex-1 items-center justify-center rounded-[8px] bg-grey-10"
+              className="h-[36px] flex-1 items-center justify-center rounded-[8px] border border-grey-10 bg-white"
               accessibilityRole="button"
               accessibilityLabel="리뷰 삭제 취소"
             >
-              <Text className="text-body06 text-black">취소</Text>
+              <Text className="text-body05 text-grey-40">취소</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleConfirmDeleteReview}
               disabled={isDeletingReview}
-              className="h-[36px] flex-1 items-center justify-center rounded-[8px] bg-error"
+              className="h-[36px] flex-1 items-center justify-center rounded-[8px] bg-blue-35"
               accessibilityRole="button"
               accessibilityLabel="리뷰 삭제 확인"
             >
-              <Text className="text-body06 text-white">
-                {isDeletingReview ? '삭제 중' : '삭제'}
+              <Text className="text-body05 text-white">
+                {isDeletingReview ? '삭제 중' : '삭제하기'}
               </Text>
             </TouchableOpacity>
           </DialogFooter>
