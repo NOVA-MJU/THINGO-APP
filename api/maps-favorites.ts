@@ -71,6 +71,27 @@ export type FavoriteGroupDetail = {
   places: FavoriteGroupPlace[];
 };
 
+// 그룹 선택 바텀시트(별 클릭 시)의 그룹 목록 항목 하나. FavoriteGroup과 필드가 겹치지만
+// "이 핀이 이 그룹에 담겨 있는지"(selected)가 추가로 붙는다.
+export type FavoritePinGroupOption = {
+  id: number;
+  name: string;
+  color: FavoriteGroupColor;
+  type: FavoriteGroupType;
+  system: boolean;
+  placeCount: number;
+  selected: boolean;
+};
+
+// 그룹 선택 바텀시트 조회 응답. '버스'는 핀을 담을 수 없어 groups에 포함되지 않는다.
+export type FavoritePinGroups = {
+  pinId: number;
+  placeName: string;
+  // (그룹, 핀) 단위로 저장되는 메모의 프리필값 — '내 장소'의 메모를 우선 보여주고, 없으면 다른 그룹의 메모 중 하나
+  memo: string | null;
+  groups: FavoritePinGroupOption[];
+};
+
 export type GetFavoriteGroupPlacesParams = {
   groupId: number;
   sort?: FavoriteGroupPlaceSort;
@@ -126,6 +147,40 @@ export async function getFavoriteGroupPlaces({
   const { data } = await client.get<ApiResponse<FavoriteGroupDetail>>(
     `/map/favorites/groups/${groupId}/places`,
     { params: { sort, lat, lng } }
+  );
+
+  return data.data;
+}
+
+// 별(즐겨찾기) 클릭 시 뜨는 그룹 선택 바텀시트 데이터 조회 — 회원의 그룹들('내 장소' 상단 고정 후
+// 최신순)과 각 그룹에 이 핀이 이미 담겨 있는지, 그리고 메모 프리필값을 함께 내려준다.
+export async function getFavoritePinGroups(pinId: number): Promise<FavoritePinGroups> {
+  const { data } = await client.get<ApiResponse<FavoritePinGroups>>(
+    `/map/favorites/pins/${pinId}/groups`
+  );
+
+  return data.data;
+}
+
+export type SaveFavoritePinGroupsParams = {
+  pinId: number;
+  // 이 핀이 속할 그룹 집합 — 통째로 교체(replace)된다. 빈 배열이면 전 그룹에서 제거(즐겨찾기 완전 해제)
+  groupIds: number[];
+  // 선택된 각 그룹 멤버십에 동일하게 저장 (최대 30자)
+  memo: string;
+};
+
+// 그룹 선택 바텀시트의 저장 버튼 — groupIds에 있는 그룹에는 담고(없으면 추가), 빠진 그룹에서는 제거한다.
+// 존재하지 않거나 소유하지 않은 그룹 id는 무시됨. 응답은 조회(getFavoritePinGroups)와 동일한 형태로,
+// 저장 후 최신 바텀시트 상태를 그대로 돌려준다.
+export async function saveFavoritePinGroups({
+  pinId,
+  groupIds,
+  memo,
+}: SaveFavoritePinGroupsParams): Promise<FavoritePinGroups> {
+  const { data } = await client.patch<ApiResponse<FavoritePinGroups>>(
+    `/map/favorites/pins/${pinId}`,
+    { groupIds, memo }
   );
 
   return data.data;

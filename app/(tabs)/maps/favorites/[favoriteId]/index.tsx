@@ -2,6 +2,7 @@ import {
   getFavoriteGroupErrorMessage,
   getFavoriteGroupPlaces,
   removeFavoriteGroupPlace,
+  type FavoriteGroupPlace,
   type FavoriteGroupPlaceSort,
 } from '@/api/maps-favorites';
 import { AppHeader } from '@/components/app-header';
@@ -13,7 +14,7 @@ import { getMapIcon, getMapIconClassName } from '@/lib/maps/icons';
 import { cn } from '@/lib/utils';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Location from 'expo-location';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
 import { ActivityIndicator, FlatList, Pressable, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -29,6 +30,7 @@ const SORT_OPTION_TO_API: Record<SortOption, FavoriteGroupPlaceSort> = {
 
 export default function MapsFavoriteDetailScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { favoriteId } = useLocalSearchParams<{ favoriteId: string }>();
   const groupId = Number(favoriteId);
 
@@ -107,6 +109,24 @@ export default function MapsFavoriteDetailScreen() {
     },
   });
 
+  // 아이템 클릭 → 지도로 돌아가서 해당 핀을 열어 보여준다.
+  // push가 아니라 dismissTo를 쓴다: push면 스택에 이미 있는 /maps 위에 새 /maps가 또 쌓여서
+  // (favorites → favorites/[id] → maps) 지도가 새로 열리는 것처럼 보이고 뒤로가기도 꼬인다.
+  // dismissTo는 이 화면에 오기 전까지 거쳐온 favorites/favorites/[id]를 스택에서 제거하고
+  // 이미 떠 있던 /maps 인스턴스로 돌아가면서 params만 바꿔치기한다 (merge 옵션을 안 주면
+  // react-navigation이 해당 라우트의 params를 완전히 새 값으로 교체하므로, buildingId/placeId 중
+  // 하나만 넘겨도 이전 방문에서 남아있던 반대쪽 값이 섞여 들어올 걱정이 없다).
+  // type이 BUILDING/PLACE로 갈리는 이유는 지도 화면의 상세 조회·시트 종류가 서로 달라서다
+  // (app/(tabs)/maps/index.tsx의 selectCategoryPin과 동일한 분기 — buildingId는 건물 상세 시트,
+  // placeId는 장소 상세 시트를 열고 각각의 좌표로 카메라를 이동시킨다).
+  function onItemPress(item: FavoriteGroupPlace) {
+    if (item.type === 'BUILDING') {
+      router.dismissTo({ pathname: '/maps', params: { buildingId: String(item.pinId) } });
+      return;
+    }
+    router.dismissTo({ pathname: '/maps', params: { placeId: String(item.pinId) } });
+  }
+
   function onFavoriteTogglePress(pinId: number, isFavorite: boolean) {
     if (isFavorite) {
       setLocalFavoriteOverrides((prev) => ({ ...prev, [pinId]: false }));
@@ -177,7 +197,7 @@ export default function MapsFavoriteDetailScreen() {
           const isFavorite = localFavoriteOverrides[item.pinId] ?? item.favorite;
 
           return (
-            <View className="gap-2.5 px-4">
+            <TouchableOpacity className="gap-2.5 px-4" onPress={() => onItemPress(item)}>
               <View className="flex-row items-center gap-3.5">
                 <View className="rounded bg-blue-05 p-2">
                   <Icon size={28} className={iconClassName} />
@@ -215,7 +235,7 @@ export default function MapsFavoriteDetailScreen() {
               )}
 
               {/* TODO: 그룹 내 메모(item.memo) 표시 UI 미정 — 디자인 확정되면 추가 */}
-            </View>
+            </TouchableOpacity>
           );
         }}
       />

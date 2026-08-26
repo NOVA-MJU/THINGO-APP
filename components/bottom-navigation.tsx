@@ -44,10 +44,19 @@ export default function BottomNavigation() {
             key={key}
             className="flex-1 items-center gap-0.5"
             onPress={() => {
-              if (key === 'my') {
-                router.navigate(user ? '/profile' : '/login');
+              // '마이' 탭은 로그인 여부에 따라 목적지가 갈린다(비로그인 시 profile이 아니라
+              // (auth) 그룹의 login으로 이동) — profile/(auth) 둘 다 자체 중첩 Stack이 있어
+              // 아래 dismissTo 분기 대상이 될 수 있으므로 href 대신 이 target을 써야 한다.
+              const target = key === 'my' ? (user ? '/profile' : '/login') : href;
+
+              // 이미 열려있는 탭을 다시 누른 경우: navigate는 각 탭 내부의 중첩 스택까지는 정리하지
+              // 않아서(예: 지도 탭이 즐겨찾기 상세까지, 마이 탭이 프로필 수정까지 깊이 들어간 상태)
+              // 그 탭의 루트 화면이 새로 하나 더 push된 것처럼 보인다. dismissTo로 해당 탭의
+              // 중첩 스택에 이미 떠 있는 루트 화면으로 곧장 돌아가야 자연스럽다.
+              if (isActive) {
+                router.dismissTo(target);
               } else {
-                router.navigate(href);
+                router.navigate(target);
               }
             }}
             hitSlop={{ top: 8, bottom: 4 }}
