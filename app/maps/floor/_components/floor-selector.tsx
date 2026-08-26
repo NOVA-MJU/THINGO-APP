@@ -95,7 +95,7 @@ export default function FloorSelector({
                 hitSlop={4}
               >
                 <Text className={cn('text-body05', active ? 'text-blue-35' : 'text-grey-60')}>
-                  {formatMapFloorLabel(floorLabel)}
+                  {formatFloorSelectorLabel(floorLabel)}
                 </Text>
               </TouchableOpacity>
             );
@@ -104,6 +104,13 @@ export default function FloorSelector({
       </View>
     </View>
   );
+}
+
+// 선택 리스트 표시 전용 라벨: 지상층은 'F1' → '1F'처럼 층수를 앞에 두고 F를 뒤에 붙인다
+// (formatMapFloorLabel은 'F1' → '1'만 반환하는 공용 포맷이라 다른 화면과 표기가 갈릴 수 있어 여기서만 별도 처리)
+// 지하층('B1' 등)은 그대로 둔다
+function formatFloorSelectorLabel(floorLabel: string) {
+  return floorLabel.replace(/^F(\d+)$/i, '$1F');
 }
 
 // 정렬용 숫자값: 'F3' → 3, 'B1' → -1 (지하는 아래쪽에 오도록 음수)

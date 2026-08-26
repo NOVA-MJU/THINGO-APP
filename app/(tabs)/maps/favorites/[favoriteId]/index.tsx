@@ -1,71 +1,120 @@
+import {
+  getFavoriteGroupErrorMessage,
+  getFavoriteGroupPlaces,
+  removeFavoriteGroupPlace,
+  type FavoriteGroupPlaceSort,
+} from '@/api/maps-favorites';
 import { AppHeader } from '@/components/app-header';
 import { ArrowDownIcon } from '@/components/icons';
-import { BuildingIcon, FavoriteIcon, PinIcon } from '@/components/icons/map';
+import { FavoriteIcon, PinIcon } from '@/components/icons/map';
 import { Text } from '@/components/ui/text';
+import { showAlert } from '@/lib/alert';
+import { getMapIcon, getMapIconClassName } from '@/lib/maps/icons';
 import { cn } from '@/lib/utils';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import * as Location from 'expo-location';
 import { useLocalSearchParams } from 'expo-router';
 import * as React from 'react';
-import { FlatList, Pressable, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// 정렬 옵션 (즐겨찾기 그룹 목록 페이지와 동일)
-const SORT_OPTIONS = ['최신순', '가나다순', '장소 추가순'] as const;
+// 그룹 상세(장소 목록) 정렬 옵션. 그룹 목록 페이지와 달리 '최신순'은 없다(서버 sort가 place_added/name만 지원).
+const SORT_OPTIONS = ['장소 추가순', '가나다순'] as const;
 type SortOption = (typeof SORT_OPTIONS)[number];
 
-// 즐겨찾기 그룹에 속한 장소 더미 데이터
-type FavoritePlace = {
-  id: number;
-  name: string;
-  classroomCode: string;
-  operatingStatus: string;
-  distanceMeters: number;
+const SORT_OPTION_TO_API: Record<SortOption, FavoriteGroupPlaceSort> = {
+  '장소 추가순': 'place_added',
+  가나다순: 'name',
 };
-
-const DUMMY_PLACES: FavoritePlace[] = [
-  {
-    id: 1,
-    name: '학생회관',
-    classroomCode: 'S2XXX',
-    operatingStatus: '운영중',
-    distanceMeters: 720,
-  },
-  {
-    id: 2,
-    name: '학생회관',
-    classroomCode: 'S2XXX',
-    operatingStatus: '운영중',
-    distanceMeters: 720,
-  },
-  {
-    id: 3,
-    name: '학생회관',
-    classroomCode: 'S2XXX',
-    operatingStatus: '운영중',
-    distanceMeters: 720,
-  },
-];
 
 export default function MapsFavoriteDetailScreen() {
   const insets = useSafeAreaInsets();
-  // TODO: 실제 API 연동 시 이 값으로 그룹명·장소 목록 조회
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { favoriteId } = useLocalSearchParams<{ favoriteId: string }>();
+  const groupId = Number(favoriteId);
 
   const [isSortMenuOpen, setSortMenuOpen] = React.useState(false);
   const [sortOption, setSortOption] = React.useState<SortOption>('장소 추가순');
+  // 거리 표시용 현재 위치. 이미 권한이 있을 때만 조용히 가져오고, 없거나 실패해도 거리 없이 정상 동작한다
+  // (재요청 안 함 — app/(tabs)/maps/search/index.tsx와 동일한 패턴).
+  const [coordinates, setCoordinates] = React.useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
 
-  // TODO: 실제 API 연동 전까지 더미 데이터 사용
-  const places = DUMMY_PLACES;
-  // 즐겨찾기 취소(별 토글) 더미 상태. 기본은 이 그룹에 속한 장소이므로 전부 즐겨찾기됨
-  const [favoritedIds, setFavoritedIds] = React.useState(() => new Set(places.map((p) => p.id)));
+  React.useEffect(() => {
+    let active = true;
 
-  function toggleFavorite(placeId: number) {
-    setFavoritedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(placeId)) next.delete(placeId);
-      else next.add(placeId);
-      return next;
-    });
+    async function loadLastKnownLocation() {
+      try {
+        const permission = await Location.getForegroundPermissionsAsync();
+        if (permission.status !== 'granted') return;
+
+        const location = await Location.getLastKnownPositionAsync();
+        if (!active || !location) return;
+
+        setCoordinates({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        });
+      } catch {
+        // 위치를 사용할 수 없어도 거리 정보 없이 정상 동작합니다.
+      }
+    }
+
+    void loadLastKnownLocation();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const apiSort = SORT_OPTION_TO_API[sortOption];
+  const groupDetailQuery = useQuery({
+    queryKey: ['favorite-group-places', groupId, apiSort, coordinates],
+    queryFn: () =>
+      getFavoriteGroupPlaces({
+        groupId,
+        sort: apiSort,
+        lat: coordinates?.latitude,
+        lng: coordinates?.longitude,
+      }),
+    enabled: Number.isFinite(groupId),
+  });
+  const group = groupDetailQuery.data?.group;
+  const places = groupDetailQuery.data?.places ?? [];
+
+  const queryClient = useQueryClient();
+  // 별을 눌러 해제해도 이 화면에 머무는 동안은 카드가 안 사라지게(API 스펙 요구사항) 로컬로만 별 상태를 덮어쓴다.
+  // 서버는 "이 그룹에서 제거"만 지원하고 "다시 담기"는 없어서, 별을 다시 누르면 API 호출 없이 로컬 표시만 되돌린다.
+  // 실제로는 이미 삭제된 상태라, 목록을 다시 조회하면(화면을 나갔다 들어오면) 카드 자체가 사라진다.
+  const [localFavoriteOverrides, setLocalFavoriteOverrides] = React.useState<
+    Record<number, boolean>
+  >({});
+
+  const { mutate: removeFromGroup } = useMutation({
+    mutationFn: (pinId: number) => removeFavoriteGroupPlace(groupId, pinId),
+    onSuccess: () => {
+      // 그룹 목록 페이지의 placeCount 갱신용. 이 화면 자신의 쿼리(favorite-group-places)는
+      // 일부러 무효화하지 않는다 — 하면 카드가 바로 사라져서 "머무는 동안 유지" 요구사항이 깨진다.
+      queryClient.invalidateQueries({ queryKey: ['favorite-groups'] });
+    },
+    onError: (error, pinId) => {
+      // 실패했으니 로컬 별 표시를 원래대로 되돌림
+      setLocalFavoriteOverrides((prev) => ({ ...prev, [pinId]: true }));
+      showAlert(
+        '즐겨찾기 해제 실패',
+        getFavoriteGroupErrorMessage(error, '잠시 후 다시 시도해주세요.')
+      );
+    },
+  });
+
+  function onFavoriteTogglePress(pinId: number, isFavorite: boolean) {
+    if (isFavorite) {
+      setLocalFavoriteOverrides((prev) => ({ ...prev, [pinId]: false }));
+      removeFromGroup(pinId);
+    } else {
+      // 서버에 재등록 API가 없어서 로컬 표시만 되돌린다 (위 주석 참고)
+      setLocalFavoriteOverrides((prev) => ({ ...prev, [pinId]: true }));
+    }
   }
 
   return (
@@ -73,11 +122,11 @@ export default function MapsFavoriteDetailScreen() {
       {/* 앱 헤더 */}
       <View style={{ paddingTop: insets.top }}>
         <AppHeader
-          title="그룹명"
+          title={group?.name ?? ''}
           right={
             <View className="flex-row items-center gap-0.5 py-1 pe-3 ps-1.5">
               <PinIcon size={24} className="text-grey-40" />
-              <Text className="text-body05 text-grey-40">{places.length}</Text>
+              <Text className="text-body05 text-grey-40">{group?.placeCount ?? 0}</Text>
             </View>
           }
         />
@@ -86,7 +135,7 @@ export default function MapsFavoriteDetailScreen() {
       {/* 즐겨찾기 장소 목록 */}
       <FlatList
         data={places}
-        keyExtractor={(item) => String(item.id)}
+        keyExtractor={(item) => String(item.pinId)}
         contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom }}
         // 정렬 옵션 버튼
         ListHeaderComponent={
@@ -109,37 +158,66 @@ export default function MapsFavoriteDetailScreen() {
             <View className="h-[1.5px] bg-grey-02" />
           </View>
         )}
-        // 리스트 비어있는 경우
+        // 리스트 로딩/에러/빈 상태
         ListEmptyComponent={
           <View className="flex-1 items-center justify-center">
-            <Text className="text-body05 text-grey-30">아직 저장된 장소가 없어요</Text>
+            {groupDetailQuery.isLoading ? (
+              <ActivityIndicator color="#2587ff" />
+            ) : groupDetailQuery.isError ? (
+              <Text className="text-body05 text-grey-30">목록을 불러오지 못했습니다</Text>
+            ) : (
+              <Text className="text-body05 text-grey-30">아직 저장된 장소가 없어요</Text>
+            )}
           </View>
         }
         // 아이템
-        renderItem={({ item }) => (
-          <View className="gap-2.5 px-4">
-            <View className="flex-row items-center gap-3.5">
-              <View className="rounded bg-blue-05 p-2">
-                <BuildingIcon size={28} className="text-blue-15" />
+        renderItem={({ item }) => {
+          const Icon = getMapIcon(item.iconKey ?? '', item.categoryCode);
+          const iconClassName = getMapIconClassName(item.categoryCode);
+          const isFavorite = localFavoriteOverrides[item.pinId] ?? item.favorite;
+
+          return (
+            <View className="gap-2.5 px-4">
+              <View className="flex-row items-center gap-3.5">
+                <View className="rounded bg-blue-05 p-2">
+                  <Icon size={28} className={iconClassName} />
+                </View>
+
+                <View className="min-w-0 flex-1">
+                  <Text className="text-body02 text-black">{item.name}</Text>
+                  {(item.classroomCode ?? item.location) && (
+                    <Text className="text-body05 text-grey-80">
+                      {item.classroomCode ?? item.location}
+                    </Text>
+                  )}
+                </View>
+
+                <TouchableOpacity
+                  hitSlop={4}
+                  onPress={() => onFavoriteTogglePress(item.pinId, isFavorite)}
+                >
+                  <FavoriteIcon size={28} active={isFavorite} />
+                </TouchableOpacity>
               </View>
 
-              <View className="min-w-0 flex-1">
-                <Text className="text-body02 text-black">{item.name}</Text>
-                <Text className="text-body05 text-grey-80">{item.classroomCode}</Text>
-              </View>
+              {(item.operatingStatus || item.distanceMeters !== null) && (
+                <View className="flex-row items-center gap-1.5">
+                  {item.operatingStatus && (
+                    <Text className="text-caption01 text-blue-35">{item.operatingStatus}</Text>
+                  )}
+                  {item.operatingStatus && item.distanceMeters !== null && (
+                    <View className="h-[3px] w-[3px] rounded-full bg-grey-30" />
+                  )}
+                  {item.distanceMeters !== null && (
+                    <Text className="text-caption02 text-grey-30">{item.distanceMeters}m</Text>
+                  )}
+                </View>
+              )}
 
-              <TouchableOpacity hitSlop={4} onPress={() => toggleFavorite(item.id)}>
-                <FavoriteIcon size={28} active={favoritedIds.has(item.id)} />
-              </TouchableOpacity>
+              {/* TODO: 그룹 내 메모(item.memo) 표시 UI 미정 — 디자인 확정되면 추가 */}
             </View>
-
-            <View className="flex-row items-center gap-1.5">
-              <Text className="text-caption01 text-blue-35">{item.operatingStatus}</Text>
-              <View className="h-[3px] w-[3px] rounded-full bg-grey-30" />
-              <Text className="text-caption02 text-grey-30">{item.distanceMeters}m</Text>
-            </View>
-          </View>
-        )}
+          );
+        }}
       />
 
       {/* 정렬 드롭다운 메뉴. ListHeaderComponent 내부는 FlatList가 아이템별로 별도 셀에 감싸 렌더링해서
