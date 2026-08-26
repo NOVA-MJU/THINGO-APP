@@ -8,7 +8,7 @@ export type ReportReason =
   | 'PRIVACY_SCAM'
   | 'ETC';
 
-type ReportTargetType = 'BOARD';
+type ReportTargetType = 'BOARD' | 'REVIEW';
 
 type CreateReportRequest = {
   targetType: ReportTargetType;
@@ -26,6 +26,22 @@ export async function reportBoard(
   const body: CreateReportRequest = {
     targetType: 'BOARD',
     targetUuid: boardUUID,
+    reason,
+    etcDetail: reason === 'ETC' ? (etcDetail ?? null) : null,
+  };
+
+  await client.post('/reports', body);
+}
+
+// 리뷰 신고
+export async function reportReview(
+  reviewUuid: string,
+  reason: ReportReason,
+  etcDetail?: string
+): Promise<void> {
+  const body: CreateReportRequest = {
+    targetType: 'REVIEW',
+    targetUuid: reviewUuid,
     reason,
     etcDetail: reason === 'ETC' ? (etcDetail ?? null) : null,
   };
