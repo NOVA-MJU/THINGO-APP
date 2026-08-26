@@ -346,7 +346,10 @@ export default function MapsFavoritesScreen() {
         open={deleteTargetGroup !== null}
         onOpenChange={(open) => !open && setDeleteTargetGroup(null)}
       >
-        <DialogContent className="mx-6 w-[320px] max-w-[320px] gap-4 rounded-xl border-none py-[24px]">
+        <DialogContent
+          showCloseButton={false}
+          className="mx-6 w-[320px] max-w-[320px] gap-4 rounded-xl border-none py-[24px]"
+        >
           <DialogHeader className="gap-1">
             <DialogTitle className="text-center text-body04 text-grey-80">
               {`'${deleteTargetGroup?.name}' 그룹을 삭제하시겠습니까?`}
