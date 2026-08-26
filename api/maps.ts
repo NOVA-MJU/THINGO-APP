@@ -234,12 +234,3 @@ export async function getPlaceDetail(
     throw error;
   }
 }
-
-// 건물/장소 즐겨찾기 토글 (등록 시 true, 해제 시 false 반환)
-export async function toggleMapFavorite(pinId: number): Promise<boolean> {
-  const { data } = await client.post<ApiResponse<boolean>>('/map/favorites', null, {
-    params: { pinId },
-  });
-
-  return data.data;
-}

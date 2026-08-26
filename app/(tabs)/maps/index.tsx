@@ -37,10 +37,10 @@ import PlaceListSheet from './_components/sheets/sheet-place-list';
 import SheetHandle from './_components/sheets/sheet-handle';
 import SheetStackLayer from './_components/sheet-stack-layer';
 import CATEGORIES from './_constants/category-data';
-import { CurrentLocationIcon, MoreIcon, ResetIcon, StarIcon } from '@/components/icons/map';
+import { CurrentLocationIcon, MoreIcon, StarIcon } from '@/components/icons/map';
 import { useMapSearchSelection } from '@/context/map-search-selection';
 import { showAlert } from '@/lib/alert';
-import { CAMPUS_LATITUDE, CAMPUS_LONGITUDE, CAMPUS_ZOOM } from '@/lib/maps/campus';
+import { CAMPUS_LATITUDE, CAMPUS_LONGITUDE } from '@/lib/maps/campus';
 import { getMapIconKey } from '@/lib/maps/icons';
 
 const QUICK_CHIP_IDS = ['bus', 'daedong', 'printer', 'lounge', 'bank'];
@@ -78,11 +78,18 @@ type SheetScreen = SheetScreenInit & { key: string; initialIndex: number };
 
 export default function MapsScreen() {
   const router = useRouter();
-  const { exactMatch, expanded, placeId } = useLocalSearchParams<{
+  const { exactMatch, expanded, placeId, buildingId } = useLocalSearchParams<{
     exactMatch?: string;
     expanded?: string;
     placeId?: string;
+    buildingId?: string;
   }>();
+  // 딥링크 진입 식별자. 즐겨찾기 목록 등 다른 화면에서 지도로 돌아올 때 이 값으로
+  // place/building 레이어를 바로 열고 카메라·핀을 맞춘다 (아래 딥링크 useEffect들 참고).
+  const rawPlaceId = Array.isArray(placeId) ? placeId[0] : placeId;
+  const numericPlaceId = rawPlaceId ? Number(rawPlaceId) : NaN;
+  const rawBuildingId = Array.isArray(buildingId) ? buildingId[0] : buildingId;
+  const numericBuildingId = rawBuildingId ? Number(rawBuildingId) : NaN;
   const { selectedSearchResult, clearSearchResult } = useMapSearchSelection();
   const insets = useSafeAreaInsets();
   const [sheetStack, setSheetStack] = React.useState<SheetScreen[]>([]);
@@ -240,6 +247,56 @@ export default function MapsScreen() {
     enabled: selectedPlaceId !== null,
   });
 
+  // placeId/buildingId 딥링크로 연 상세가 로드되면 그 좌표로 카메라를 맞춘다.
+  // 클릭으로 연 경우(onBuildingMarkerPress/selectCategoryPin)는 이미 클릭 시점에 자체적으로
+  // animateCameraTo를 호출하므로 이 두 effect는 딥링크로 연 경우에만(카테고리/검색 마커가 없는 상태) 동작한다.
+  // *IdRef로 같은 상세에 대해 한 번만 이동시킨다 — refetch로 selectedPlaceDetail/selectedBuildingDetail
+  // 참조가 바뀔 때마다 카메라가 다시 튀는 것을 막기 위함.
+  const focusedPlaceIdRef = React.useRef<number | null>(null);
+  React.useEffect(() => {
+    if (!selectedPlaceDetail || selectedPlaceId !== numericPlaceId) return;
+    if (focusedPlaceIdRef.current === selectedPlaceDetail.id) return;
+    focusedPlaceIdRef.current = selectedPlaceDetail.id;
+    mapRef.current?.animateCameraTo(selectedPlaceDetail.latitude, selectedPlaceDetail.longitude);
+  }, [selectedPlaceDetail, selectedPlaceId, numericPlaceId]);
+
+  const focusedBuildingIdRef = React.useRef<number | null>(null);
+  React.useEffect(() => {
+    if (!selectedBuildingDetail || selectedBuildingId !== numericBuildingId) return;
+    if (focusedBuildingIdRef.current === selectedBuildingDetail.id) return;
+    focusedBuildingIdRef.current = selectedBuildingDetail.id;
+    mapRef.current?.animateCameraTo(
+      selectedBuildingDetail.latitude,
+      selectedBuildingDetail.longitude
+    );
+  }, [selectedBuildingDetail, selectedBuildingId, numericBuildingId]);
+
+  // placeId 딥링크 전용 핀. 건물은 buildingMarkers가 항상(검색/카테고리 미선택 시) 전체 목록으로
+  // 그려지고 있어 이미 핀이 보이지만, 장소는 카테고리를 선택해야만 categoryMarkers가 채워지므로
+  // 딥링크로 들어온 경우엔 별도로 핀 하나를 그려줘야 한다.
+  const focusedPlaceMarkers = React.useMemo(
+    () =>
+      selectedPlaceDetail && selectedPlaceId === numericPlaceId
+        ? [
+            {
+              id: String(selectedPlaceDetail.id),
+              latitude: selectedPlaceDetail.latitude,
+              longitude: selectedPlaceDetail.longitude,
+              name: selectedPlaceDetail.name,
+            },
+          ]
+        : [],
+    [selectedPlaceDetail, selectedPlaceId, numericPlaceId]
+  );
+
+  const focusedPlaceMarkerIcon = React.useMemo(
+    () =>
+      selectedPlaceDetail
+        ? getMapIconKey(selectedPlaceDetail.iconKey ?? '', selectedPlaceDetail.categoryCode)
+        : undefined,
+    [selectedPlaceDetail]
+  );
+
   // 칩 클릭 시 장소/건물 목록 조회 (무한 스크롤 페이지네이션)
   const {
     data: categoryPinsPages,
@@ -307,30 +364,41 @@ export default function MapsScreen() {
     return 'BuildingIcon';
   }, [selectedCategoryCode]);
 
-  // 딥링크(placeId 쿼리 파라미터)로 진입한 경우: place 레이어를 바로 push (expanded=true면 100%로)
+  // 딥링크(placeId/buildingId 쿼리 파라미터)로 진입한 경우: place/building 레이어를 바로 push
+  // (expanded=true는 place에서만 씀 — 즐겨찾기 목록 등 buildingId로 들어오는 경로는 항상 기본 높이로 연다)
   React.useEffect(() => {
-    const rawPlaceId = Array.isArray(placeId) ? placeId[0] : placeId;
-    const numericPlaceId = rawPlaceId ? Number(rawPlaceId) : NaN;
-    if (Number.isNaN(numericPlaceId)) return;
+    if (!Number.isNaN(numericPlaceId)) {
+      clearSearchResult();
+      resetStack();
+      setSelectedSheetMode('category');
+      pushSheet({ kind: 'place', placeId: numericPlaceId }, expanded === 'true' ? 2 : 1);
+      return;
+    }
 
-    clearSearchResult();
-    resetStack();
-    setSelectedSheetMode('category');
-    pushSheet({ kind: 'place', placeId: numericPlaceId }, expanded === 'true' ? 2 : 1);
+    if (!Number.isNaN(numericBuildingId)) {
+      clearSearchResult();
+      resetStack();
+      setSelectedSheetMode('category');
+      pushSheet({ kind: 'building', buildingId: numericBuildingId });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clearSearchResult, expanded, exactMatch, placeId]);
+  }, [clearSearchResult, expanded, exactMatch, placeId, buildingId]);
 
   React.useEffect(() => {
     if (!selectedSearchResult) return;
 
+    const searchResult = selectedSearchResult;
     resetStack();
     setSelectedSheetMode('category');
-    mapRef.current?.animateCameraTo(
-      selectedSearchResult.latitude,
-      selectedSearchResult.longitude,
-      17
-    );
-    bottomSheetRef.current?.snapToIndex(1);
+    mapRef.current?.animateCameraTo(searchResult.latitude, searchResult.longitude, 17);
+
+    if (searchResult.type === 'BUILDING') {
+      pushSheet({ kind: 'building', buildingId: searchResult.id });
+    } else {
+      pushSheet({ kind: 'place', placeId: searchResult.id });
+    }
+    clearSearchResult();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSearchResult]);
 
   // 캠퍼스 건물 마커 클릭 → building 레이어를 base 위에 바로 push
@@ -394,6 +462,11 @@ export default function MapsScreen() {
   // 검색 버튼 클릭
   function onSearchButtonPress() {
     router.push('/maps/search');
+  }
+
+  // 즐겨찾기 버튼 클릭
+  function onFavoritesButtonPress() {
+    router.push('/maps/favorites');
   }
 
   // 칩 클릭 동작 정의
@@ -503,15 +576,6 @@ export default function MapsScreen() {
     }
   }
 
-  function onResetMapPress() {
-    clearSearchResult();
-    resetStack();
-    setSelectedStation(null);
-    setSelectedSheetMode('category');
-    mapRef.current?.animateCameraTo(CAMPUS_LATITUDE, CAMPUS_LONGITUDE, CAMPUS_ZOOM);
-    bottomSheetRef.current?.snapToIndex(0);
-  }
-
   // 더보기 버튼 클릭 (카테고리 시트 표시)
   function handleMoreCategories() {
     clearSearchResult();
@@ -606,9 +670,19 @@ export default function MapsScreen() {
         busStopMarkers={BUS_STOPS}
         buildingMarkers={selectedSearchResult || selectedCategoryCode ? [] : buildingMarkers}
         placeMarkers={
-          selectedSearchResult ? searchResultMarkers : selectedCategoryCode ? categoryMarkers : []
+          selectedSearchResult
+            ? searchResultMarkers
+            : selectedCategoryCode
+              ? categoryMarkers
+              : focusedPlaceMarkers
         }
-        placeMarkerIcon={selectedSearchResult ? searchResultMarkerIcon : categoryMarkerIcon}
+        placeMarkerIcon={
+          selectedSearchResult
+            ? searchResultMarkerIcon
+            : selectedCategoryCode
+              ? categoryMarkerIcon
+              : focusedPlaceMarkerIcon
+        }
         userLocation={userLocation}
         onBusStopMarkerPress={onBusStopMarkerPress}
         onBuildingMarkerPress={onBuildingMarkerPress}
@@ -646,7 +720,11 @@ export default function MapsScreen() {
                 boxShadow: '0px 2px 6px rgba(23,23,27,0.15), 0px 1px 4px rgba(23,23,27,0.15)',
               }}
             >
-              <TouchableOpacity className="items-center gap-[1px] px-1.5 py-[2.5px]" hitSlop={4}>
+              <TouchableOpacity
+                className="items-center gap-[1px] px-1.5 py-[2.5px]"
+                hitSlop={4}
+                onPress={onFavoritesButtonPress}
+              >
                 <StarIcon size={24} className="text-blue-05" />
                 <Text className="text-caption05 text-blue-05" style={{ fontSize: 9 }}>
                   즐겨찾기
@@ -717,15 +795,6 @@ export default function MapsScreen() {
           style={MAP_CONTROL_SHADOW}
         >
           <CurrentLocationIcon size={28} className="text-blue-35" />
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="지도 보기 초기화"
-          onPress={onResetMapPress}
-          className="h-10 w-10 items-center justify-center rounded-full bg-white active:bg-grey-02 active:opacity-80"
-          style={MAP_CONTROL_SHADOW}
-        >
-          <ResetIcon size={22} className="text-grey-40" />
         </Pressable>
       </View>
 

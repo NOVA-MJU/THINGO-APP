@@ -16,6 +16,7 @@ export { default as CorridorIcon } from './corridor';
 export { default as CurrentLocationIcon } from './current-location';
 export { default as DaedongIcon } from './daedong';
 export { default as FavoriteIcon } from './favorite';
+export { default as FavoriteBadgeIcon } from './favorite-badge';
 export { default as GymIcon } from './gym';
 export { default as InfoIcon } from './info';
 export { default as LoungeIcon } from './lounge';

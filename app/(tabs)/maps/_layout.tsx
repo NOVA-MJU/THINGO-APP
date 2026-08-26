@@ -7,6 +7,8 @@ export default function MapsLayout() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="search/index" options={{ animation: 'none' }} />
+        <Stack.Screen name="favorites/index" />
+        <Stack.Screen name="favorites/[favoriteId]/index" />
       </Stack>
     </MapSearchSelectionProvider>
   );

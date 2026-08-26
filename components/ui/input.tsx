@@ -7,10 +7,13 @@ type InputProps = React.ComponentPropsWithRef<typeof TextInput> & {
   clearable?: boolean;
 };
 
-function Input({ className, ref, clearable, onChangeText, value, ...props }: InputProps) {
+function Input({ className, ref, clearable, onChangeText, value, style, ...props }: InputProps) {
   const innerRef = useRef<TextInput>(null);
   const inputRef = (ref ?? innerRef) as React.RefObject<TextInput>;
   const showClear = clearable && !!value;
+
+  // ios 에서 입력된 텍스트처짐 문제를 개선하기 위한 값입니다. android 와 ios 는 관련이 없습니다.
+  const mergedStyle = [Platform.OS === 'ios' && { lineHeight: undefined }, style];
 
   if (!clearable) {
     return (
@@ -18,6 +21,7 @@ function Input({ className, ref, clearable, onChangeText, value, ...props }: Inp
         ref={ref}
         value={value}
         onChangeText={onChangeText}
+        style={mergedStyle}
         className={cn(
           Platform.select({ android: 'text-body05', web: 'text-body05' }),
           'font-pretendard',
@@ -49,6 +53,7 @@ function Input({ className, ref, clearable, onChangeText, value, ...props }: Inp
         ref={inputRef}
         value={value}
         onChangeText={onChangeText}
+        style={mergedStyle}
         className={cn(
           Platform.select({ android: 'text-body05', web: 'text-body05' }),
           'font-pretendard',
