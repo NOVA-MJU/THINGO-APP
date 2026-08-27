@@ -45,6 +45,10 @@ const config: ExpoConfig = {
   plugins: [
     'expo-router',
     'expo-notifications',
+    'expo-font',
+    'expo-secure-store',
+    'expo-video',
+    'expo-web-browser',
     [
       'expo-image-picker',
       {
