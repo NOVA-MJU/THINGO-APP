@@ -43,14 +43,12 @@ const MEDIA_PICKER_OPTIONS: ImagePicker.ImagePickerOptions = {
 function getImagePickerOptions(): ImagePicker.ImagePickerOptions {
   return {
     ...IMAGE_PICKER_OPTIONS,
-    legacy: Platform.OS === 'android',
   };
 }
 
 function getMediaPickerOptions(): ImagePicker.ImagePickerOptions {
   return {
     ...MEDIA_PICKER_OPTIONS,
-    legacy: Platform.OS === 'android',
   };
 }
 
@@ -68,12 +66,6 @@ export function useImageUpload(domain: UploadDomain) {
     isPickingRef.current = true;
 
     try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        setState((prev) => ({ ...prev, error: '갤러리 접근 권한이 필요합니다.' }));
-        return null;
-      }
-
       const picked = await ImagePicker.launchImageLibraryAsync(getImagePickerOptions());
       if (picked.canceled) return null;
 
@@ -115,12 +107,6 @@ export function useMediaUpload(domain: UploadDomain) {
     isPickingRef.current = true;
 
     try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        setState((prev) => ({ ...prev, error: '갤러리 접근 권한이 필요합니다.' }));
-        return null;
-      }
-
       const picked = await ImagePicker.launchImageLibraryAsync(getMediaPickerOptions());
       if (picked.canceled) return null;
 

@@ -31,11 +31,13 @@ const config: ExpoConfig = {
       foregroundImage: './assets/images/adaptive-icon.png',
       backgroundColor: '#1778ff',
     },
-    permissions: [
-      'READ_MEDIA_IMAGES',
-      'READ_MEDIA_VIDEO',
-      'READ_EXTERNAL_STORAGE',
-      'WRITE_EXTERNAL_STORAGE',
+    blockedPermissions: [
+      'android.permission.READ_MEDIA_IMAGES',
+      'android.permission.READ_MEDIA_VIDEO',
+      'android.permission.READ_MEDIA_VISUAL_USER_SELECTED',
+      'android.permission.READ_EXTERNAL_STORAGE',
+      'android.permission.WRITE_EXTERNAL_STORAGE',
+      'android.permission.RECORD_AUDIO',
     ],
   },
   web: {
@@ -54,6 +56,7 @@ const config: ExpoConfig = {
       {
         photosPermission:
           '프로필 이미지 또는 게시글 이미지 업로드를 위해 사진 라이브러리 접근 권한이 필요합니다.',
+        microphonePermission: false,
       },
     ],
     [
