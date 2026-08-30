@@ -94,6 +94,7 @@ export type MapPlaceDetail = {
   longitude: number;
   location: string | null;
   infoText: string | null;
+  operatingStatus: string | null;
 };
 
 export type MapCategoryPin = {
