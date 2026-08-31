@@ -146,7 +146,7 @@ export default function MapsFavoriteDetailScreen() {
           right={
             <View className="flex-row items-center gap-0.5 py-1 pe-3 ps-1.5">
               <PinIcon size={24} className="text-grey-40" />
-              <Text className="text-body05 text-grey-40">{group?.placeCount ?? 0}</Text>
+              <Text className="text-grey-40 text-body05">{group?.placeCount ?? 0}</Text>
             </View>
           }
         />
@@ -165,7 +165,7 @@ export default function MapsFavoriteDetailScreen() {
               hitSlop={4}
               onPress={() => setSortMenuOpen((prev) => !prev)}
             >
-              <Text className="text-caption02 text-grey-60">{sortOption}</Text>
+              <Text className="text-grey-60 text-caption02">{sortOption}</Text>
               <View style={isSortMenuOpen ? { transform: [{ rotate: '180deg' }] } : undefined}>
                 <ArrowDownIcon size={14} className="text-grey-40" />
               </View>
@@ -184,9 +184,9 @@ export default function MapsFavoriteDetailScreen() {
             {groupDetailQuery.isLoading ? (
               <ActivityIndicator color="#2587ff" />
             ) : groupDetailQuery.isError ? (
-              <Text className="text-body05 text-grey-30">목록을 불러오지 못했습니다</Text>
+              <Text className="text-grey-30 text-body05">목록을 불러오지 못했습니다</Text>
             ) : (
-              <Text className="text-body05 text-grey-30">아직 저장된 장소가 없어요</Text>
+              <Text className="text-grey-30 text-body05">아직 저장된 장소가 없어요</Text>
             )}
           </View>
         }
@@ -204,9 +204,9 @@ export default function MapsFavoriteDetailScreen() {
                 </View>
 
                 <View className="min-w-0 flex-1">
-                  <Text className="text-body02 text-black">{item.name}</Text>
+                  <Text className="text-black text-body02">{item.name}</Text>
                   {(item.classroomCode ?? item.location) && (
-                    <Text className="text-body05 text-grey-80">
+                    <Text className="text-grey-80 text-body05">
                       {item.classroomCode ?? item.location}
                     </Text>
                   )}
@@ -223,13 +223,13 @@ export default function MapsFavoriteDetailScreen() {
               {(item.operatingStatus || item.distanceMeters !== null) && (
                 <View className="flex-row items-center gap-1.5">
                   {item.operatingStatus && (
-                    <Text className="text-caption01 text-blue-35">{item.operatingStatus}</Text>
+                    <Text className="text-blue-35 text-caption01">{item.operatingStatus}</Text>
                   )}
                   {item.operatingStatus && item.distanceMeters !== null && (
                     <View className="h-[3px] w-[3px] rounded-full bg-grey-30" />
                   )}
                   {item.distanceMeters !== null && (
-                    <Text className="text-caption02 text-grey-30">{item.distanceMeters}m</Text>
+                    <Text className="text-grey-30 text-caption02">{item.distanceMeters}m</Text>
                   )}
                 </View>
               )}

@@ -276,7 +276,7 @@ export default function PlaceReviewWriteScreen() {
         <Pressable onPress={handleBackPress} hitSlop={8}>
           <ArrowLeftIcon size={22} className="text-grey-40" />
         </Pressable>
-        <Text className="flex-1 text-center text-body02 text-black" numberOfLines={1}>
+        <Text className="flex-1 text-center text-black text-body02" numberOfLines={1}>
           {resolvedPlaceName ?? '장소명'}
         </Text>
         <Pressable onPress={handleBackPress} hitSlop={8}>
@@ -293,10 +293,10 @@ export default function PlaceReviewWriteScreen() {
         >
           <View className="py-5">
             <View className="px-4">
-              <Text className="text-title03 text-black">
-                어떤 곳이었나요? <Text className="text-body02 text-error">*</Text>
+              <Text className="text-black text-title03">
+                어떤 곳이었나요? <Text className="text-error text-body02">*</Text>
               </Text>
-              <Text className="mt-0.5 text-caption02 text-grey-60">
+              <Text className="mt-0.5 text-grey-60 text-caption02">
                 가장 공감되는 키워드를 골라주세요.(1-5개)
               </Text>
             </View>
@@ -321,14 +321,14 @@ export default function PlaceReviewWriteScreen() {
             <View className="mt-6" style={{ gap: 8 }}>
               <View>
                 <View className="flex-row items-center gap-1 px-4 pr-[14px]">
-                  <Text className="text-title03 text-black">사진/영상 추가</Text>
-                  <Text className="text-body06 text-grey-80">(선택)</Text>
+                  <Text className="text-black text-title03">사진/영상 추가</Text>
+                  <Text className="text-grey-80 text-body06">(선택)</Text>
                 </View>
                 <View className="flex-row items-center gap-1 px-4">
                   <View className="h-6 w-6 items-center justify-center opacity-80">
                     <InfoOutlineIcon size={14} className="text-grey-30" />
                   </View>
-                  <Text className="flex-1 text-caption02 text-grey-60">
+                  <Text className="flex-1 text-grey-60 text-caption02">
                     타인의 얼굴이 나오거나 장소와 관련없는 사진 등록은 자제해 주세요.
                   </Text>
                 </View>
@@ -350,7 +350,7 @@ export default function PlaceReviewWriteScreen() {
                   ) : (
                     <>
                       <PlusIcon size={24} className="text-grey-40" />
-                      <Text className="text-caption02 text-grey-40">
+                      <Text className="text-grey-40 text-caption02">
                         {mediaItems.length}/{MAX_MEDIA_COUNT}
                       </Text>
                     </>
@@ -382,15 +382,15 @@ export default function PlaceReviewWriteScreen() {
                 ))}
               </ScrollView>
               {uploadError ? (
-                <Text className="px-4 text-caption02 text-error">{uploadError}</Text>
+                <Text className="px-4 text-error text-caption02">{uploadError}</Text>
               ) : null}
             </View>
 
             <View className="mt-6">
-              <Text className="px-4 text-title03 text-black">
-                리뷰를 작성해주세요 <Text className="text-body02 text-error">*</Text>
+              <Text className="px-4 text-black text-title03">
+                리뷰를 작성해주세요 <Text className="text-error text-body02">*</Text>
               </Text>
-              <Text className="mt-0.5 px-4 text-caption02 text-grey-60">
+              <Text className="mt-0.5 px-4 text-grey-60 text-caption02">
                 실제 방문 경험을 바탕으로 이 곳의 팁과 후기를 남겨주세요.
               </Text>
               <View
@@ -413,11 +413,11 @@ export default function PlaceReviewWriteScreen() {
                     '욕설, 비방, 광고성 내용, 타인의 명예를 훼손하는 리뷰 작성 시 서비스\n이용이 제한될 수 있습니다'
                   }
                   placeholderTextColor="#AEB2B6"
-                  className="min-h-0 py-0 font-pretendard text-caption02 leading-[18px] text-grey-80"
+                  className="min-h-0 py-0 font-pretendard leading-[18px] text-grey-80 text-caption02"
                   style={{ height: reviewInputContentHeight }}
                   maxLength={MAX_REVIEW_LENGTH}
                 />
-                <Text className="text-right text-caption02 text-grey-30">
+                <Text className="text-right text-grey-30 text-caption02">
                   {content.length}/{MAX_REVIEW_LENGTH}
                 </Text>
               </View>
@@ -429,7 +429,7 @@ export default function PlaceReviewWriteScreen() {
                   canSubmit ? 'bg-blue-35' : 'bg-grey-30'
                 )}
               >
-                <Text className="text-body05 text-white">
+                <Text className="text-white text-body05">
                   {isSubmitting
                     ? isEditMode
                       ? '수정 중...'
@@ -450,7 +450,7 @@ export default function PlaceReviewWriteScreen() {
           className="mx-6 w-[320px] gap-4 rounded-xl border-2 border-grey-02 bg-white p-5"
         >
           <DialogHeader>
-            <DialogTitle className="text-center text-body04 text-grey-80">
+            <DialogTitle className="text-center text-grey-80 text-body04">
               리뷰 작성을 취소하시겠습니까?
             </DialogTitle>
             <DialogDescription className="hidden" />
@@ -460,13 +460,13 @@ export default function PlaceReviewWriteScreen() {
               onPress={() => setExitDialogOpen(false)}
               className="h-[36px] flex-1 items-center justify-center rounded-[8px] border border-grey-10 bg-white"
             >
-              <Text className="text-body05 text-grey-40">취소</Text>
+              <Text className="text-grey-40 text-body05">취소</Text>
             </Pressable>
             <Pressable
               onPress={() => router.back()}
               className="h-[36px] flex-1 items-center justify-center rounded-[8px] bg-blue-35"
             >
-              <Text className="text-body05 text-white">확인</Text>
+              <Text className="text-white text-body05">확인</Text>
             </Pressable>
           </View>
         </DialogContent>
@@ -490,9 +490,7 @@ function KeywordGroup({
 
   return (
     <View>
-      <Text className="mb-1 text-body06 text-grey-80">
-        {KEYWORD_GROUP_LABELS[group]}
-      </Text>
+      <Text className="mb-1 text-grey-80 text-body06">{KEYWORD_GROUP_LABELS[group]}</Text>
       <View className="gap-2">
         {chunkKeywords(keywords, KEYWORD_GROUP_ROWS[group]).map((row, rowIndex) => (
           <View key={`${group}-${rowIndex}`} className="flex-row items-start gap-2">

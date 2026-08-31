@@ -81,7 +81,7 @@ export function ReviewContentBottomSheet({
         <View className="flex-row items-center justify-between">
           <View className="min-w-0 flex-1 flex-row items-center gap-2 pr-4">
             <ReviewContentAvatar profileImageUrl={profileImageUrl} />
-            <Text className="text-body04 text-black" numberOfLines={1}>
+            <Text className="text-black text-body04" numberOfLines={1}>
               {nickname}
             </Text>
           </View>
@@ -94,7 +94,7 @@ export function ReviewContentBottomSheet({
               <HeartIcon size={24} filled={Boolean(review.liked)} className="text-blue-20" />
             </View>
             {(review.likeCount ?? 0) > 0 ? (
-              <Text className="text-caption02 text-grey-40">{review.likeCount}</Text>
+              <Text className="text-grey-40 text-caption02">{review.likeCount}</Text>
             ) : null}
           </Pressable>
         </View>
@@ -111,7 +111,7 @@ export function ReviewContentBottomSheet({
                   key={keywordId}
                   className="flex-row items-center rounded-full bg-white px-2 py-1.5 shadow-sm"
                 >
-                  <Text className="text-caption02 text-grey-60">
+                  <Text className="text-grey-60 text-caption02">
                     {keyword.emoji ? `${keyword.emoji} ` : ''}
                     {keyword.label}
                   </Text>
@@ -122,8 +122,8 @@ export function ReviewContentBottomSheet({
         ) : null}
 
         <View className="mt-4">
-          <Text className="text-body05 leading-[21px] text-grey-80">{review.content}</Text>
-          <Text className="mt-1 self-end text-caption02 text-grey-30">
+          <Text className="leading-[21px] text-grey-80 text-body05">{review.content}</Text>
+          <Text className="mt-1 self-end text-grey-30 text-caption02">
             {formatReviewDate(review.createdAt)}
           </Text>
         </View>

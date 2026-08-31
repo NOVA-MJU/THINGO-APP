@@ -51,10 +51,10 @@ export default function ProfileScreen() {
     >
       <View className="mb-10 flex-1">
         <View className="px-4 pt-5">
-          <Text className="text-title01 text-black">마이페이지</Text>
+          <Text className="text-black text-title01">마이페이지</Text>
 
           {/* 내 프로필 */}
-          <Text className="mt-4 text-title03 text-grey-80">프로필</Text>
+          <Text className="mt-4 text-grey-80 text-title03">프로필</Text>
           <View className="mt-2 gap-5 rounded-xl bg-white p-4">
             <View className="flex-row gap-4">
               {user?.profileImageUrl ? (
@@ -64,14 +64,14 @@ export default function ProfileScreen() {
                 />
               ) : (
                 <View className="aspect-square w-[88px] items-center justify-center rounded-xl border border-grey-10 bg-grey-02">
-                  <Text className="text-caption02 text-grey-30">이미지 없음</Text>
+                  <Text className="text-grey-30 text-caption02">이미지 없음</Text>
                 </View>
               )}
               <View className="gap-0.5">
-                <Text className="text-caption01 text-black">{user?.nickname}</Text>
-                <Text className="text-caption01 text-black">{departmentLabel}</Text>
-                <Text className="text-caption02 text-black">{user?.studentNumber}</Text>
-                <Text className="text-caption02 text-grey-60">{user?.email}</Text>
+                <Text className="text-black text-caption01">{user?.nickname}</Text>
+                <Text className="text-black text-caption01">{departmentLabel}</Text>
+                <Text className="text-black text-caption02">{user?.studentNumber}</Text>
+                <Text className="text-grey-60 text-caption02">{user?.email}</Text>
               </View>
             </View>
             <Button onPress={() => router.push('/profile/edit')}>
@@ -80,88 +80,88 @@ export default function ProfileScreen() {
           </View>
 
           {/* 나의 활동 */}
-          <Text className="mt-4 text-title03 text-grey-80">나의 활동</Text>
+          <Text className="mt-4 text-grey-80 text-title03">나의 활동</Text>
           <View className="mt-2 gap-3">
             {/* TODO: app/(tabs)/profile/maps 라우트가 아직 없어 타입 단언으로 막아둠 */}
             <TouchableOpacity
               className="flex-row items-center gap-4 rounded-xl bg-white px-4 py-6"
               onPress={() => router.push('/profile/maps' as never)}
             >
-              <Text className="flex-1 text-body04 text-grey-80">명지도 즐겨찾기</Text>
-              <Text className="text-body04 text-grey-40">{stats?.mapFavoriteCount ?? '-'}개</Text>
+              <Text className="flex-1 text-grey-80 text-body04">명지도 즐겨찾기</Text>
+              <Text className="text-grey-40 text-body04">{stats?.mapFavoriteCount ?? '-'}개</Text>
               <ArrowRightIcon size={20} className="text-grey-30" />
             </TouchableOpacity>
             <TouchableOpacity
               className="flex-row items-center gap-4 rounded-xl bg-white px-4 py-6"
               onPress={() => router.push('/profile/posts')}
             >
-              <Text className="flex-1 text-body04 text-grey-80">내가 작성한 게시물</Text>
-              <Text className="text-body04 text-grey-40">{stats?.postCount ?? '-'}개</Text>
+              <Text className="flex-1 text-grey-80 text-body04">내가 작성한 게시물</Text>
+              <Text className="text-grey-40 text-body04">{stats?.postCount ?? '-'}개</Text>
               <ArrowRightIcon size={20} className="text-grey-30" />
             </TouchableOpacity>
             <TouchableOpacity
               className="flex-row items-center gap-4 rounded-xl bg-white px-4 py-6"
               onPress={() => router.push('/profile/comments')}
             >
-              <Text className="flex-1 text-body04 text-grey-80">내가 작성한 댓글</Text>
-              <Text className="text-body04 text-grey-40">{stats?.commentCount ?? '-'}개</Text>
+              <Text className="flex-1 text-grey-80 text-body04">내가 작성한 댓글</Text>
+              <Text className="text-grey-40 text-body04">{stats?.commentCount ?? '-'}개</Text>
               <ArrowRightIcon size={20} className="text-grey-30" />
             </TouchableOpacity>
             <TouchableOpacity
               className="flex-row items-center gap-4 rounded-xl bg-white px-4 py-6"
               onPress={() => router.push('/profile/liked-posts')}
             >
-              <Text className="flex-1 text-body04 text-grey-80">찜한 글</Text>
-              <Text className="text-body04 text-grey-40">{stats?.likedPostCount ?? '-'}개</Text>
+              <Text className="flex-1 text-grey-80 text-body04">찜한 글</Text>
+              <Text className="text-grey-40 text-body04">{stats?.likedPostCount ?? '-'}개</Text>
               <ArrowRightIcon size={20} className="text-grey-30" />
             </TouchableOpacity>
             <TouchableOpacity
               className="flex-row items-center gap-4 rounded-xl bg-white px-4 py-6"
               onPress={() => router.push('/profile/keyword-alarms')}
             >
-              <Text className="flex-1 text-body04 text-grey-80">키워드 알림 설정</Text>
-              <Text className="text-body04 text-grey-40">{stats?.keywordAlarmCount ?? '-'}개</Text>
+              <Text className="flex-1 text-grey-80 text-body04">키워드 알림 설정</Text>
+              <Text className="text-grey-40 text-body04">{stats?.keywordAlarmCount ?? '-'}개</Text>
               <ArrowRightIcon size={20} className="text-grey-30" />
             </TouchableOpacity>
             <TouchableOpacity
               className="flex-row items-center gap-4 rounded-xl bg-white px-4 py-6"
               onPress={() => router.push('/profile/blocked-users')}
             >
-              <Text className="flex-1 text-body04 text-grey-80">차단한 사용자</Text>
-              <Text className="text-body04 text-grey-40">{stats?.blockedUserCount ?? '-'}개</Text>
+              <Text className="flex-1 text-grey-80 text-body04">차단한 사용자</Text>
+              <Text className="text-grey-40 text-body04">{stats?.blockedUserCount ?? '-'}개</Text>
               <ArrowRightIcon size={20} className="text-grey-30" />
             </TouchableOpacity>
           </View>
 
           {/* 정보 */}
-          <Text className="mt-4 text-title03 text-grey-80">정보</Text>
+          <Text className="mt-4 text-grey-80 text-title03">정보</Text>
           <View className="mt-2 rounded-xl bg-white px-4">
             <TouchableOpacity
               className="flex-row items-center justify-between border-b border-grey-02 py-3"
               onPress={() => openLink(TERMS_URL)}
             >
-              <Text className="text-body06 text-black">Thingo 서비스 이용 약관</Text>
+              <Text className="text-black text-body06">Thingo 서비스 이용 약관</Text>
               <ArrowRightIcon size={20} className="text-grey-30" />
             </TouchableOpacity>
             <TouchableOpacity
               className="flex-row items-center justify-between border-b border-grey-02 py-3"
               onPress={() => openLink(LOCATION_PRIVACY_URL)}
             >
-              <Text className="text-body06 text-black">위치기반 서비스 이용 약관</Text>
+              <Text className="text-black text-body06">위치기반 서비스 이용 약관</Text>
               <ArrowRightIcon size={20} className="text-grey-30" />
             </TouchableOpacity>
             <TouchableOpacity
               className="flex-row items-center justify-between border-b border-grey-02 py-3"
               onPress={() => openLink(PRIVACY_URL)}
             >
-              <Text className="text-body06 text-black">개인정보 처리 방침</Text>
+              <Text className="text-black text-body06">개인정보 처리 방침</Text>
               <ArrowRightIcon size={20} className="text-grey-30" />
             </TouchableOpacity>
             <TouchableOpacity
               className="flex-row items-center justify-between py-3"
               onPress={openContactMail}
             >
-              <Text className="text-body06 text-black">1:1 문의</Text>
+              <Text className="text-black text-body06">1:1 문의</Text>
               <ArrowRightIcon size={20} className="text-grey-30" />
             </TouchableOpacity>
           </View>
@@ -181,7 +181,7 @@ export default function ProfileScreen() {
             hitSlop={12}
             onPress={() => router.push('/profile/delete-account')}
           >
-            <Text className="text-body05 text-grey-30">탈퇴하기</Text>
+            <Text className="text-grey-30 text-body05">탈퇴하기</Text>
           </TouchableOpacity>
         </View>
       </View>

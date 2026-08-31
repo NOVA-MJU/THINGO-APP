@@ -14,7 +14,7 @@ export default function CategoryListSheet({ onChipPress }: CategoryListSheetProp
         {CATEGORIES.map((category) => (
           <View key={category.id} className="px-4 pb-2">
             {/* 카테고리 이름 */}
-            <Text className="text-body02 text-black">{category.label}</Text>
+            <Text className="text-black text-body02">{category.label}</Text>
             <View className="mt-2 flex-row flex-wrap gap-2">
               {category.chips.map((chip) => {
                 return (
@@ -31,7 +31,7 @@ export default function CategoryListSheet({ onChipPress }: CategoryListSheetProp
                     }}
                   >
                     <chip.Icon size={20} className={category.iconClassName} />
-                    <Text className="text-caption02 text-grey-80">{chip.label}</Text>
+                    <Text className="text-grey-80 text-caption02">{chip.label}</Text>
                   </TouchableOpacity>
                 );
               })}

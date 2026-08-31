@@ -114,7 +114,7 @@ const GroupEditSheet = React.forwardRef<GroupEditSheetHandle, GroupEditSheetProp
       >
         <BottomSheetView className="px-4">
           <View className="flex-row items-center justify-center">
-            <Text className="text-title03 text-black">
+            <Text className="text-black text-title03">
               {isEditMode ? '그룹명 수정' : '새 그룹 추가'}
             </Text>
             <TouchableOpacity
@@ -129,7 +129,7 @@ const GroupEditSheet = React.forwardRef<GroupEditSheetHandle, GroupEditSheetProp
           </View>
           <View className="-mx-4 mt-4 h-1 bg-grey-02" />
           <View className="mt-4 gap-2">
-            <Text className="text-body02 text-grey-80">그룹 명</Text>
+            <Text className="text-grey-80 text-body02">그룹 명</Text>
             <Input
               placeholder="설정하실 그룹명을 입력해 주세요."
               value={groupName}
@@ -138,7 +138,7 @@ const GroupEditSheet = React.forwardRef<GroupEditSheetHandle, GroupEditSheetProp
             />
           </View>
           <View className="mt-4 gap-2">
-            <Text className="text-body02 text-grey-80">그룹 색상</Text>
+            <Text className="text-grey-80 text-body02">그룹 색상</Text>
             <View className="flex-row items-center justify-between">
               {GROUP_COLORS.map((color) => (
                 <TouchableOpacity

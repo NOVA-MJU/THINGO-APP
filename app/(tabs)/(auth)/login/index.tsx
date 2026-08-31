@@ -64,9 +64,9 @@ export default function LoginScreen() {
     >
       {/* 로그인 영역 */}
       <View className="flex-1 gap-3 px-4 py-8">
-        <Text className="text-title03 text-black">로그인</Text>
+        <Text className="text-black text-title03">로그인</Text>
         <View className="rounded-xl bg-white p-4">
-          <Text className="text-body04 text-grey-80">이메일</Text>
+          <Text className="text-grey-80 text-body04">이메일</Text>
           <Input
             className="mt-2"
             placeholder="@mju.ac.kr"
@@ -79,7 +79,7 @@ export default function LoginScreen() {
             onSubmitEditing={() => passwordRef.current?.focus()}
             submitBehavior="submit"
           />
-          <Text className="mt-4 text-body04 text-grey-80">비밀번호</Text>
+          <Text className="mt-4 text-grey-80 text-body04">비밀번호</Text>
           <Input
             ref={passwordRef}
             className="mt-2"
@@ -105,13 +105,13 @@ export default function LoginScreen() {
           <View className="mt-6 flex-row items-center">
             <TouchableOpacity className="flex-1" onPress={onFindIdPress}>
               <View className="h-10 items-center justify-center">
-                <Text className="text-caption02 text-grey-20">아이디 찾기</Text>
+                <Text className="text-grey-20 text-caption02">아이디 찾기</Text>
               </View>
             </TouchableOpacity>
             <View className="h-4 w-[1px] bg-grey-20" />
             <TouchableOpacity className="flex-1" onPress={onFindPasswordPress}>
               <View className="h-10 items-center justify-center">
-                <Text className="text-caption02 text-grey-20">비밀번호 찾기</Text>
+                <Text className="text-grey-20 text-caption02">비밀번호 찾기</Text>
               </View>
             </TouchableOpacity>
           </View>

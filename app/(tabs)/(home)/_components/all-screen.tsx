@@ -376,13 +376,13 @@ export default function AllScreen({ onNavigate }: Props) {
 
                           <View className="absolute bottom-0 left-0 right-0 top-0 z-20 justify-between p-4">
                             <View className="self-end rounded-full bg-bg px-2 py-0.5">
-                              <Text className="text-caption02 text-white">
+                              <Text className="text-white text-caption02">
                                 {index + 1}/{banners.length}
                               </Text>
                             </View>
                             <View className="p-2">
                               <View className="self-start rounded-md bg-blue-05 px-1 py-0.5">
-                                <Text className="text-caption01 text-blue-35">{item.category}</Text>
+                                <Text className="text-blue-35 text-caption01">{item.category}</Text>
                               </View>
                               {/* TODO: 텍스트 스타일 적용해야함 */}
                               <Text
@@ -391,7 +391,7 @@ export default function AllScreen({ onNavigate }: Props) {
                               >
                                 {item.title}
                               </Text>
-                              <Text className="mt-0.5 text-body04 text-blue-05" numberOfLines={1}>
+                              <Text className="mt-0.5 text-blue-05 text-body04" numberOfLines={1}>
                                 {item.oneLineIntro}
                               </Text>
                             </View>
@@ -422,7 +422,7 @@ export default function AllScreen({ onNavigate }: Props) {
               <View className="flex-1 flex-row gap-2">
                 <Link href="/maps" asChild>
                   <TouchableOpacity className="flex-1 rounded-xl bg-blue-02 pb-0.5 pe-1.5 ps-2.5 pt-2">
-                    <Text className="text-body05 text-black">명지도</Text>
+                    <Text className="text-black text-body05">명지도</Text>
                     <View className="flex-1 items-end justify-end">
                       <MyeongjiMapIcon />
                     </View>
@@ -432,7 +432,7 @@ export default function AllScreen({ onNavigate }: Props) {
                   className="flex-1 rounded-xl bg-blue-02 pb-0.5 pe-1.5 ps-2.5 pt-2"
                   onPress={() => onNavigate(1)}
                 >
-                  <Text className="text-body05 text-black">학식</Text>
+                  <Text className="text-black text-body05">학식</Text>
                   <View className="flex-1 items-end justify-end">
                     <DiningIcon />
                   </View>
@@ -443,19 +443,19 @@ export default function AllScreen({ onNavigate }: Props) {
                   <View className="items-center rounded-xl bg-blue-02 p-2">
                     <CalendarIcon />
                   </View>
-                  <Text className="text-center text-body05 text-black">학사일정</Text>
+                  <Text className="text-center text-black text-body05">학사일정</Text>
                 </TouchableOpacity>
                 <TouchableOpacity className="flex-1 gap-1" onPress={() => onNavigate(3)}>
                   <View className="items-center rounded-xl bg-blue-02 p-2">
                     <MegaphoneIcon />
                   </View>
-                  <Text className="text-center text-body05 text-black">공지사항</Text>
+                  <Text className="text-center text-black text-body05">공지사항</Text>
                 </TouchableOpacity>
                 <TouchableOpacity className="flex-1 gap-1" onPress={() => onNavigate(2)}>
                   <View className="items-center rounded-xl bg-blue-02 p-2">
                     <ChatIcon />
                   </View>
-                  <Text className="text-center text-body05 text-black">게시판</Text>
+                  <Text className="text-center text-black text-body05">게시판</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -472,17 +472,17 @@ export default function AllScreen({ onNavigate }: Props) {
               ) : calendarDdays.length > 0 ? (
                 calendarDdays.map((item, index) => (
                   <View key={index} className="flex-1 gap-1">
-                    <Text className="text-caption03 text-blue-15" numberOfLines={1}>
+                    <Text className="text-blue-15 text-caption03" numberOfLines={1}>
                       {formatDdayValue(item.ddayValue)}
                     </Text>
-                    <Text className="text-caption02 text-grey-80" numberOfLines={1}>
+                    <Text className="text-grey-80 text-caption02" numberOfLines={1}>
                       {item.eventName}
                     </Text>
                   </View>
                 ))
               ) : (
                 <View className="flex-1 justify-center">
-                  <Text className="text-caption02 text-grey-40">예정된 학사일정이 없습니다.</Text>
+                  <Text className="text-grey-40 text-caption02">예정된 학사일정이 없습니다.</Text>
                 </View>
               )}
             </View>
@@ -495,18 +495,18 @@ export default function AllScreen({ onNavigate }: Props) {
           className="mx-4 mt-6 gap-2.5 rounded-xl bg-white px-4 py-5"
         >
           <View className="flex-row items-center gap-2">
-            <Text className="text-body02 text-black">{currentMealLabel}</Text>
-            <Text className="text-caption02 text-grey-60">{currentMealTimeRange}</Text>
+            <Text className="text-black text-body02">{currentMealLabel}</Text>
+            <Text className="text-grey-60 text-caption02">{currentMealTimeRange}</Text>
           </View>
           <View className="flex-row flex-wrap gap-1.5">
             {todayMeals.length > 0 ? (
               todayMeals.map((meal) => (
                 <View key={meal} className="rounded-[6px] bg-grey-02 px-1 py-0.5">
-                  <Text className="text-body05 text-grey-80">{meal}</Text>
+                  <Text className="text-grey-80 text-body05">{meal}</Text>
                 </View>
               ))
             ) : (
-              <Text className="text-body05 text-grey-40">식단 정보가 없습니다.</Text>
+              <Text className="text-grey-40 text-body05">식단 정보가 없습니다.</Text>
             )}
           </View>
         </TouchableOpacity>
@@ -514,9 +514,9 @@ export default function AllScreen({ onNavigate }: Props) {
         {/* HOT 공지사항 */}
         <View className="mt-8 flex-row items-center gap-1 px-4">
           <FireIcon />
-          <Text className="text-title03 text-black">HOT 공지사항</Text>
+          <Text className="text-black text-title03">HOT 공지사항</Text>
         </View>
-        <Text className="px-4 text-caption02 text-grey-60">최근 일주일간 가장 많은 조회 수</Text>
+        <Text className="px-4 text-grey-60 text-caption02">최근 일주일간 가장 많은 조회 수</Text>
         <View className="mx-4 mt-3 rounded-xl bg-white py-1">
           {hotNoticesLoading
             ? Array.from({ length: 6 }).map((_, i) => (
@@ -535,14 +535,14 @@ export default function AllScreen({ onNavigate }: Props) {
                     className="flex-row items-center gap-1 px-4 py-3"
                     onPress={() => openLink(item.link)}
                   >
-                    <Text className="text-body04 text-black" numberOfLines={1}>
+                    <Text className="text-black text-body04" numberOfLines={1}>
                       {NOTICE_CATEGORIES.find((c) => c.value === item.category)?.label ??
                         item.category}
                     </Text>
-                    <Text className="flex-1 text-body05 text-black" numberOfLines={1}>
+                    <Text className="flex-1 text-black text-body05" numberOfLines={1}>
                       {item.title}
                     </Text>
-                    <Text className="text-caption04 text-grey-30">{dateLabel}</Text>
+                    <Text className="text-grey-30 text-caption04">{dateLabel}</Text>
                   </TouchableOpacity>
                 );
               })}
@@ -551,9 +551,9 @@ export default function AllScreen({ onNavigate }: Props) {
         {/* HOT 게시판 */}
         <View className="mt-8 flex-row items-center gap-1 px-4">
           <StarIcon />
-          <Text className="text-title03 text-black">HOT 게시판</Text>
+          <Text className="text-black text-title03">HOT 게시판</Text>
         </View>
-        <Text className="px-4 text-caption02 text-grey-60">모두가 가장 보고 싶은 글</Text>
+        <Text className="px-4 text-grey-60 text-caption02">모두가 가장 보고 싶은 글</Text>
         <View className="mx-4 mt-3 rounded-xl bg-white py-1">
           {hotBoardsLoading
             ? Array.from({ length: 2 }).map((_, i) => (
@@ -576,20 +576,20 @@ export default function AllScreen({ onNavigate }: Props) {
                   <Link key={index} href={`/posts/${item.uuid}`} asChild>
                     <TouchableOpacity className="gap-2 px-4 pb-2 pt-3">
                       <View className="flex-row gap-1">
-                        <Text className="text-body04 text-black" numberOfLines={1}>
+                        <Text className="text-black text-body04" numberOfLines={1}>
                           {BOARD_CATEGORY_LABELS[item.communityCategory ?? ''] ??
                             item.communityCategory}
                         </Text>
-                        <Text className="flex-1 text-body05 text-black" numberOfLines={1}>
+                        <Text className="flex-1 text-black text-body05" numberOfLines={1}>
                           {item.title}
                         </Text>
                       </View>
                       <View className="flex-row items-center">
-                        <Text className="flex-1 text-caption04 text-grey-30">{dateLabel}</Text>
+                        <Text className="flex-1 text-grey-30 text-caption04">{dateLabel}</Text>
                         <HeartIcon className="text-blue-10" />
-                        <Text className="ms-1 text-caption02 text-grey-40">{item.likeCount}</Text>
+                        <Text className="ms-1 text-grey-40 text-caption02">{item.likeCount}</Text>
                         <ChatBubbleIcon className="ms-2 text-blue-10" />
-                        <Text className="ms-1 text-caption02 text-grey-40">
+                        <Text className="ms-1 text-grey-40 text-caption02">
                           {item.commentCount}
                         </Text>
                       </View>
@@ -602,7 +602,7 @@ export default function AllScreen({ onNavigate }: Props) {
         {/* 공지사항 */}
         <View className="mt-8">
           <View className="flex-row items-center justify-between">
-            <Text className="ms-4 text-title03 text-black">공지사항</Text>
+            <Text className="ms-4 text-black text-title03">공지사항</Text>
             <TouchableOpacity
               onPress={() => onNavigate(3)}
               className="me-3.5"
@@ -628,13 +628,13 @@ export default function AllScreen({ onNavigate }: Props) {
                 className="flex-row items-center gap-1 px-4 py-3"
                 onPress={() => openLink(item.link)}
               >
-                <Text className="text-body04 text-black" numberOfLines={1}>
+                <Text className="text-black text-body04" numberOfLines={1}>
                   {NOTICE_CATEGORIES.find((c) => c.value === item.category)?.label ?? item.category}
                 </Text>
-                <Text className="flex-1 text-body05 text-black" numberOfLines={1}>
+                <Text className="flex-1 text-black text-body05" numberOfLines={1}>
                   {item.title}
                 </Text>
-                <Text className="text-caption04 text-grey-30" numberOfLines={1}>
+                <Text className="text-grey-30 text-caption04" numberOfLines={1}>
                   {formatTimeAgo(item.date)}
                 </Text>
               </TouchableOpacity>
@@ -650,7 +650,7 @@ export default function AllScreen({ onNavigate }: Props) {
         {/* 학사일정 */}
         <View className="mt-8">
           <View className="flex-row items-center justify-between">
-            <Text className="ms-4 text-title03 text-black">학사일정</Text>
+            <Text className="ms-4 text-black text-title03">학사일정</Text>
             <TouchableOpacity
               onPress={() => onNavigate(4)}
               className="me-3.5"
@@ -661,17 +661,17 @@ export default function AllScreen({ onNavigate }: Props) {
             </TouchableOpacity>
           </View>
           <View className="mx-4 mt-3 rounded-xl bg-white">
-            <Text className="border-b border-grey-02 px-4 pb-1 pt-2 text-body02 text-mju-primary">
+            <Text className="border-b border-grey-02 px-4 pb-1 pt-2 text-mju-primary text-body02">
               {todayLabel}
             </Text>
             <View>
               {todayEvents.length === 0 ? (
-                <Text className="px-5 py-2 text-caption02 text-grey-30">오늘 일정이 없습니다.</Text>
+                <Text className="px-5 py-2 text-grey-30 text-caption02">오늘 일정이 없습니다.</Text>
               ) : (
                 todayEvents.map((item, index) => (
                   <View key={index} className="flex-row items-start gap-2 px-4 py-3">
-                    <Text className="w-[80px] text-caption02 text-grey-40">{item.dateLabel}</Text>
-                    <Text className="flex-1 text-caption02 text-black" numberOfLines={2}>
+                    <Text className="w-[80px] text-grey-40 text-caption02">{item.dateLabel}</Text>
+                    <Text className="flex-1 text-black text-caption02" numberOfLines={2}>
                       {item.description}
                     </Text>
                   </View>
@@ -684,7 +684,7 @@ export default function AllScreen({ onNavigate }: Props) {
         {/* 게시판 */}
         <View className="mt-8">
           <View className="flex-row items-center justify-between">
-            <Text className="ms-4 text-title03 text-black">게시판</Text>
+            <Text className="ms-4 text-black text-title03">게시판</Text>
             <TouchableOpacity
               onPress={() => onNavigate(2)}
               className="me-3.5"
@@ -716,20 +716,20 @@ export default function AllScreen({ onNavigate }: Props) {
                     <Link key={item.uuid} href={`/posts/${item.uuid}`} asChild>
                       <TouchableOpacity className="gap-2 px-4 pb-2 pt-3">
                         <View className="flex-row gap-1">
-                          <Text className="text-body04 text-black">
+                          <Text className="text-black text-body04">
                             {BOARD_CATEGORY_LABELS[item.communityCategory ?? ''] ??
                               item.communityCategory}
                           </Text>
-                          <Text className="flex-1 text-body05 text-black" numberOfLines={1}>
+                          <Text className="flex-1 text-black text-body05" numberOfLines={1}>
                             {item.title}
                           </Text>
                         </View>
                         <View className="flex-row items-center">
-                          <Text className="flex-1 text-caption04 text-grey-30">{dateLabel}</Text>
+                          <Text className="flex-1 text-grey-30 text-caption04">{dateLabel}</Text>
                           <HeartIcon className="ms-3 text-blue-10" />
-                          <Text className="ms-1 text-caption02 text-grey-40">{item.likeCount}</Text>
+                          <Text className="ms-1 text-grey-40 text-caption02">{item.likeCount}</Text>
                           <ChatBubbleIcon className="ms-2 text-blue-10" />
-                          <Text className="ms-1 text-caption02 text-grey-40">
+                          <Text className="ms-1 text-grey-40 text-caption02">
                             {item.commentCount}
                           </Text>
                         </View>
@@ -743,7 +743,7 @@ export default function AllScreen({ onNavigate }: Props) {
         {/* 명대신문 */}
         <View className="mt-8">
           <View className="flex-row items-center justify-between">
-            <Text className="ms-4 text-title03 text-black">명대신문</Text>
+            <Text className="ms-4 text-black text-title03">명대신문</Text>
             <TouchableOpacity
               onPress={() => onNavigate(5)}
               className="me-3.5"
@@ -774,16 +774,16 @@ export default function AllScreen({ onNavigate }: Props) {
                   className="rounded border border-grey-10 bg-white"
                 />
                 <View className="flex-1">
-                  <Text className="text-body02 text-black" numberOfLines={1}>
+                  <Text className="text-black text-body02" numberOfLines={1}>
                     {item.title}
                   </Text>
-                  <Text className="mt-0.5 flex-1 text-body05 text-black" numberOfLines={2}>
+                  <Text className="mt-0.5 flex-1 text-black text-body05" numberOfLines={2}>
                     {item.summary}
                   </Text>
-                  <Text className="mt-0.5 text-caption01 text-grey-30" numberOfLines={1}>
+                  <Text className="mt-0.5 text-grey-30 text-caption01" numberOfLines={1}>
                     {item.reporter}
                   </Text>
-                  <Text className="text-caption04 text-grey-30" numberOfLines={1}>
+                  <Text className="text-grey-30 text-caption04" numberOfLines={1}>
                     {new Date(item.date).toISOString().slice(0, 10)}
                   </Text>
                 </View>
@@ -800,7 +800,7 @@ export default function AllScreen({ onNavigate }: Props) {
         {/* 명대뉴스 */}
         <View className="mb-9 mt-8">
           <View className="flex-row items-center justify-between">
-            <Text className="ms-4 text-title03 text-black">명대뉴스</Text>
+            <Text className="ms-4 text-black text-title03">명대뉴스</Text>
             <TouchableOpacity
               onPress={() => onNavigate(6)}
               className="me-3.5"
@@ -830,10 +830,10 @@ export default function AllScreen({ onNavigate }: Props) {
                   </View>
                   <TouchableOpacity onPress={() => openLink(item.url)}>
                     <View className="h-24 gap-0.5 rounded-b-xl bg-white px-4 py-2">
-                      <Text className="flex-1 text-body02 text-black" numberOfLines={2}>
+                      <Text className="flex-1 text-black text-body02" numberOfLines={2}>
                         {item.title}
                       </Text>
-                      <Text className="text-caption04 text-grey-30" numberOfLines={1}>
+                      <Text className="text-grey-30 text-caption04" numberOfLines={1}>
                         {dateLabel}
                       </Text>
                     </View>

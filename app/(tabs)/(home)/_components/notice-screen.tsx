@@ -82,11 +82,11 @@ export default function NoticeScreen() {
         {notices.map((notice, index) => (
           <TouchableOpacity key={index} onPress={() => openLink(notice.link)}>
             <View className="flex w-full flex-col gap-1 border-b border-grey-02 px-4 py-2.5">
-              <Text className="text-caption01 text-blue-15">
+              <Text className="text-blue-15 text-caption01">
                 {CATEGORIES.find((c) => c.value === notice.category)?.label ?? notice.category}
               </Text>
-              <Text className="text-body05 text-black">{notice.title}</Text>
-              <Text className="text-caption04 text-grey-30">
+              <Text className="text-black text-body05">{notice.title}</Text>
+              <Text className="text-grey-30 text-caption04">
                 {format(parseUTCDate(notice.date), 'yyyy.MM.dd')}
               </Text>
             </View>

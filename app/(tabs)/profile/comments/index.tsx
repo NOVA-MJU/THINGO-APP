@@ -46,8 +46,8 @@ export default function MyCommentsScreen() {
       >
         <View className="flex-1">
           <View className="px-4 py-5">
-            <Text className="text-title01 text-black">내가 작성한 댓글</Text>
-            <Text className="mt-1 text-body05 text-grey-40">총 {totalElements}개</Text>
+            <Text className="text-black text-title01">내가 작성한 댓글</Text>
+            <Text className="mt-1 text-grey-40 text-body05">총 {totalElements}개</Text>
           </View>
 
           <View className="flex-1">
@@ -57,7 +57,7 @@ export default function MyCommentsScreen() {
               </View>
             ) : items.length === 0 ? (
               <View className="flex-1 items-center justify-center py-20">
-                <Text className="text-body05 text-black">작성한 댓글이 없습니다.</Text>
+                <Text className="text-black text-body05">작성한 댓글이 없습니다.</Text>
               </View>
             ) : (
               <>
@@ -68,15 +68,15 @@ export default function MyCommentsScreen() {
                       className="rounded-xl bg-white px-4 pb-3 pt-4"
                       onPress={() => router.push(`/posts/${item.boardUuid}`)}
                     >
-                      <Text className="text-body04 text-black" numberOfLines={1}>
+                      <Text className="text-black text-body04" numberOfLines={1}>
                         {item.boardTitle}
                       </Text>
-                      <Text className="mt-1 text-body05 text-grey-60" numberOfLines={2}>
+                      <Text className="mt-1 text-grey-60 text-body05" numberOfLines={2}>
                         {item.boardPreviewContent}
                       </Text>
                       <View className="mt-3 flex-row items-start gap-2 rounded-lg bg-grey-02 px-3 py-2">
                         <ChatBubbleIcon size={18} className="mt-0.5 shrink-0 text-grey-40" />
-                        <Text className="flex-1 text-body05 text-grey-60" numberOfLines={2}>
+                        <Text className="flex-1 text-grey-60 text-body05" numberOfLines={2}>
                           {item.commentPreviewContent}
                         </Text>
                       </View>

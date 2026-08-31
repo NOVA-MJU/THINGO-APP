@@ -38,13 +38,13 @@ export default function CategorySelector({
       <View className="flex-row items-center gap-1">
         <Text
           className={
-            sheetVariant ? 'text-body02 font-semibold text-grey-80' : 'text-body04 text-grey-80'
+            sheetVariant ? 'font-semibold text-grey-80 text-body02' : 'text-grey-80 text-body04'
           }
         >
           카테고리
         </Text>
         <Text
-          className={sheetVariant ? 'text-caption05 text-grey-40' : 'text-caption02 text-grey-40'}
+          className={sheetVariant ? 'text-grey-40 text-caption05' : 'text-grey-40 text-caption02'}
         >
           {sheetVariant ? '(1개 이상 선택)' : '1개 이상 선택'}
         </Text>

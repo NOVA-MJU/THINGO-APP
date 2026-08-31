@@ -94,7 +94,7 @@ export default function ForgotPasswordScreen() {
           {step === 0 && (
             <View className="px-4">
               <View className="mt-5 rounded-xl bg-white p-4">
-                <Text className="text-body04 text-grey-80">이메일</Text>
+                <Text className="text-grey-80 text-body04">이메일</Text>
                 <View className="mt-2 flex-row gap-2.5">
                   <Input
                     placeholder="이메일을 입력하세요(@mju.ac.kr)"
@@ -114,7 +114,7 @@ export default function ForgotPasswordScreen() {
                     <Text>인증요청</Text>
                   </Button>
                 </View>
-                <Text className="mt-4 text-body04 text-grey-80">인증번호</Text>
+                <Text className="mt-4 text-grey-80 text-body04">인증번호</Text>
                 <View className="mt-2 flex-row gap-2.5">
                   <Input
                     placeholder="인증번호를 입력하세요"
@@ -143,13 +143,13 @@ export default function ForgotPasswordScreen() {
                 <View className="mt-6 flex-row items-center">
                   <TouchableOpacity className="flex-1" onPress={onFindIdPress}>
                     <View className="h-10 items-center justify-center">
-                      <Text className="text-caption02 text-grey-20">아이디 찾기</Text>
+                      <Text className="text-grey-20 text-caption02">아이디 찾기</Text>
                     </View>
                   </TouchableOpacity>
                   <View className="h-4 w-[1px] bg-grey-20" />
                   <TouchableOpacity className="flex-1">
                     <View className="h-10 items-center justify-center">
-                      <Text className="text-caption02 text-grey-20">비밀번호 찾기</Text>
+                      <Text className="text-grey-20 text-caption02">비밀번호 찾기</Text>
                     </View>
                   </TouchableOpacity>
                 </View>
@@ -160,7 +160,7 @@ export default function ForgotPasswordScreen() {
           {step === 1 && (
             <View className="px-4">
               <View className="mt-5 rounded-xl bg-white p-4">
-                <Text className="text-body04 text-grey-80">새 비밀번호</Text>
+                <Text className="text-grey-80 text-body04">새 비밀번호</Text>
                 <Input
                   placeholder="새 비밀번호를 입력하세요"
                   className="mt-2"
@@ -170,7 +170,7 @@ export default function ForgotPasswordScreen() {
                   value={newPassword}
                   onChangeText={setNewPassword}
                 />
-                <Text className="mt-4 text-body04 text-grey-80">새 비밀번호 확인</Text>
+                <Text className="mt-4 text-grey-80 text-body04">새 비밀번호 확인</Text>
                 <Input
                   placeholder="비밀번호를 다시 입력하세요"
                   className="mt-2"

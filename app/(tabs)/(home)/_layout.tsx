@@ -66,7 +66,7 @@ function WebHomeLayout() {
             <Link href="/search" asChild>
               <TouchableOpacity className="flex-1 flex-row items-center gap-2 rounded-full bg-grey-02 px-3 py-1.5">
                 <SearchIcon className="text-grey-30" />
-                <Text className="text-body06 text-grey-40">검색어를 입력하세요</Text>
+                <Text className="text-grey-40 text-body06">검색어를 입력하세요</Text>
               </TouchableOpacity>
             </Link>
           </View>
@@ -91,7 +91,7 @@ function WebHomeLayout() {
       {/* 로그인 유도 dialog */}
       <Dialog open={notificationDialogVisible} onOpenChange={setNotificationDialogVisible}>
         <DialogContent className="w-80 items-center gap-4 p-5" showCloseButton={false}>
-          <DialogTitle className="text-body04 text-grey-80">
+          <DialogTitle className="text-grey-80 text-body04">
             로그인이 필요한 서비스입니다.
           </DialogTitle>
           <View className="w-full flex-row items-center gap-2">

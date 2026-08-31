@@ -44,7 +44,7 @@ const buttonTextVariants = cva(
         muted: 'text-grey-40',
         subtle: 'text-white',
         destructive: 'text-white',
-        outline: 'text-body04 text-grey-40',
+        outline: 'text-grey-40 text-body04',
         ghost: '',
       },
     },

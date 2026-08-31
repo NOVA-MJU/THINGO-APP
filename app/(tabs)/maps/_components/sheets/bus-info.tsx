@@ -91,7 +91,7 @@ export default function BusInfoSheet({ station, onClose }: Props) {
   if (isError || !data) {
     return (
       <View className="items-center py-8">
-        <Text className="text-body05 text-grey-40">버스 정보를 불러올 수 없습니다.</Text>
+        <Text className="text-grey-40 text-body05">버스 정보를 불러올 수 없습니다.</Text>
       </View>
     );
   }
@@ -101,7 +101,7 @@ export default function BusInfoSheet({ station, onClose }: Props) {
       <View className="gap-3.5 px-4">
         {/* 헤더 */}
         <View className="flex-row items-center gap-2">
-          <Text className="flex-1 text-title03 text-black">{data.stationName}</Text>
+          <Text className="flex-1 text-black text-title03">{data.stationName}</Text>
           <TouchableOpacity
             hitSlop={4}
             onPress={onClose}
@@ -122,13 +122,13 @@ export default function BusInfoSheet({ station, onClose }: Props) {
               <View className="flex-1 flex-row items-center gap-2">
                 <BusIcon size={24} className="text-blue-20" />
                 <View>
-                  <Text className="text-body02 text-black">{bus.routeName}</Text>
-                  <Text className="text-caption04 text-grey-30">막차 {bus.lastBusTime}</Text>
+                  <Text className="text-black text-body02">{bus.routeName}</Text>
+                  <Text className="text-grey-30 text-caption04">막차 {bus.lastBusTime}</Text>
                 </View>
 
                 <View className="ml-auto items-end gap-0.5">
                   {bus.arrivals.length === 0 ? (
-                    <Text className="text-caption01 text-grey-40">도착 예정 정보 없음</Text>
+                    <Text className="text-grey-40 text-caption01">도착 예정 정보 없음</Text>
                   ) : (
                     bus.arrivals.map((arrival, j) => {
                       const parsed = parseRemainingSeconds(arrival.remainingTime);
@@ -140,9 +140,9 @@ export default function BusInfoSheet({ station, onClose }: Props) {
 
                       return (
                         <View key={j} className="flex-row items-center gap-2">
-                          <Text className="text-caption01 text-blue-35">{displayTime}</Text>
+                          <Text className="text-blue-35 text-caption01">{displayTime}</Text>
                           {arrival.stationCount && (
-                            <Text className="text-caption02 text-grey-30">
+                            <Text className="text-grey-30 text-caption02">
                               {arrival.stationCount} 전
                             </Text>
                           )}

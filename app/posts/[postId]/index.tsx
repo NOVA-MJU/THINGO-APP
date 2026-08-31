@@ -520,7 +520,7 @@ export default function BoardDetailScreen() {
                 hitSlop={4}
               >
                 <ArrowLeftIcon className="text-black" size={20} />
-                <Text className="text-body03 text-black">이전</Text>
+                <Text className="text-black text-body03">이전</Text>
               </TouchableOpacity>
 
               {/* 신고, 차단 더보기 버튼 (내가 작성한 게시글은 표시하지 않음) */}
@@ -533,10 +533,10 @@ export default function BoardDetailScreen() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onPress={handleReportPress}>
-                      <Text className="px-2 py-1 text-caption02 text-grey-30">신고</Text>
+                      <Text className="px-2 py-1 text-grey-30 text-caption02">신고</Text>
                     </DropdownMenuItem>
                     <DropdownMenuItem onPress={handleBlockPress}>
-                      <Text className="px-2 py-1 text-caption02 text-grey-30">차단</Text>
+                      <Text className="px-2 py-1 text-grey-30 text-caption02">차단</Text>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -565,25 +565,25 @@ export default function BoardDetailScreen() {
               <View className="pt-5">
                 <View className="gap-1 px-4">
                   {/* 컨텐츠 제목 */}
-                  <Text className="text-body02 text-black">{board.title}</Text>
+                  <Text className="text-black text-body02">{board.title}</Text>
 
                   <View className="flex-row items-center justify-between gap-4">
                     <View className="flex-row items-center gap-3">
-                      <Text className="text-body05 text-grey-40">{formatBoardDate(board)}</Text>
+                      <Text className="text-grey-40 text-body05">{formatBoardDate(board)}</Text>
                       <Svg width="1" height="16" viewBox="0 0 1 16" fill="none">
                         <Line x1="0.5" x2="0.5" y2="16" stroke="#AEB2B6" />
                       </Svg>
-                      <Text className="text-body05 text-grey-40">{board.author}</Text>
+                      <Text className="text-grey-40 text-body05">{board.author}</Text>
                     </View>
 
                     <View className="flex-row items-center">
                       <HeartIcon size={24} filled={board.liked} className="text-blue-20" />
-                      <Text className="text-body05 text-grey-40">{board.likeCount}</Text>
+                      <Text className="text-grey-40 text-body05">{board.likeCount}</Text>
                       <Svg width="1" height="16" viewBox="0 0 1 16" fill="none" className="ms-2">
                         <Line x1="0.5" x2="0.5" y2="16" stroke="#AEB2B6" />
                       </Svg>
                       <ChatBubbleIcon size={24} className="ms-1.5 text-blue-20" />
-                      <Text className="text-body05 text-grey-40">{board.commentCount}</Text>
+                      <Text className="text-grey-40 text-body05">{board.commentCount}</Text>
                     </View>
                   </View>
                 </View>
@@ -600,7 +600,7 @@ export default function BoardDetailScreen() {
                     className="flex-row items-center self-start"
                     disabled={isLikePending}
                   >
-                    <Text className="text-body04 text-grey-40">
+                    <Text className="text-grey-40 text-body04">
                       {isLikePending ? '처리 중...' : '좋아요'}
                     </Text>
                     <HeartIcon
@@ -615,12 +615,12 @@ export default function BoardDetailScreen() {
                     <View className="flex-row items-center gap-5">
                       {board.canEdit ? (
                         <TouchableOpacity onPress={handleEditPress}>
-                          <Text className="text-body05 text-grey-40">수정</Text>
+                          <Text className="text-grey-40 text-body05">수정</Text>
                         </TouchableOpacity>
                       ) : null}
                       {board.canDelete ? (
                         <TouchableOpacity onPress={() => setDeleteDialogOpen(true)}>
-                          <Text className="text-body05 text-grey-40">삭제</Text>
+                          <Text className="text-grey-40 text-body05">삭제</Text>
                         </TouchableOpacity>
                       ) : null}
                     </View>
@@ -633,7 +633,7 @@ export default function BoardDetailScreen() {
 
             {/* 댓글 */}
             <View className="px-4 pt-5">
-              <Text className="mb-2 text-body02 text-black">댓글</Text>
+              <Text className="mb-2 text-black text-body02">댓글</Text>
 
               {isCommentsLoading ? (
                 <View className="mt-2 gap-5">
@@ -685,7 +685,7 @@ export default function BoardDetailScreen() {
               ) : (
                 <View className="gap-[14px]">
                   <View className="h-[129px] items-center justify-center rounded-[4px] border border-grey-10 bg-white px-4">
-                    <Text className="text-center text-body05 text-grey-30">
+                    <Text className="text-center text-grey-30 text-body05">
                       로그인 후 이용 가능합니다.
                     </Text>
                   </View>
@@ -707,10 +707,10 @@ export default function BoardDetailScreen() {
         <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <DialogContent className="mx-6 w-[320px] max-w-[320px] gap-4 rounded-xl border-none py-[24px]">
             <DialogHeader className="gap-1">
-              <DialogTitle className="text-center text-body03 text-black">
+              <DialogTitle className="text-center text-black text-body03">
                 게시글을 삭제하시겠습니까?
               </DialogTitle>
-              <DialogDescription className="text-center text-body06 text-grey-80">
+              <DialogDescription className="text-center text-grey-80 text-body06">
                 삭제한 게시글과 댓글은 복구할 수 없습니다.
               </DialogDescription>
             </DialogHeader>
@@ -721,7 +721,7 @@ export default function BoardDetailScreen() {
                 className="h-[36px] flex-1 items-center justify-center rounded-xl bg-grey-10"
                 disabled={isBoardDeleting}
               >
-                <Text className="text-body06 text-black">취소</Text>
+                <Text className="text-black text-body06">취소</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -729,7 +729,7 @@ export default function BoardDetailScreen() {
                 className="h-[36px] flex-1 items-center justify-center rounded-xl bg-error"
                 disabled={isBoardDeleting}
               >
-                <Text className="text-body06 text-white">
+                <Text className="text-white text-body06">
                   {isBoardDeleting ? '삭제 중...' : '삭제'}
                 </Text>
               </TouchableOpacity>
@@ -742,15 +742,15 @@ export default function BoardDetailScreen() {
           <DialogContent showCloseButton={false} className="min-w-80 p-5">
             <View className="gap-4">
               <View>
-                <DialogTitle className="text-center text-body04 leading-normal text-grey-80">
+                <DialogTitle className="text-center leading-normal text-grey-80 text-body04">
                   {`'${board?.author}' 차단하시겠어요?`}
                 </DialogTitle>
-                <Text className="text-center text-caption02 text-grey-80">
+                <Text className="text-center text-grey-80 text-caption02">
                   {
                     '차단하면 이 사용자가 작성한 모든 게시판 글과\n댓글, 명지도 리뷰가 즉시 숨겨집니다.'
                   }
                 </Text>
-                <Text className="text-center text-caption04 text-grey-40">
+                <Text className="text-center text-grey-40 text-caption04">
                   (상대방에게는 차단 사실을 알리지 않아요.)
                 </Text>
               </View>
@@ -791,8 +791,8 @@ export default function BoardDetailScreen() {
             </TouchableOpacity>
           </View>
           <View className="mt-[18px] flex-row items-center gap-1 px-4">
-            <Text className="text-body02 text-grey-80">신고 사유를 알려주세요.</Text>
-            <Text className="text-body02 text-error">*</Text>
+            <Text className="text-grey-80 text-body02">신고 사유를 알려주세요.</Text>
+            <Text className="text-error text-body02">*</Text>
           </View>
 
           <TouchableOpacity
@@ -801,8 +801,8 @@ export default function BoardDetailScreen() {
           >
             <RadioIcon size={20} checked={selectedReportReasonId === 'COMMERCIAL_AD'} />
             <View className="flex-1 gap-1">
-              <Text className="text-body05 text-grey-60">상업적 광고 및 홍보성</Text>
-              <Text className="text-caption02 text-grey-40">
+              <Text className="text-grey-60 text-body05">상업적 광고 및 홍보성</Text>
+              <Text className="text-grey-40 text-caption02">
                 영리 목적의 홍보·판매, 타 서비스나 사이트 가입 유도
               </Text>
             </View>
@@ -814,8 +814,8 @@ export default function BoardDetailScreen() {
           >
             <RadioIcon size={20} checked={selectedReportReasonId === 'INAPPROPRIATE'} />
             <View className="flex-1 gap-1">
-              <Text className="text-body05 text-grey-60">주제 및 서비스 성격에 부적절함</Text>
-              <Text className="text-caption02 text-grey-40">
+              <Text className="text-grey-60 text-body05">주제 및 서비스 성격에 부적절함</Text>
+              <Text className="text-grey-40 text-caption02">
                 게시판 주제나 장소와 무관한 내용, 무의미한 초성·도배·낚시
               </Text>
             </View>
@@ -827,8 +827,8 @@ export default function BoardDetailScreen() {
           >
             <RadioIcon size={20} checked={selectedReportReasonId === 'ABUSE'} />
             <View className="flex-1 gap-1">
-              <Text className="text-body05 text-grey-60">욕설/비하/인신공격</Text>
-              <Text className="text-caption02 text-grey-40">
+              <Text className="text-grey-60 text-body05">욕설/비하/인신공격</Text>
+              <Text className="text-grey-40 text-caption02">
                 특정인이나 단체에 대한 비방, 명예훼손, 학우 간 분란 조장
               </Text>
             </View>
@@ -840,8 +840,8 @@ export default function BoardDetailScreen() {
           >
             <RadioIcon size={20} checked={selectedReportReasonId === 'OBSCENE'} />
             <View className="flex-1 gap-1">
-              <Text className="text-body05 text-grey-60">음란성/불건전한 내용</Text>
-              <Text className="text-caption02 text-grey-40">
+              <Text className="text-grey-60 text-body05">음란성/불건전한 내용</Text>
+              <Text className="text-grey-40 text-caption02">
                 선정적인 내용, 불건전한 만남 유도, 불법촬영물 등 유통
               </Text>
             </View>
@@ -853,8 +853,8 @@ export default function BoardDetailScreen() {
           >
             <RadioIcon size={20} checked={selectedReportReasonId === 'PRIVACY_SCAM'} />
             <View className="flex-1 gap-1">
-              <Text className="text-body05 text-grey-60">개인정보 노출 및 사칭/사기</Text>
-              <Text className="text-caption02 text-grey-40">
+              <Text className="text-grey-60 text-body05">개인정보 노출 및 사칭/사기</Text>
+              <Text className="text-grey-40 text-caption02">
                 개인 실명·연락처·SNS ID 노출, 관리자 사칭, 사기 의심
               </Text>
             </View>
@@ -866,7 +866,7 @@ export default function BoardDetailScreen() {
           >
             <RadioIcon size={20} checked={selectedReportReasonId === 'ETC'} />
             <View className="flex-1 gap-1">
-              <Text className="text-body05 text-grey-60">기타</Text>
+              <Text className="text-grey-60 text-body05">기타</Text>
             </View>
           </TouchableOpacity>
 
@@ -875,14 +875,14 @@ export default function BoardDetailScreen() {
               <TextInput
                 multiline
                 textAlignVertical="top"
-                className="h-[96px] py-0 font-pretendard text-body05 text-black"
+                className="h-[96px] py-0 font-pretendard text-black text-body05"
                 value={reportEtcText}
                 onChangeText={setReportEtcText}
                 placeholder="신고 사유를 입력해주세요."
                 placeholderTextColor="#909499"
                 maxLength={REPORT_ETC_MAX_LENGTH}
               />
-              <Text className="text-right text-caption02 text-grey-40">
+              <Text className="text-right text-grey-40 text-caption02">
                 {reportEtcText.length}/{REPORT_ETC_MAX_LENGTH}
               </Text>
             </View>
@@ -932,7 +932,7 @@ function ErrorState({
   return (
     <View className="flex-1 bg-white" style={{ paddingTop: topInset }}>
       <View className="flex-1 items-center justify-center gap-4 px-4">
-        <Text className="text-center text-body04 text-black">{message}</Text>
+        <Text className="text-center text-black text-body04">{message}</Text>
         <Button onPress={onRetry} className="rounded-xl px-5">
           <Text>다시 시도</Text>
         </Button>
@@ -962,7 +962,7 @@ function CommentComposer({
         <TextInput
           multiline
           textAlignVertical="center"
-          className="max-h-[84px] min-h-[21px] py-0 pe-10 font-pretendard text-body05 text-black"
+          className="max-h-[84px] min-h-[21px] py-0 pe-10 font-pretendard text-black text-body05"
           value={value}
           onChangeText={onChange}
           placeholder={placeholder}
@@ -990,7 +990,7 @@ function CommentComposer({
         </TouchableOpacity>
       </View>
 
-      <Text className="text-right text-caption02 text-grey-40">
+      <Text className="text-right text-grey-40 text-caption02">
         {value.length}/{COMMENT_MAX_LENGTH}
       </Text>
     </View>
@@ -1046,8 +1046,8 @@ function CommentThread({
             <CommentAvatar nickname={comment.nickname} />
 
             <View className="flex-1 gap-0.5 pt-1">
-              <Text className="text-body04 text-black">{comment.nickname}</Text>
-              <Text className="text-caption02 text-grey-30">
+              <Text className="text-black text-body04">{comment.nickname}</Text>
+              <Text className="text-grey-30 text-caption02">
                 {formatCommentDate(comment.createdAt)}
               </Text>
             </View>
@@ -1064,7 +1064,7 @@ function CommentThread({
           ) : null}
         </View>
 
-        <Text className="text-body05 leading-[21px] text-black">{comment.content}</Text>
+        <Text className="leading-[21px] text-black text-body05">{comment.content}</Text>
 
         <View className="flex-row items-center gap-1">
           <TouchableOpacity
@@ -1080,8 +1080,8 @@ function CommentThread({
             <Text
               className={
                 isCommentLikePending
-                  ? 'min-w-[14px] text-caption02 text-grey-30'
-                  : 'min-w-[14px] text-caption02 text-grey-40'
+                  ? 'min-w-[14px] text-grey-30 text-caption02'
+                  : 'min-w-[14px] text-grey-40 text-caption02'
               }
             >
               {comment.likeCount}
@@ -1101,8 +1101,8 @@ function CommentThread({
             <Text
               className={
                 isReplyComposerOpen
-                  ? 'min-w-[14px] text-caption02 text-blue-20'
-                  : 'min-w-[14px] text-caption02 text-grey-40'
+                  ? 'min-w-[14px] text-blue-20 text-caption02'
+                  : 'min-w-[14px] text-grey-40 text-caption02'
               }
             >
               {comment.replies.length}

@@ -32,10 +32,10 @@ export default function MapSearchSummary({ item, onClose }: MapSearchSummaryProp
           <Icon size={28} className={getMapIconClassName(item.categoryCode)} />
         </View>
         <View className="min-w-0 flex-1">
-          <Text className="text-title03 text-black" numberOfLines={1}>
+          <Text className="text-black text-title03" numberOfLines={1}>
             {item.name}
           </Text>
-          <Text className="text-body05 text-grey-80" numberOfLines={1}>
+          <Text className="text-grey-80 text-body05" numberOfLines={1}>
             {secondaryText ?? (item.type === 'BUILDING' ? '건물' : '장소')}
           </Text>
         </View>
@@ -64,7 +64,7 @@ export default function MapSearchSummary({ item, onClose }: MapSearchSummaryProp
           <View className="h-[3px] w-[3px] rounded-full bg-grey-30" />
         )}
         {item.distanceMeters != null && (
-          <Text className="text-body05 text-grey-30">{formatMapDistance(item.distanceMeters)}</Text>
+          <Text className="text-grey-30 text-body05">{formatMapDistance(item.distanceMeters)}</Text>
         )}
       </View>
 
@@ -79,8 +79,8 @@ export default function MapSearchSummary({ item, onClose }: MapSearchSummaryProp
 
       {item.location && item.location !== secondaryText && (
         <View className="mx-4 mt-3 rounded-xl bg-grey-02 px-4 py-3">
-          <Text className="text-caption01 text-grey-40">위치</Text>
-          <Text className="mt-1 text-body05 text-grey-80">{item.location}</Text>
+          <Text className="text-grey-40 text-caption01">위치</Text>
+          <Text className="mt-1 text-grey-80 text-body05">{item.location}</Text>
         </View>
       )}
     </View>

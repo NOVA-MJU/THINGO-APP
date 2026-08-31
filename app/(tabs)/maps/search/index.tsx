@@ -162,7 +162,7 @@ export default function MapsSearchScreen() {
               multiline={false}
               onSubmitEditing={() => runSearch(query)}
               style={{ flex: 1, padding: 0, lineHeight: undefined }}
-              className="text-body05 text-black outline-none"
+              className="text-black outline-none text-body05"
             />
             {query ? (
               <TouchableOpacity onPress={onClearQueryPress} hitSlop={8}>
@@ -228,10 +228,10 @@ function RecentSearches({
   return (
     <View className="mt-8 gap-2.5">
       <View className="flex-row items-end justify-between px-4">
-        <Text className="text-body02 text-black">최근 검색어</Text>
+        <Text className="text-black text-body02">최근 검색어</Text>
         {recentSearches.length > 0 && (
           <TouchableOpacity onPress={onClear} hitSlop={6}>
-            <Text className="text-caption02 text-grey-60">전체 삭제</Text>
+            <Text className="text-grey-60 text-caption02">전체 삭제</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -245,7 +245,7 @@ function RecentSearches({
           {recentSearches.map((keyword) => (
             <View key={keyword} className="flex-row rounded-full border border-grey-10 bg-white">
               <TouchableOpacity onPress={() => onPress(keyword)}>
-                <Text className="my-1.5 me-[3px] ms-3 text-body05 text-grey-60">{keyword}</Text>
+                <Text className="my-1.5 me-[3px] ms-3 text-grey-60 text-body05">{keyword}</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => onDelete(keyword)} hitSlop={4}>
                 <XIcon size={12} className="my-[10.5px] me-[11px] ms-[3px] text-grey-20" />
@@ -254,7 +254,7 @@ function RecentSearches({
           ))}
         </ScrollView>
       ) : (
-        <Text className="px-4 text-body05 text-grey-40">최근 검색어가 없습니다.</Text>
+        <Text className="px-4 text-grey-40 text-body05">최근 검색어가 없습니다.</Text>
       )}
     </View>
   );
@@ -304,10 +304,10 @@ function SuggestionList({
               <View className="rounded-lg bg-blue-05 p-2">
                 <Icon size={20} className={getMapIconClassName(item.categoryCode)} />
               </View>
-              <Text className="min-w-0 flex-1 text-body04 text-black" numberOfLines={1}>
+              <Text className="min-w-0 flex-1 text-black text-body04" numberOfLines={1}>
                 {item.name}
               </Text>
-              <Text className="text-caption02 text-grey-40">
+              <Text className="text-grey-40 text-caption02">
                 {item.type === 'BUILDING' ? '건물' : '장소'}
               </Text>
             </View>
@@ -346,9 +346,9 @@ function SearchResultList({
   if (isError) {
     return (
       <View className="items-center gap-3 px-4 pt-8">
-        <Text className="text-body05 text-grey-60">검색 결과를 불러올 수 없습니다.</Text>
+        <Text className="text-grey-60 text-body05">검색 결과를 불러올 수 없습니다.</Text>
         <TouchableOpacity onPress={onRetry} className="rounded-lg bg-blue-05 px-4 py-2">
-          <Text className="text-body05 text-blue-35">다시 시도</Text>
+          <Text className="text-blue-35 text-body05">다시 시도</Text>
         </TouchableOpacity>
       </View>
     );
@@ -407,7 +407,7 @@ function SearchResultItem({ item, onPress }: { item: MapSearchItem; onPress: () 
             <View className="rounded bg-blue-05 p-1">
               <Icon size={16} className={getMapIconClassName(item.categoryCode)} />
             </View>
-            <Text className="flex-1 text-body02 text-black" numberOfLines={1}>
+            <Text className="flex-1 text-black text-body02" numberOfLines={1}>
               {item.name}
             </Text>
           </View>
@@ -416,7 +416,7 @@ function SearchResultItem({ item, onPress }: { item: MapSearchItem; onPress: () 
             {item.operatingStatus && (
               <Text
                 className={cn(
-                  'text-caption02 font-medium',
+                  'font-medium text-caption02',
                   getOperatingStatusClassName(item.operatingStatus)
                 )}
                 numberOfLines={1}
@@ -426,12 +426,12 @@ function SearchResultItem({ item, onPress }: { item: MapSearchItem; onPress: () 
             )}
             {item.operatingStatus && subtitle && <View className="h-2.5 w-px bg-grey-10" />}
             {subtitle && (
-              <Text className="min-w-0 flex-1 text-caption02 text-grey-40" numberOfLines={1}>
+              <Text className="min-w-0 flex-1 text-grey-40 text-caption02" numberOfLines={1}>
                 {subtitle}
               </Text>
             )}
             {item.distanceMeters != null && (
-              <Text className="text-caption02 text-grey-40">
+              <Text className="text-grey-40 text-caption02">
                 {formatMapDistance(item.distanceMeters)}
               </Text>
             )}
@@ -454,8 +454,8 @@ function MessageState({ message, description }: { message: string; description?:
   return (
     <View className="px-4 pt-6">
       <View className="rounded-xl bg-grey-02 px-4 py-5">
-        <Text className="text-body05 text-grey-80">{message}</Text>
-        {description && <Text className="mt-1 text-caption02 text-grey-40">{description}</Text>}
+        <Text className="text-grey-80 text-body05">{message}</Text>
+        {description && <Text className="mt-1 text-grey-40 text-caption02">{description}</Text>}
       </View>
     </View>
   );

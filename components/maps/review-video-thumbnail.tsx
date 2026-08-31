@@ -26,7 +26,7 @@ export function ReviewVideoThumbnail({ thumbnailUrl, label = '영상' }: ReviewV
           <FilmIcon size={22} color="#FFFFFF" />
           <View className="mt-1 flex-row items-center gap-1">
             <PlayIcon size={10} color="#FFFFFF" fill="#FFFFFF" />
-            <Text className="text-caption04 text-white">{label}</Text>
+            <Text className="text-white text-caption04">{label}</Text>
           </View>
         </View>
       )}

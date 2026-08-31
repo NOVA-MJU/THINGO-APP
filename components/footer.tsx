@@ -61,25 +61,25 @@ export function Footer({
       {/* 텍스트 링크 */}
       <View className="flex-row flex-wrap items-center gap-[5px] py-1">
         <TouchableOpacity onPress={() => openLink(TERMS_URL)}>
-          <Text className="text-caption05 text-grey-30">Thingo 서비스 이용약관</Text>
+          <Text className="text-grey-30 text-caption05">Thingo 서비스 이용약관</Text>
         </TouchableOpacity>
-        <Text className="text-caption05 text-grey-20">|</Text>
+        <Text className="text-grey-20 text-caption05">|</Text>
         <TouchableOpacity onPress={() => openLink(LOCATION_PRIVACY_URL)}>
-          <Text className="text-caption05 text-grey-30">위치기반 서비스 이용약관</Text>
+          <Text className="text-grey-30 text-caption05">위치기반 서비스 이용약관</Text>
         </TouchableOpacity>
-        <Text className="text-caption05 text-grey-20">|</Text>
+        <Text className="text-grey-20 text-caption05">|</Text>
         <TouchableOpacity onPress={() => openLink(PRIVACY_URL)}>
-          <Text className="text-caption05 text-grey-30">개인정보 처리방침</Text>
+          <Text className="text-grey-30 text-caption05">개인정보 처리방침</Text>
         </TouchableOpacity>
-        <Text className="text-caption05 text-grey-20">|</Text>
+        <Text className="text-grey-20 text-caption05">|</Text>
         <TouchableOpacity onPress={openContactMail}>
-          <Text className="text-caption05 text-grey-30">문의하기</Text>
+          <Text className="text-grey-30 text-caption05">문의하기</Text>
         </TouchableOpacity>
       </View>
 
       {/* 저작권 표기 */}
       <View className="py-1">
-        <Text className="text-caption02 text-grey-20">@ 2025 MJS. All rights reserved</Text>
+        <Text className="text-grey-20 text-caption02">@ 2025 MJS. All rights reserved</Text>
       </View>
     </View>
   );

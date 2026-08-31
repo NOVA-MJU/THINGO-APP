@@ -232,13 +232,13 @@ export default function SignupScreen() {
       <ScrollView className="bg-grey-02" contentContainerClassName="flex-grow">
         <View className="flex-1 px-4">
           <View className="mt-5 flex-row gap-1">
-            <Text className="text-title03 text-black">계정 정보</Text>
-            <Text className="text-title03 text-error">*</Text>
+            <Text className="text-black text-title03">계정 정보</Text>
+            <Text className="text-error text-title03">*</Text>
           </View>
           <View className="mt-2 gap-4 rounded-xl bg-white p-4">
             <View>
               {/* 이메일 */}
-              <Text className="text-body04 text-grey-80">이메일</Text>
+              <Text className="text-grey-80 text-body04">이메일</Text>
               <View className="mt-2 flex-row items-center gap-2.5">
                 <Input
                   placeholder="이메일을 입력하세요"
@@ -252,7 +252,7 @@ export default function SignupScreen() {
                   textContentType="username"
                   editable={!emailVerified}
                 />
-                <Text className="text-body06 text-grey-30">@mju.ac.kr</Text>
+                <Text className="text-grey-30 text-body06">@mju.ac.kr</Text>
                 <Button
                   variant={userEmail.trim() ? 'default' : 'subtle'}
                   className="rounded-md"
@@ -289,7 +289,7 @@ export default function SignupScreen() {
 
             <View>
               {/* 비밀번호 */}
-              <Text className="text-body04 text-grey-80">비밀번호</Text>
+              <Text className="text-grey-80 text-body04">비밀번호</Text>
               <Input
                 placeholder="비밀번호를 입력하세요"
                 className="mt-2"
@@ -301,7 +301,7 @@ export default function SignupScreen() {
               />
               <View className="mt-2 flex-row items-center gap-1">
                 <InfoCircleIcon size={16} className="text-grey-30" />
-                <Text className="text-caption02 text-grey-30">
+                <Text className="text-grey-30 text-caption02">
                   영문, 숫자, 특수문자 포함 8자 이상
                 </Text>
               </View>
@@ -309,7 +309,7 @@ export default function SignupScreen() {
 
             <View>
               {/* 비밀번호 확인 */}
-              <Text className="text-body04 text-grey-80">비밀번호 확인</Text>
+              <Text className="text-grey-80 text-body04">비밀번호 확인</Text>
               <Input
                 placeholder="비밀번호를 다시 입력하세요"
                 className="mt-2"
@@ -323,27 +323,27 @@ export default function SignupScreen() {
           </View>
 
           <View className="mt-4 flex-row gap-1">
-            <Text className="text-title03 text-black">기본 정보</Text>
-            <Text className="text-title03 text-error">*</Text>
+            <Text className="text-black text-title03">기본 정보</Text>
+            <Text className="text-error text-title03">*</Text>
           </View>
           <View className="mt-2 gap-4 rounded-xl bg-white p-4">
             <View>
               {/* 이름 */}
-              <Text className="text-body04 text-grey-80">이름</Text>
+              <Text className="text-grey-80 text-body04">이름</Text>
               <Input
                 placeholder="홍길동 (실명)"
                 className="mt-2"
                 value={name}
                 onChangeText={setName}
               />
-              <Text className="mt-2 text-caption02 text-grey-30">
+              <Text className="mt-2 text-grey-30 text-caption02">
                 ※ 실명을 입력하지 않을 경우 추후 불이익이 발생할 수 있습니다.
               </Text>
             </View>
 
             <View>
               {/* 닉네임 */}
-              <Text className="text-body04 text-grey-80">닉네임</Text>
+              <Text className="text-grey-80 text-body04">닉네임</Text>
               <View className="mt-2 flex-row items-center gap-2">
                 <Input
                   placeholder="닉네임을 입력하세요"
@@ -369,7 +369,7 @@ export default function SignupScreen() {
 
             <View>
               {/* 단과대 */}
-              <Text className="text-body04 text-grey-80">단과대</Text>
+              <Text className="text-grey-80 text-body04">단과대</Text>
               <DropdownMenu.Root>
                 <DropdownMenu.Trigger>
                   <View className="mt-2 flex-row items-center rounded-md border border-grey-10 px-3 py-[9.5px]">
@@ -400,7 +400,7 @@ export default function SignupScreen() {
 
             <View>
               {/* 학과 */}
-              <Text className="text-body04 text-grey-80">학과</Text>
+              <Text className="text-grey-80 text-body04">학과</Text>
               <DropdownMenu.Root>
                 <DropdownMenu.Trigger disabled={!selectedCollege}>
                   <View
@@ -430,7 +430,7 @@ export default function SignupScreen() {
 
             <View>
               {/* 학번 */}
-              <Text className="text-body04 text-grey-80">학번</Text>
+              <Text className="text-grey-80 text-body04">학번</Text>
               <View className="mt-2 flex-row items-center gap-2">
                 <Input
                   placeholder="ex. 60000000"
@@ -462,11 +462,11 @@ export default function SignupScreen() {
 
           {/* 프로필 사진 */}
           <View className="mt-4 flex-row items-center gap-1">
-            <Text className="text-title03 text-black">프로필 사진</Text>
-            <Text className="text-body02 text-grey-80">(선택)</Text>
+            <Text className="text-black text-title03">프로필 사진</Text>
+            <Text className="text-grey-80 text-body02">(선택)</Text>
           </View>
           <View className="mt-2 rounded-xl bg-white p-4">
-            <Text className="text-body04 text-grey-80">프로필</Text>
+            <Text className="text-grey-80 text-body04">프로필</Text>
             <TouchableOpacity
               className="mt-2 self-start"
               onPress={handlePickProfileImage}
@@ -480,7 +480,7 @@ export default function SignupScreen() {
                     resizeMode="cover"
                   />
                 ) : (
-                  <Text className="text-caption02 text-grey-20">
+                  <Text className="text-grey-20 text-caption02">
                     {isUploadingImage ? '업로드 중...' : '이미지 업로드'}
                   </Text>
                 )}
@@ -489,21 +489,21 @@ export default function SignupScreen() {
           </View>
 
           {/* 약관 동의 */}
-          <Text className="mt-4 text-title03 text-black">약관동의</Text>
+          <Text className="mt-4 text-black text-title03">약관동의</Text>
           <View className="mt-2 gap-4 rounded-xl bg-white py-4">
             <View className="flex-row items-center gap-1 px-4">
               <TouchableOpacity hitSlop={4} onPress={handleToggleAllAgreements}>
                 <CheckboxIcon checked={allAgreed} />
               </TouchableOpacity>
-              <Text className="text-body05 text-grey-80">전체동의</Text>
+              <Text className="text-grey-80 text-body05">전체동의</Text>
             </View>
             <View className="mx-4 h-[1px] w-full bg-grey-02" />
             <View className="flex-row items-center gap-1 px-4">
               <TouchableOpacity hitSlop={4} onPress={() => setTermsAgreed((prev) => !prev)}>
                 <CheckboxIcon checked={termsAgreed} />
               </TouchableOpacity>
-              <Text className="text-body05 text-grey-80">(필수)</Text>
-              <Text className="flex-1 text-body05 text-grey-80">Thingo 서비스 이용약관 동의</Text>
+              <Text className="text-grey-80 text-body05">(필수)</Text>
+              <Text className="flex-1 text-grey-80 text-body05">Thingo 서비스 이용약관 동의</Text>
               <TouchableOpacity hitSlop={4} onPress={() => openLink(TERMS_URL)}>
                 <ArrowRightIcon size={20} className="text-grey-30" />
               </TouchableOpacity>
@@ -512,8 +512,8 @@ export default function SignupScreen() {
               <TouchableOpacity hitSlop={4} onPress={() => setPrivacyAgreed((prev) => !prev)}>
                 <CheckboxIcon checked={privacyAgreed} />
               </TouchableOpacity>
-              <Text className="text-body05 text-grey-80">(필수)</Text>
-              <Text className="flex-1 text-body05 text-grey-80">개인정보 수집 및 이용동의</Text>
+              <Text className="text-grey-80 text-body05">(필수)</Text>
+              <Text className="flex-1 text-grey-80 text-body05">개인정보 수집 및 이용동의</Text>
               <TouchableOpacity hitSlop={4} onPress={() => openLink(PRIVACY_URL)}>
                 <ArrowRightIcon size={20} className="text-grey-30" />
               </TouchableOpacity>
@@ -525,8 +525,8 @@ export default function SignupScreen() {
               >
                 <CheckboxIcon checked={locationPrivacyAgreed} />
               </TouchableOpacity>
-              <Text className="text-body05 text-grey-80">(필수)</Text>
-              <Text className="flex-1 text-body05 text-grey-80">위치기반 서비스 이용약관 동의</Text>
+              <Text className="text-grey-80 text-body05">(필수)</Text>
+              <Text className="flex-1 text-grey-80 text-body05">위치기반 서비스 이용약관 동의</Text>
               <TouchableOpacity hitSlop={4} onPress={() => openLink(LOCATION_PRIVACY_URL)}>
                 <ArrowRightIcon size={20} className="text-grey-30" />
               </TouchableOpacity>

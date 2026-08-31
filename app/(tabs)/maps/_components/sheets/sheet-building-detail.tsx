@@ -145,9 +145,9 @@ export default function BuildingDetailSheet({
               <HeaderIcon size={28} className="text-blue-15" />
             </View>
             <View className="flex-1">
-              <Text className="text-title03 text-black">{building.name}</Text>
+              <Text className="text-black text-title03">{building.name}</Text>
               {building.classroomCode && (
-                <Text className="text-body05 text-grey-80">{building.classroomCode}</Text>
+                <Text className="text-grey-80 text-body05">{building.classroomCode}</Text>
               )}
             </View>
             <TouchableOpacity hitSlop={4} onPress={onFavoritePress}>
@@ -165,12 +165,12 @@ export default function BuildingDetailSheet({
             <View className="flex-row items-center gap-1.5">
               <Text className={`text-body04 ${statusColor}`}>{statusLabel}</Text>
               {building.infoText && (
-                <Text className="text-body05 text-grey-40">{building.infoText}</Text>
+                <Text className="text-grey-40 text-body05">{building.infoText}</Text>
               )}
             </View>
             <TouchableOpacity className="flex-row items-center gap-1" hitSlop={4}>
               <InfoIcon size={16} className="text-grey-20" />
-              <Text className="text-caption02 text-grey-40">주차요금 정보가 표시됩니다</Text>
+              <Text className="text-grey-40 text-caption02">주차요금 정보가 표시됩니다</Text>
               <ArrowDownIcon size={16} className="text-grey-20" />
             </TouchableOpacity>
           </View>
@@ -258,10 +258,10 @@ export default function BuildingDetailSheet({
                   className="flex-row gap-2 rounded-xl bg-grey-02 px-4 py-5"
                   onPress={() => onFloorPress(floor.floorLabel)}
                 >
-                  <Text className="text-body04 text-blue-35">
+                  <Text className="text-blue-35 text-body04">
                     {formatMapFloorLabel(floor.floorLabel)}
                   </Text>
-                  <Text className="flex-1 text-body05 text-black">
+                  <Text className="flex-1 text-black text-body05">
                     {places.map((place) => place.name).join(', ')}
                   </Text>
                   <View className="self-center">
