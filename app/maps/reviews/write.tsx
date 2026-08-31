@@ -490,7 +490,7 @@ function KeywordGroup({
 
   return (
     <View>
-      <Text className="font-pretendard-normal mb-1 text-body06 text-grey-80">
+      <Text className="mb-1 text-body06 text-grey-80">
         {KEYWORD_GROUP_LABELS[group]}
       </Text>
       <View className="gap-2">

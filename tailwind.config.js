@@ -1,4 +1,71 @@
-const { hairlineWidth } = require('nativewind/theme');
+const { hairlineWidth, platformSelect } = require('nativewind/theme');
+const plugin = require('tailwindcss/plugin');
+
+/**
+ * 웹은 global.css의 @font-face가 font-weight 값만 보고 알맞은 두께의 파일을 스스로 매칭한다.
+ * 반면 네이티브(iOS/Android)는 app/_layout.tsx에서 두께별 otf를 서로 다른 family 이름으로
+ * 각각 등록해뒀기 때문에, font-weight 숫자만으로는 두께가 바뀌지 않고 항상 기본 family(Regular)로
+ * 보인다. 그래서 text-* 유틸리티마다 두께에 맞는 네이티브 family 이름을 fontFamily로 함께 지정한다.
+ * (platformSelect는 nativewind가 런타임에 실제 Platform.select로 치환해주는 마커라
+ * ios/android 빌드에서 각각 안전하게 동작한다 - hairlineWidth()와 동일한 원리)
+ */
+const NATIVE_FONT_FAMILY_BY_WEIGHT = {
+  200: 'Pretendard-ExtraLight',
+  400: 'Pretendard',
+  500: 'Pretendard-Medium',
+  600: 'Pretendard-SemiBold',
+  700: 'Pretendard-Bold',
+  800: 'Pretendard-ExtraBold',
+};
+
+function pretendardFontFamily(fontWeight) {
+  return platformSelect({
+    web: 'Pretendard',
+    default: NATIVE_FONT_FAMILY_BY_WEIGHT[fontWeight],
+  });
+}
+
+// heading01~caption09: 디자인 시스템에서 정의한 고정 텍스트 스타일 세트.
+// fontFamily까지 함께 지정해야 해서 fontSize 코어 플러그인(lineHeight/letterSpacing/fontWeight만 허용) 대신
+// 커스텀 플러그인(textStylesPlugin)에서 text-* 유틸리티를 직접 생성한다.
+const TEXT_STYLES = {
+  heading01: { fontSize: '40px', fontWeight: '700', lineHeight: '1.5' },
+  heading02: { fontSize: '28px', fontWeight: '700', lineHeight: '1.5' },
+  title01: { fontSize: '20px', fontWeight: '700', lineHeight: '1.5' },
+  title02: { fontSize: '20px', fontWeight: '600', lineHeight: '1.5' },
+  title03: { fontSize: '18px', fontWeight: '700', lineHeight: '1.5' },
+  body01: { fontSize: '20px', fontWeight: '400', lineHeight: '1.5' },
+  body02: { fontSize: '16px', fontWeight: '600', lineHeight: '1.5' },
+  body03: { fontSize: '16px', fontWeight: '400', lineHeight: '1.5' },
+  body04: { fontSize: '14px', fontWeight: '600', lineHeight: '1.5' },
+  body05: { fontSize: '14px', fontWeight: '400', lineHeight: '1.5' },
+  body06: { fontSize: '14px', fontWeight: '500', lineHeight: '1.5' },
+  caption01: { fontSize: '12px', fontWeight: '600', lineHeight: '1.5' },
+  caption02: { fontSize: '12px', fontWeight: '400', lineHeight: '1.5' },
+  caption03: { fontSize: '11px', fontWeight: '600', lineHeight: '1.5' },
+  caption04: { fontSize: '11px', fontWeight: '400', lineHeight: '1.5' },
+  caption05: { fontSize: '10px', fontWeight: '600', lineHeight: '1.5' },
+  caption06: { fontSize: '10px', fontWeight: '200', lineHeight: '1.5' },
+  caption07: { fontSize: '8px', fontWeight: '400', lineHeight: '1.25' },
+  caption08: { fontSize: '7px', fontWeight: '400', lineHeight: '1.25' },
+  caption09: { fontSize: '6px', fontWeight: '400', lineHeight: '1.25' },
+};
+
+const textStylesPlugin = plugin(({ addUtilities }) => {
+  addUtilities(
+    Object.fromEntries(
+      Object.entries(TEXT_STYLES).map(([name, { fontSize, fontWeight, lineHeight }]) => [
+        `.text-${name}`,
+        {
+          fontSize,
+          lineHeight,
+          fontWeight,
+          fontFamily: pretendardFontFamily(fontWeight),
+        },
+      ])
+    )
+  );
+});
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
@@ -79,25 +146,6 @@ module.exports = {
           'sans-serif',
         ],
       },
-      fontSize: {
-        heading01: ['40px', { lineHeight: '1.5', fontWeight: '700' }],
-        heading02: ['28px', { lineHeight: '1.5', fontWeight: '700' }],
-        title01: ['20px', { lineHeight: '1.5', fontWeight: '700' }],
-        title02: ['20px', { lineHeight: '1.5', fontWeight: '600' }],
-        title03: ['18px', { lineHeight: '1.5', fontWeight: '700' }],
-        body01: ['20px', { lineHeight: '1.5', fontWeight: '400' }],
-        body02: ['16px', { lineHeight: '1.5', fontWeight: '600' }],
-        body03: ['16px', { lineHeight: '1.5', fontWeight: '400' }],
-        body04: ['14px', { lineHeight: '1.5', fontWeight: '600' }],
-        body05: ['14px', { lineHeight: '1.5', fontWeight: '400' }],
-        body06: ['14px', { lineHeight: '1.5', fontWeight: '500' }],
-        caption01: ['12px', { lineHeight: '1.5', fontWeight: '600' }],
-        caption02: ['12px', { lineHeight: '1.5', fontWeight: '400' }],
-        caption03: ['11px', { lineHeight: '1.5', fontWeight: '600' }],
-        caption04: ['11px', { lineHeight: '1.5', fontWeight: '400' }],
-        caption05: ['10px', { lineHeight: '1.5', fontWeight: '600' }],
-        caption06: ['10px', { lineHeight: '1.5', fontWeight: '200' }],
-      },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
@@ -125,5 +173,5 @@ module.exports = {
   future: {
     hoverOnlyWhenSupported: true,
   },
-  plugins: [require('tailwindcss-animate')],
+  plugins: [require('tailwindcss-animate'), textStylesPlugin],
 };
