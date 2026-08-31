@@ -10,6 +10,7 @@ export { default as CampusEntranceIcon } from './campus-entrance';
 export { default as CartIcon } from './cart';
 export { default as CertificateKioskIcon } from './certificate-kiosk';
 export { default as ClassroomIcon } from './classroom';
+export { default as ClassroomDeskIcon } from './classroom-desk';
 export { default as ClubRoomIcon } from './club-room';
 export { default as ConvenienceStoreIcon } from './convenience-store';
 export { default as CorridorIcon } from './corridor';

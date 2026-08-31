@@ -141,9 +141,10 @@ export default function MapFloorScreen() {
     router.back();
   }
 
-  // 닫기: 딥링크 등 이전 화면이 없을 수도 있으므로 지도 화면으로 명시적 이동
+  // 닫기: 이 화면은 항상 지도 화면(건물 상세 시트)에서 push로만 진입하므로(외부 딥링크 진입 없음),
+  // router.navigate('/maps')로 새 스택을 열지 않고 back()으로 기존 지도 화면으로 되돌아간다
   function onClosePress() {
-    router.navigate('/maps');
+    router.back();
   }
 
   return (

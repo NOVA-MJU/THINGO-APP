@@ -21,7 +21,9 @@ import FavoriteSaveSheet, {
 } from '@/app/(tabs)/maps/_components/sheets/favorite-save-sheet';
 import PlaceCommunitySection from './place-community-section';
 
-// 명지도 장소(비건물) 상세보기 시트 - 건물 상세와 달리 강의실 코드·운영시간은 없고 위치·추가정보(infoText)를 제공
+// 명지도 장소(비건물) 상세보기 시트 - 건물 상세와 달리 강의실 코드는 없고 위치·추가정보(infoText)를 제공
+// operatingStatus: 서버가 아직 실제 운영 상태 문자열("운영중"/"운영 종료" 등)을 내려주지 않는 중이라
+// 우선 null(정보 없음) 케이스만 안내 문구로 처리하고, 값이 있을 때의 표시 방식은 추후 결정
 export default function PlaceDetailSheet({
   place,
   onClose,
@@ -76,16 +78,25 @@ export default function PlaceDetailSheet({
             <View className="rounded bg-blue-05 p-2">
               <Icon size={28} className={getMapIconClassName(place.categoryCode)} />
             </View>
+
+            {/* 장소 이름, 주소 표시 */}
             <View className="min-w-0 flex-1">
               <Text className="text-title03 text-black" numberOfLines={1}>
                 {place.name}
               </Text>
               {place.location ? (
-                <Text className="text-body05 text-grey-80" numberOfLines={1}>
-                  {place.location}
-                </Text>
+                <View className="flex-row items-center gap-1">
+                  <View className="rounded bg-grey-02 px-1">
+                    <Text className="text-caption02 text-grey-60">도로명</Text>
+                  </View>
+                  <Text className="text-caption02 text-grey-80" numberOfLines={1}>
+                    {place.location}
+                  </Text>
+                </View>
               ) : null}
             </View>
+
+            {/* 즐겨찾기 버튼 */}
             <TouchableOpacity hitSlop={4} onPress={onFavoritePress}>
               <FavoriteIcon size={28} active={place.favorite} />
             </TouchableOpacity>
@@ -98,13 +109,24 @@ export default function PlaceDetailSheet({
             </TouchableOpacity>
           </View>
 
-          {(place.distanceMeters != null || place.infoText) && (
+          {/* 운영시간 정보 및 거리 표시 */}
+          {(place.distanceMeters != null || place.infoText || place.operatingStatus === null) && (
             <View className="mt-2.5 gap-1 px-4">
-              {place.distanceMeters != null ? (
-                <Text className="text-body05 text-grey-30">
-                  {formatMapDistance(place.distanceMeters)}
+              <View className="flex-row items-center">
+                <Text className="text-body04 text-grey-40">
+                  {place.operatingStatus || '운영 정보 없음'}
                 </Text>
-              ) : null}
+                <View className="px-1.5">
+                  <View className="h-[3px] w-[3px] rounded-full bg-grey-30" />
+                </View>
+                {place.distanceMeters != null ? (
+                  <Text className="text-body05 text-grey-30">
+                    {formatMapDistance(place.distanceMeters)}
+                  </Text>
+                ) : null}
+              </View>
+
+              {/* 장소 추가 정보 표시 */}
               {place.infoText ? (
                 <View className="flex-row items-start gap-1">
                   <InfoIcon size={16} className="mt-0.5 text-grey-20" />
