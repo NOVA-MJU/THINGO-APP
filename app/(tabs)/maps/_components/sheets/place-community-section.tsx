@@ -617,7 +617,7 @@ function ReviewPromptCard({
       <View className="relative min-h-[44px]">
         <View className="min-w-0 pr-[108px]">
           <Text
-            className="font-pretendard-normal text-body04 leading-[21px] text-grey-80"
+            className="text-body04 leading-[21px] text-grey-80"
             numberOfLines={1}
           >
             {placeName}
