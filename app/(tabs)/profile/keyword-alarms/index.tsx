@@ -254,7 +254,7 @@ export default function KeywordAlarmsScreen() {
               isValidKeyword && !createMutation.isPending ? 'bg-blue-35' : 'bg-grey-30'
             )}
           >
-            <Text className="text-body05 text-white" style={androidTextAdjust}>
+            <Text className="text-white text-body05" style={androidTextAdjust}>
               {createMutation.isPending ? '등록 중' : '등록'}
             </Text>
           </Pressable>
@@ -271,7 +271,7 @@ export default function KeywordAlarmsScreen() {
           </View>
           <Text
             className={
-              isKeywordInvalid ? 'text-caption04 text-error' : 'text-caption04 text-grey-30'
+              isKeywordInvalid ? 'text-error text-caption04' : 'text-grey-30 text-caption04'
             }
           >
             {isKeywordInvalid
@@ -291,7 +291,7 @@ export default function KeywordAlarmsScreen() {
         )}
 
         <View className="mt-5">
-          <Text className="text-body04 text-black">추천 키워드</Text>
+          <Text className="text-black text-body04">추천 키워드</Text>
           {recommendedQuery.isLoading && recommendedKeywords.length === 0 ? (
             <ActivityIndicator className="mt-4 self-start" />
           ) : (
@@ -331,23 +331,23 @@ export default function KeywordAlarmsScreen() {
           </View>
         ) : alarmsQuery.isError ? (
           <View className="items-center py-16">
-            <Text className="text-body05 text-grey-60">키워드 목록을 불러오지 못했어요.</Text>
+            <Text className="text-grey-60 text-body05">키워드 목록을 불러오지 못했어요.</Text>
             <Button variant="outline" className="mt-4" onPress={() => alarmsQuery.refetch()}>
               <Text>다시 시도</Text>
             </Button>
           </View>
         ) : alarms.length === 0 ? (
           <View className="flex-1 items-center justify-center pb-16 pt-36">
-            <Text className="text-center text-body05 text-grey-30">키워드를 등록하고</Text>
-            <Text className="mt-1 text-center text-body05 text-grey-30">
+            <Text className="text-center text-grey-30 text-body05">키워드를 등록하고</Text>
+            <Text className="mt-1 text-center text-grey-30 text-body05">
               원하는 소식 가장 먼저 확인하세요
             </Text>
           </View>
         ) : (
           <View className="mt-5">
-            <Text className="text-title03 text-black">
+            <Text className="text-black text-title03">
               총 {alarms.length}
-              <Text className="text-title03 text-grey-40">/{MAX_KEYWORD_ALARMS}</Text>
+              <Text className="text-grey-40 text-title03">/{MAX_KEYWORD_ALARMS}</Text>
             </Text>
             <View className="mt-2">
               {alarms.map((alarm) => (
@@ -386,10 +386,10 @@ export default function KeywordAlarmsScreen() {
       <Dialog open={!!confirmKeyword} onOpenChange={(open) => !open && setConfirmKeyword(null)}>
         <DialogContent className="max-w-[320px] gap-4 rounded-[12px] p-5" showCloseButton={false}>
           <DialogHeader className="gap-1">
-            <DialogTitle className="text-center text-body04 text-grey-80">
+            <DialogTitle className="text-center text-grey-80 text-body04">
               현재 키워드는 많은 알림이 발생할 수 있습니다.
             </DialogTitle>
-            <DialogDescription className="text-center text-caption02 text-grey-80">
+            <DialogDescription className="text-center text-grey-80 text-caption02">
               더 정확한 검색을 위해 키워드를 구체적으로 입력해주세요.
             </DialogDescription>
           </DialogHeader>
@@ -422,7 +422,7 @@ export default function KeywordAlarmsScreen() {
           showCloseButton={false}
         >
           <DialogHeader>
-            <DialogTitle className="text-center text-body04 text-black">
+            <DialogTitle className="text-center text-black text-body04">
               ‘{deleteTarget?.keyword}’ 키워드를 삭제하시겠습니까?
             </DialogTitle>
           </DialogHeader>

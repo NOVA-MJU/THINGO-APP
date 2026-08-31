@@ -23,10 +23,10 @@ export function LoginRequiredModal({ visible, onCancel, onLogin }: LoginRequired
           style={{ width: modalWidth }}
         >
           <View className="w-full items-center">
-            <Text className="text-center text-body04 text-grey-80" style={androidTextAdjust}>
+            <Text className="text-center text-grey-80 text-body04" style={androidTextAdjust}>
               로그인이 필요한 서비스입니다.
             </Text>
-            <Text className="text-center text-caption02 text-grey-80" style={androidTextAdjust}>
+            <Text className="text-center text-grey-80 text-caption02" style={androidTextAdjust}>
               학교 밖이라면 명지도 서비스 이용이 어려울 수 있어요!
             </Text>
           </View>
@@ -38,7 +38,7 @@ export function LoginRequiredModal({ visible, onCancel, onLogin }: LoginRequired
               className="h-9 flex-1 items-center justify-center rounded-[8px] border border-grey-10 bg-white active:opacity-70"
               onPress={onCancel}
             >
-              <Text className="text-body05 text-grey-40" style={androidTextAdjust}>
+              <Text className="text-grey-40 text-body05" style={androidTextAdjust}>
                 취소
               </Text>
             </Pressable>
@@ -48,7 +48,7 @@ export function LoginRequiredModal({ visible, onCancel, onLogin }: LoginRequired
               className="h-9 flex-1 items-center justify-center rounded-[8px] bg-blue-35 active:opacity-80"
               onPress={onLogin}
             >
-              <Text className="text-body05 text-white" style={androidTextAdjust}>
+              <Text className="text-white text-body05" style={androidTextAdjust}>
                 로그인
               </Text>
             </Pressable>

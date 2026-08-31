@@ -79,16 +79,16 @@ export default function NewspaperScreen() {
                 className="aspect-square w-[110px] rounded border border-grey-10 bg-white"
               />
               <View className="flex-1">
-                <Text className="text-body02 text-black" numberOfLines={1}>
+                <Text className="text-black text-body02" numberOfLines={1}>
                   {article.title}
                 </Text>
-                <Text className="mt-0.5 text-body05 text-black" numberOfLines={2}>
+                <Text className="mt-0.5 text-black text-body05" numberOfLines={2}>
                   {article.summary}
                 </Text>
-                <Text className="mt-0.5 text-caption01 text-grey-30" numberOfLines={1}>
+                <Text className="mt-0.5 text-grey-30 text-caption01" numberOfLines={1}>
                   {article.reporter}
                 </Text>
-                <Text className="text-caption04 text-grey-30" numberOfLines={1}>
+                <Text className="text-grey-30 text-caption04" numberOfLines={1}>
                   {format(parseUTCDate(article.date), 'yyyy.MM.dd')}
                 </Text>
               </View>
@@ -97,7 +97,7 @@ export default function NewspaperScreen() {
         ))}
         {!loading && articles.length === 0 && (
           <View className="items-center py-16">
-            <Text className="text-body05 text-grey-30">등록된 기사가 없습니다.</Text>
+            <Text className="text-grey-30 text-body05">등록된 기사가 없습니다.</Text>
           </View>
         )}
         {loading && (

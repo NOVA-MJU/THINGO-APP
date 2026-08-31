@@ -159,7 +159,7 @@ const FavoriteSaveSheet = React.forwardRef<FavoriteSaveSheetHandle>(
           <BottomSheetView style={{ paddingBottom: insets.bottom }}>
             {/* 장소 이름 */}
             <View className="flex-row items-center justify-center">
-              <Text className="text-title03 text-black" numberOfLines={1}>
+              <Text className="text-black text-title03" numberOfLines={1}>
                 {placeName}
               </Text>
               <TouchableOpacity
@@ -177,7 +177,7 @@ const FavoriteSaveSheet = React.forwardRef<FavoriteSaveSheetHandle>(
             <View className="mt-4 px-4">
               <Input
                 placeholder="장소에 대한 메모를 추가해보세요"
-                className="text-caption02 text-black placeholder:text-grey-30"
+                className="text-black text-caption02 placeholder:text-grey-30"
                 value={memo}
                 onChangeText={setMemo}
                 maxLength={30}
@@ -193,7 +193,7 @@ const FavoriteSaveSheet = React.forwardRef<FavoriteSaveSheetHandle>(
                 onPress={() => groupEditSheetRef.current?.open()}
               >
                 <PlusIcon size={12} className="text-blue-15" />
-                <Text className="text-caption02 text-blue-15">새 그룹 추가</Text>
+                <Text className="text-blue-15 text-caption02">새 그룹 추가</Text>
               </TouchableOpacity>
             </View>
 
@@ -205,7 +205,7 @@ const FavoriteSaveSheet = React.forwardRef<FavoriteSaveSheetHandle>(
                 </View>
               ) : pinGroupsQuery.isError ? (
                 <View className="items-center py-8">
-                  <Text className="text-body05 text-grey-30">
+                  <Text className="text-grey-30 text-body05">
                     {getFavoriteGroupErrorMessage(
                       pinGroupsQuery.error,
                       '그룹 목록을 불러오지 못했습니다'
@@ -220,10 +220,10 @@ const FavoriteSaveSheet = React.forwardRef<FavoriteSaveSheetHandle>(
                     onPress={() => onGroupPress(group.id)}
                   >
                     <FavoriteBadgeIcon size={20} className={getGroupBadgeClassName(group.color)} />
-                    <Text className="ms-1 text-body06 text-black">{group.name}</Text>
+                    <Text className="ms-1 text-black text-body06">{group.name}</Text>
                     <View className="flex-1 flex-row items-center">
                       <PinIcon size={16} className="text-grey-30" />
-                      <Text className="flex-1 text-caption02 text-grey-30">{group.placeCount}</Text>
+                      <Text className="flex-1 text-grey-30 text-caption02">{group.placeCount}</Text>
                     </View>
                     <CheckCircleIcon size={20} checked={selectedGroupIds.has(group.id)} />
                   </TouchableOpacity>

@@ -300,7 +300,7 @@ export default function SearchScreen() {
               returnKeyType="search"
               onSubmitEditing={() => submitSearch(query)}
               style={{ padding: 0, lineHeight: undefined }}
-              className="flex-1 font-pretendard text-body06 text-black outline-none"
+              className="flex-1 font-pretendard text-black outline-none text-body06"
             />
             {!!query && (
               <TouchableOpacity
@@ -331,13 +331,13 @@ export default function SearchScreen() {
             {/* 최근 검색어 */}
             <View className="mt-8 gap-2.5">
               <View className="flex-row items-end justify-between px-4">
-                <Text className="text-body02 text-black">최근 검색어</Text>
+                <Text className="text-black text-body02">최근 검색어</Text>
                 <TouchableOpacity onPress={() => onClearRecentSearchHistoryPress()}>
-                  <Text className="text-caption02 text-grey-60">전체 삭제</Text>
+                  <Text className="text-grey-60 text-caption02">전체 삭제</Text>
                 </TouchableOpacity>
               </View>
               {recentSearches.length === 0 ? (
-                <Text className="px-4 text-body05 text-grey-30">최근 검색어 내역이 없습니다</Text>
+                <Text className="px-4 text-grey-30 text-body05">최근 검색어 내역이 없습니다</Text>
               ) : (
                 <ScrollView
                   horizontal
@@ -347,7 +347,7 @@ export default function SearchScreen() {
                   {recentSearches.map((keyword) => (
                     <View key={keyword} className="flex-row rounded-full border border-grey-10">
                       <TouchableOpacity onPress={() => onRecentSearchPress(keyword)}>
-                        <Text className="my-1.5 me-[3px] ms-3 text-body05 text-grey-40">
+                        <Text className="my-1.5 me-[3px] ms-3 text-grey-40 text-body05">
                           {keyword}
                         </Text>
                       </TouchableOpacity>
@@ -363,7 +363,7 @@ export default function SearchScreen() {
             {/* 추천 검색어 */}
             {suggestedSearchKeywords.length > 0 && (
               <View className="mt-8 gap-2.5">
-                <Text className="ms-4 text-body02 text-black">추천 검색어</Text>
+                <Text className="ms-4 text-black text-body02">추천 검색어</Text>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -372,7 +372,7 @@ export default function SearchScreen() {
                   {suggestedSearchKeywords.map((keyword) => (
                     <TouchableOpacity key={keyword} onPress={() => onSuggestedSearchPress(keyword)}>
                       <View className="rounded-full bg-blue-05 px-3 py-1.5">
-                        <Text className="text-body05 text-blue-35">{keyword}</Text>
+                        <Text className="text-blue-35 text-body05">{keyword}</Text>
                       </View>
                     </TouchableOpacity>
                   ))}
@@ -382,7 +382,7 @@ export default function SearchScreen() {
 
             {/* 인기 검색어 */}
             <View className="mt-8 gap-3">
-              <Text className="ms-4 text-body02 text-black">인기 검색어</Text>
+              <Text className="ms-4 text-black text-body02">인기 검색어</Text>
               <FlatList
                 data={popularSearches}
                 numColumns={2}
@@ -393,8 +393,8 @@ export default function SearchScreen() {
                 renderItem={({ item, index }) => (
                   <TouchableOpacity className="flex-1" onPress={() => onPopularSearchPress(item)}>
                     <View className="flex-row">
-                      <Text className="text-body04 text-blue-35">{index + 1}</Text>
-                      <Text className="ms-1.5 text-body05 text-grey-40">{item}</Text>
+                      <Text className="text-blue-35 text-body04">{index + 1}</Text>
+                      <Text className="ms-1.5 text-grey-40 text-body05">{item}</Text>
                     </View>
                   </TouchableOpacity>
                 )}
@@ -481,11 +481,11 @@ export default function SearchScreen() {
             )}
 
             {!isLoading && !!errorMessage && (
-              <Text className="py-10 text-center text-body05 text-grey-40">{errorMessage}</Text>
+              <Text className="py-10 text-center text-grey-40 text-body05">{errorMessage}</Text>
             )}
 
             {!isLoading && !errorMessage && !hasResults && (
-              <Text className="py-10 text-center text-body05 text-grey-40">
+              <Text className="py-10 text-center text-grey-40 text-body05">
                 검색 결과가 없습니다.
               </Text>
             )}
@@ -496,7 +496,7 @@ export default function SearchScreen() {
                 {currentTab === 'ALL' && (
                   <>
                     <View className="gap-3.5 px-4 py-5">
-                      <Text className="text-body02 text-black">
+                      <Text className="text-black text-body02">
                         <Text className="text-mju-primary">AI</Text> 요약 검색 결과
                       </Text>
                       {isAiSummaryLoading ? (
@@ -512,14 +512,14 @@ export default function SearchScreen() {
                         </View>
                       ) : aiSummary ? (
                         <>
-                          <Text className="text-body05 text-grey-80">{aiSummary.summary}</Text>
+                          <Text className="text-grey-80 text-body05">{aiSummary.summary}</Text>
                           <View>
                             {aiSummary.sources.map((source, index) => (
                               <View
                                 key={index}
                                 className="flex-row items-center gap-1 border-b border-grey-02 py-1"
                               >
-                                <Text className="flex-1 text-body05 text-grey-30">
+                                <Text className="flex-1 text-grey-30 text-body05">
                                   {source.title}
                                 </Text>
                                 <TouchableOpacity onPress={() => openLink(source.url)}>
@@ -539,7 +539,7 @@ export default function SearchScreen() {
                 {shouldShowSection('공지사항') && (
                   <View className="py-5">
                     <View className="flex-row items-center justify-between px-4">
-                      <Text className="text-body02 text-black">공지사항</Text>
+                      <Text className="text-black text-body02">공지사항</Text>
                       <TouchableOpacity onPress={() => onNoticeMorePress()}>
                         <ArrowRightIcon size={20} className="text-grey-60" />
                       </TouchableOpacity>
@@ -547,13 +547,13 @@ export default function SearchScreen() {
                     {getSectionItems(results.notices).map((item) => (
                       <TouchableOpacity key={item.id} onPress={() => openLink(item.url)}>
                         <View className="gap-[3px] border-b border-grey-02 px-4 py-2.5">
-                          <Text className="text-caption01 text-blue-15">
+                          <Text className="text-blue-15 text-caption01">
                             {NOTICE_CATEGORY_LABELS[item.category] ?? item.category}
                           </Text>
-                          <Text className="text-body05 text-black" numberOfLines={2}>
+                          <Text className="text-black text-body05" numberOfLines={2}>
                             {item.title}
                           </Text>
-                          <Text className="text-caption04 text-grey-30">
+                          <Text className="text-grey-30 text-caption04">
                             {formatSearchDate(item.date)}
                           </Text>
                         </View>
@@ -566,7 +566,7 @@ export default function SearchScreen() {
                 {shouldShowSection('게시판') && (
                   <View className="py-5">
                     <View className="flex-row items-center justify-between px-4">
-                      <Text className="text-body02 text-black">커뮤니티</Text>
+                      <Text className="text-black text-body02">커뮤니티</Text>
                       <TouchableOpacity onPress={() => onCommunityMorePress()}>
                         <ArrowRightIcon size={20} className="text-grey-60" />
                       </TouchableOpacity>
@@ -575,22 +575,22 @@ export default function SearchScreen() {
                       <Link key={item.id} href={`/posts/${item.id}`} asChild>
                         <TouchableOpacity>
                           <View className="border-b border-grey-02 px-4 py-2">
-                            <Text className="text-body04 text-grey-80">{item.title}</Text>
-                            <Text className="mt-1 text-body05 text-black" numberOfLines={2}>
+                            <Text className="text-grey-80 text-body04">{item.title}</Text>
+                            <Text className="mt-1 text-black text-body05" numberOfLines={2}>
                               {item.preview}
                             </Text>
                             <View className="mt-2 flex-row items-center justify-between">
                               <View className="flex-row items-center">
                                 <HeartIcon className="text-blue-10" />
-                                <Text className="ms-1 text-caption02 text-grey-40">
+                                <Text className="ms-1 text-grey-40 text-caption02">
                                   {item.likes}
                                 </Text>
                                 <ChatBubbleIcon className="ms-2 text-blue-10" />
-                                <Text className="ms-1 text-caption02 text-grey-40">
+                                <Text className="ms-1 text-grey-40 text-caption02">
                                   {item.comments}
                                 </Text>
                               </View>
-                              <Text className="text-caption02 text-grey-40">
+                              <Text className="text-grey-40 text-caption02">
                                 {formatSearchDate(item.date)}
                               </Text>
                             </View>
@@ -605,17 +605,17 @@ export default function SearchScreen() {
                 {shouldShowSection('학사일정') && (
                   <View className="py-5">
                     <View className="flex-row items-center justify-between px-4">
-                      <Text className="text-body02 text-black">학사일정</Text>
+                      <Text className="text-black text-body02">학사일정</Text>
                       <TouchableOpacity onPress={() => onCalendarMorePress()}>
                         <ArrowRightIcon size={20} className="text-grey-60" />
                       </TouchableOpacity>
                     </View>
                     {getSectionItems(results.calendars).map((item) => (
                       <View key={item.id} className="gap-[3px] border-b border-grey-02 px-4 py-2.5">
-                        <Text className="text-body05 text-black" numberOfLines={2}>
+                        <Text className="text-black text-body05" numberOfLines={2}>
                           {item.title}
                         </Text>
-                        <Text className="text-caption04 text-grey-30">
+                        <Text className="text-grey-30 text-caption04">
                           {formatSearchDate(item.date)}
                         </Text>
                       </View>
@@ -627,7 +627,7 @@ export default function SearchScreen() {
                 {shouldShowSection('명대신문') && (
                   <View className="py-5">
                     <View className="flex-row items-center justify-between px-4">
-                      <Text className="text-body02 text-black">명대신문</Text>
+                      <Text className="text-black text-body02">명대신문</Text>
                       <TouchableOpacity onPress={() => onNewspaperMorePress()}>
                         <ArrowRightIcon size={20} className="text-grey-60" />
                       </TouchableOpacity>
@@ -646,19 +646,19 @@ export default function SearchScreen() {
                               style={{ width: 100, height: 100 }}
                             />
                             <View className="flex-1">
-                              <Text className="text-body02 text-black" numberOfLines={1}>
+                              <Text className="text-black text-body02" numberOfLines={1}>
                                 {item.title}
                               </Text>
-                              <Text className="mt-0.5 text-body05 text-black" numberOfLines={2}>
+                              <Text className="mt-0.5 text-black text-body05" numberOfLines={2}>
                                 {item.preview}
                               </Text>
                               <Text
-                                className="mt-0.5 text-caption01 text-grey-30"
+                                className="mt-0.5 text-grey-30 text-caption01"
                                 numberOfLines={1}
                               >
                                 {item.author}
                               </Text>
-                              <Text className="text-caption04 text-grey-30" numberOfLines={1}>
+                              <Text className="text-grey-30 text-caption04" numberOfLines={1}>
                                 {formatSearchDate(item.date)}
                               </Text>
                             </View>
@@ -673,7 +673,7 @@ export default function SearchScreen() {
                 {shouldShowSection('명대뉴스') && (
                   <View className="py-5">
                     <View className="flex-row items-center justify-between px-4">
-                      <Text className="text-body02 text-black">명대뉴스</Text>
+                      <Text className="text-black text-body02">명대뉴스</Text>
                       <TouchableOpacity onPress={() => onBroadcastMorePress()}>
                         <ArrowRightIcon size={20} className="text-grey-60" />
                       </TouchableOpacity>
@@ -688,10 +688,10 @@ export default function SearchScreen() {
                             </View>
                             <TouchableOpacity onPress={() => openLink(item.url)}>
                               <View className="gap-0.5 rounded-b-xl bg-white px-4 py-2">
-                                <Text className="text-body02 text-black" numberOfLines={2}>
+                                <Text className="text-black text-body02" numberOfLines={2}>
                                   {item.title}
                                 </Text>
-                                <Text className="text-caption04 text-grey-30" numberOfLines={1}>
+                                <Text className="text-grey-30 text-caption04" numberOfLines={1}>
                                   {formatSearchDate(item.date)}
                                 </Text>
                               </View>
@@ -734,13 +734,13 @@ function AutocompleteList({
 
   if (isError) {
     return (
-      <Text className="px-4 py-6 text-body05 text-grey-40">검색어 제안을 불러올 수 없습니다.</Text>
+      <Text className="px-4 py-6 text-grey-40 text-body05">검색어 제안을 불러올 수 없습니다.</Text>
     );
   }
 
   if (suggestions.length === 0) {
     return (
-      <Text className="px-4 py-6 text-body05 text-grey-40">{query}에 대한 제안이 없습니다.</Text>
+      <Text className="px-4 py-6 text-grey-40 text-body05">{query}에 대한 제안이 없습니다.</Text>
     );
   }
 
@@ -754,7 +754,7 @@ function AutocompleteList({
         >
           <View className="flex-row items-center gap-3 border-b border-grey-02 px-4 py-3">
             <SearchIcon size={20} className="text-grey-30" />
-            <Text className="min-w-0 flex-1 text-body04 text-black" numberOfLines={1}>
+            <Text className="min-w-0 flex-1 text-black text-body04" numberOfLines={1}>
               {suggestion}
             </Text>
           </View>

@@ -252,7 +252,7 @@ export default function AcademicCalendarScreen() {
               <Text
                 className={cn(
                   'text-center',
-                  currentTab === label ? 'text-body04 text-black' : 'text-body05 text-grey-40'
+                  currentTab === label ? 'text-black text-body04' : 'text-grey-40 text-body05'
                 )}
               >
                 {label}
@@ -276,7 +276,7 @@ export default function AcademicCalendarScreen() {
                   </View>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => handleResetMonth()}>
-                  <Text className="text-body02 text-black">
+                  <Text className="text-black text-body02">
                     {currentYear}년 {currentMonth}월
                   </Text>
                 </TouchableOpacity>
@@ -354,26 +354,26 @@ export default function AcademicCalendarScreen() {
           {/* 범례 */}
           <View className="mt-3 flex-row items-center justify-end px-5">
             <View className="h-2.5 w-2.5 bg-blue-35" />
-            <Text className="ms-1 text-caption04 text-grey-40">전체 (학부·대학원)</Text>
+            <Text className="ms-1 text-grey-40 text-caption04">전체 (학부·대학원)</Text>
             <View className="ms-4 h-2.5 w-2.5 bg-blue-15" />
-            <Text className="ms-1 text-caption04 text-grey-40">학부</Text>
+            <Text className="ms-1 text-grey-40 text-caption04">학부</Text>
             <View className="ms-4 h-2.5 w-2.5 bg-blue-05" />
-            <Text className="ms-1 text-caption04 text-grey-40">대학원</Text>
+            <Text className="ms-1 text-grey-40 text-caption04">대학원</Text>
             <View className="ms-4 h-2.5 w-2.5 bg-grey-02" />
-            <Text className="ms-1 text-caption04 text-grey-40">휴일</Text>
+            <Text className="ms-1 text-grey-40 text-caption04">휴일</Text>
           </View>
 
           {/* 세부일정 */}
           <View className="mt-6">
             <View className="flex-row items-center justify-between border-b border-grey-02 py-1 pe-[14px] ps-5">
-              <Text className="text-body02 text-mju-primary">
+              <Text className="text-mju-primary text-body02">
                 {selectedDate ? formatSelectedDate(selectedDate) : '날짜를 선택하세요'}
               </Text>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <TouchableOpacity>
                     <View className="flex-row items-center gap-1 p-1">
-                      <Text className="text-caption02 text-grey-30">{selectedFilter}</Text>
+                      <Text className="text-grey-30 text-caption02">{selectedFilter}</Text>
                       <ArrowDownIcon size={16} className="text-grey-30" />
                     </View>
                   </TouchableOpacity>
@@ -400,12 +400,12 @@ export default function AcademicCalendarScreen() {
             </View>
             <View className="pb-3 pt-2">
               {scheduleEvents.length === 0 && selectedDate && (
-                <Text className="px-5 py-2 text-caption02 text-grey-30">일정이 없습니다.</Text>
+                <Text className="px-5 py-2 text-grey-30 text-caption02">일정이 없습니다.</Text>
               )}
               {scheduleEvents.map((item, index) => (
                 <View key={index} className="flex-row items-start gap-2 px-5 py-2">
-                  <Text className="w-[80px] text-caption02 text-grey-40">{item.dateLabel}</Text>
-                  <Text className="flex-1 text-caption02 text-black" numberOfLines={2}>
+                  <Text className="w-[80px] text-grey-40 text-caption02">{item.dateLabel}</Text>
+                  <Text className="flex-1 text-black text-caption02" numberOfLines={2}>
                     {item.description}
                   </Text>
                 </View>
@@ -422,13 +422,13 @@ export default function AcademicCalendarScreen() {
             {academicNotices.map((item, index) => (
               <TouchableOpacity key={index} onPress={() => openLink(item.link)}>
                 <View className="gap-[3px] border-b border-grey-02 px-4 py-2.5">
-                  <Text className="text-caption01 text-blue-15" numberOfLines={1}>
+                  <Text className="text-blue-15 text-caption01" numberOfLines={1}>
                     {CATEGORY_LABEL[item.category] ?? item.category}
                   </Text>
-                  <Text className="text-body05 text-black" numberOfLines={2}>
+                  <Text className="text-black text-body05" numberOfLines={2}>
                     {item.title}
                   </Text>
-                  <Text className="text-caption04 text-grey-30" numberOfLines={1}>
+                  <Text className="text-grey-30 text-caption04" numberOfLines={1}>
                     {format(parseUTCDate(item.date), 'yyyy.MM.dd')}
                   </Text>
                 </View>

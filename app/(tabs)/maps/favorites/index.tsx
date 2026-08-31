@@ -178,7 +178,7 @@ export default function MapsFavoritesScreen() {
                 setSortMenuOpen((prev) => !prev);
               }}
             >
-              <Text className="text-caption02 text-grey-60">{sortOption}</Text>
+              <Text className="text-grey-60 text-caption02">{sortOption}</Text>
               <View style={isSortMenuOpen ? { transform: [{ rotate: '180deg' }] } : undefined}>
                 <ArrowDownIcon size={14} className="text-grey-40" />
               </View>
@@ -197,9 +197,9 @@ export default function MapsFavoritesScreen() {
             {favoriteGroupsQuery.isLoading ? (
               <ActivityIndicator color="#2587ff" />
             ) : favoriteGroupsQuery.isError ? (
-              <Text className="text-body05 text-grey-30">목록을 불러오지 못했습니다</Text>
+              <Text className="text-grey-30 text-body05">목록을 불러오지 못했습니다</Text>
             ) : (
-              <Text className="text-body05 text-grey-30">즐겨찾기 그룹이 없습니다</Text>
+              <Text className="text-grey-30 text-body05">즐겨찾기 그룹이 없습니다</Text>
             )}
           </View>
         }
@@ -216,11 +216,11 @@ export default function MapsFavoritesScreen() {
               <FavoriteBadgeIcon size={28} className={getGroupBadgeClassName(item.color)} />
 
               <View className="min-w-0 flex-1 flex-row items-center">
-                <Text className="text-body06 text-black" numberOfLines={1}>
+                <Text className="text-black text-body06" numberOfLines={1}>
                   {item.name}
                 </Text>
                 <PinIcon size={12} className="ms-1.5 text-grey-30" />
-                <Text className="text-caption02 text-grey-30">{item.placeCount}</Text>
+                <Text className="text-grey-30 text-caption02">{item.placeCount}</Text>
               </View>
 
               {isPending ? (
@@ -317,7 +317,7 @@ export default function MapsFavoritesScreen() {
                     : onDeleteGroupPress(openGroupMenuGroup)
                 }
               >
-                <Text className="text-caption02 text-grey-30">{option}</Text>
+                <Text className="text-grey-30 text-caption02">{option}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -335,7 +335,7 @@ export default function MapsFavoritesScreen() {
         onPress={onNewGroupPress}
       >
         <PlusIcon size={14} className="text-blue-35" />
-        <Text className="text-body04 text-blue-35">새 그룹 추가</Text>
+        <Text className="text-blue-35 text-body04">새 그룹 추가</Text>
       </TouchableOpacity>
 
       {/* 새 그룹 추가 / 그룹명 수정 바텀시트 */}
@@ -351,10 +351,10 @@ export default function MapsFavoritesScreen() {
           className="mx-6 w-[320px] max-w-[320px] gap-4 rounded-xl border-none py-[24px]"
         >
           <DialogHeader className="gap-1">
-            <DialogTitle className="text-center text-body04 text-grey-80">
+            <DialogTitle className="text-center text-grey-80 text-body04">
               {`'${deleteTargetGroup?.name}' 그룹을 삭제하시겠습니까?`}
             </DialogTitle>
-            <DialogDescription className="text-center text-caption02 text-grey-80">
+            <DialogDescription className="text-center text-grey-80 text-caption02">
               그룹 내 저장된 장소와 메모가 모두 삭제되며{'\n'}복구할 수 없습니다.
             </DialogDescription>
           </DialogHeader>
@@ -366,7 +366,7 @@ export default function MapsFavoritesScreen() {
               onPress={() => setDeleteTargetGroup(null)}
               disabled={isDeletingGroup}
             >
-              <Text className="text-body06 text-black">취소</Text>
+              <Text className="text-black text-body06">취소</Text>
             </Button>
 
             <Button
@@ -374,7 +374,7 @@ export default function MapsFavoritesScreen() {
               onPress={onDeleteConfirmPress}
               disabled={isDeletingGroup}
             >
-              <Text className="text-body06 text-white">
+              <Text className="text-white text-body06">
                 {isDeletingGroup ? '삭제 중...' : '삭제'}
               </Text>
             </Button>

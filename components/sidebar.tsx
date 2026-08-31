@@ -140,7 +140,7 @@ export default function Sidebar({ visible, onClose, onNavigate }: SidebarProps) 
               <TouchableOpacity onPress={handleLogin}>
                 <View className="flex-row items-center gap-1 self-start rounded-[4px] border border-grey-20 py-1 pe-2 ps-1">
                   <LoginIcon className="text-mju-primary" />
-                  <Text className="text-caption02 text-black">로그인/회원가입</Text>
+                  <Text className="text-black text-caption02">로그인/회원가입</Text>
                 </View>
               </TouchableOpacity>
             </View>
@@ -159,8 +159,8 @@ export default function Sidebar({ visible, onClose, onNavigate }: SidebarProps) 
                   <View className="aspect-square w-10 rounded-full bg-grey-10" />
                 )}
                 <View className="flex-1">
-                  <Text className="text-body02 text-black">{user.nickname}</Text>
-                  <Text className="text-body05 text-grey-30">{user.studentNumber}</Text>
+                  <Text className="text-black text-body02">{user.nickname}</Text>
+                  <Text className="text-grey-30 text-body05">{user.studentNumber}</Text>
                 </View>
               </View>
               <View className="h-[1px] w-full bg-grey-02" />
@@ -178,7 +178,7 @@ export default function Sidebar({ visible, onClose, onNavigate }: SidebarProps) 
               <View key={index} className="gap-2">
                 <View>
                   <View className="px-5 py-[9px]">
-                    <Text className="text-body02 text-blue-35">{section.title}</Text>
+                    <Text className="text-blue-35 text-body02">{section.title}</Text>
                   </View>
                   <View>
                     {section.items.map((item) => (
@@ -205,7 +205,7 @@ export default function Sidebar({ visible, onClose, onNavigate }: SidebarProps) 
                               'transition hover:bg-blue-05 hover:transition-none'
                           )}
                         >
-                          <Text className="text-body05 text-black">{item.label}</Text>
+                          <Text className="text-black text-body05">{item.label}</Text>
                           {'isExternal' in item && item.isExternal && (
                             <ExternalLinkIcon size={24} className="text-mju-primary" />
                           )}
@@ -224,7 +224,7 @@ export default function Sidebar({ visible, onClose, onNavigate }: SidebarProps) 
                 <TouchableOpacity onPress={handleLogout}>
                   <View className="flex-row items-center gap-1 self-start rounded-[4px] border border-grey-20 py-1 pe-2 ps-1">
                     <LoginIcon className="text-mju-primary" />
-                    <Text className="text-caption02 text-black">로그아웃</Text>
+                    <Text className="text-black text-caption02">로그아웃</Text>
                   </View>
                 </TouchableOpacity>
               </View>

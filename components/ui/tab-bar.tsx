@@ -51,7 +51,7 @@ export function TabBar({ tabs, currentTab, onTabPress }: Props) {
             }}
           >
             <Text
-              className={`${currentTab === label ? 'text-body04 text-mju-primary' : 'text-body06 text-grey-40'}`}
+              className={`${currentTab === label ? 'text-mju-primary text-body04' : 'text-grey-40 text-body06'}`}
             >
               {label}
             </Text>

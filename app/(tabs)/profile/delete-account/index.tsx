@@ -44,10 +44,10 @@ export default function DeleteAccountScreen() {
       </View>
       <ScrollView className="bg-grey-02" contentContainerClassName="flex-grow">
         <View className="flex-1 gap-3 px-4 py-8">
-          <Text className="text-title01 text-black">회원 탈퇴</Text>
+          <Text className="text-black text-title01">회원 탈퇴</Text>
           <View className="rounded-xl bg-white p-6">
-            <Text className="text-body04 text-black">비밀번호 확인</Text>
-            <Text className="mt-1 text-caption02 text-grey-40">
+            <Text className="text-black text-body04">비밀번호 확인</Text>
+            <Text className="mt-1 text-grey-40 text-caption02">
               탈퇴 시 모든 회원 정보가 삭제되며 복구할 수 없습니다. 정말 탈퇴하시겠습니까?
             </Text>
             <Input

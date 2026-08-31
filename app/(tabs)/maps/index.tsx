@@ -708,7 +708,7 @@ export default function MapsScreen() {
                 <ThingoLogoSmall size={32} />
               </TouchableOpacity>
               <TouchableOpacity className="flex-1" onPress={onSearchButtonPress} hitSlop={4}>
-                <Text className="text-body05 text-grey-20">건물명, 강의실 코드를 검색해보세요</Text>
+                <Text className="text-grey-20 text-body05">건물명, 강의실 코드를 검색해보세요</Text>
               </TouchableOpacity>
               <SearchIcon size={24} className="text-grey-40" />
             </View>
@@ -726,7 +726,7 @@ export default function MapsScreen() {
                 onPress={onFavoritesButtonPress}
               >
                 <StarIcon size={24} className="text-blue-05" />
-                <Text className="text-caption05 text-blue-05" style={{ fontSize: 9 }}>
+                <Text className="text-blue-05 text-caption05" style={{ fontSize: 9 }}>
                   즐겨찾기
                 </Text>
               </TouchableOpacity>
@@ -760,7 +760,7 @@ export default function MapsScreen() {
                   hitSlop={2}
                 >
                   <chip.Icon size={20} className={chip.iconClassName} />
-                  <Text className="text-caption02 text-black">{chip.label}</Text>
+                  <Text className="text-black text-caption02">{chip.label}</Text>
                 </TouchableOpacity>
               </View>
             ))}

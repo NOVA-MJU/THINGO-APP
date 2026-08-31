@@ -48,8 +48,8 @@ export default function MyPostsScreen() {
       >
         <View className="flex-1">
           <View className="px-4 py-5">
-            <Text className="text-title01 text-black">내가 작성한 게시물</Text>
-            <Text className="mt-1 text-body05 text-grey-40">총 {totalElements}개</Text>
+            <Text className="text-black text-title01">내가 작성한 게시물</Text>
+            <Text className="mt-1 text-grey-40 text-body05">총 {totalElements}개</Text>
           </View>
 
           <View className="relative flex-1">
@@ -59,7 +59,7 @@ export default function MyPostsScreen() {
               </View>
             ) : posts.length === 0 ? (
               <View className="flex-1 items-center justify-center py-20">
-                <Text className="text-body05 text-black">작성한 게시물이 없습니다.</Text>
+                <Text className="text-black text-body05">작성한 게시물이 없습니다.</Text>
               </View>
             ) : (
               <>
@@ -70,20 +70,20 @@ export default function MyPostsScreen() {
                       className="gap-2 rounded-xl bg-white px-4 pb-2 pt-3"
                       onPress={() => router.push(`/posts/${item.uuid}`)}
                     >
-                      <Text className="text-body04 text-black" numberOfLines={1}>
+                      <Text className="text-black text-body04" numberOfLines={1}>
                         {item.title}
                       </Text>
-                      <Text className="text-body05 text-grey-60" numberOfLines={2}>
+                      <Text className="text-grey-60 text-body05" numberOfLines={2}>
                         {item.previewContent}
                       </Text>
                       <View className="flex-row items-center">
-                        <Text className="flex-1 text-caption04 text-grey-30">
+                        <Text className="flex-1 text-grey-30 text-caption04">
                           {format(parseUTCDate(item.publishedAt), 'yyyy.MM.dd')}
                         </Text>
                         <HeartIcon className="ms-3 text-blue-10" />
-                        <Text className="ms-1 text-caption02 text-grey-40">{item.likeCount}</Text>
+                        <Text className="ms-1 text-grey-40 text-caption02">{item.likeCount}</Text>
                         <ChatBubbleIcon className="ms-2 text-blue-10" />
-                        <Text className="ms-1 text-caption02 text-grey-40">
+                        <Text className="ms-1 text-grey-40 text-caption02">
                           {item.commentCount}
                         </Text>
                       </View>

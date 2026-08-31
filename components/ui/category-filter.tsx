@@ -34,7 +34,7 @@ export function CategoryFilter({
           >
             <Text
               className={clsx(
-                selected === label ? 'text-body04 text-white' : 'text-body05 text-grey-40'
+                selected === label ? 'text-white text-body04' : 'text-grey-40 text-body05'
               )}
             >
               {label}

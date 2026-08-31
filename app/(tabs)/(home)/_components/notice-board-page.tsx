@@ -28,7 +28,7 @@ const ITEMS_PER_PAGE = 10;
 function BoardHotBadge() {
   return (
     <View className="h-[20px] w-[40px] items-center justify-center self-start rounded-full bg-blue-20 px-[8px]">
-      <Text className="text-[11px] text-caption04 text-white">HOT</Text>
+      <Text className="text-[11px] text-white text-caption04">HOT</Text>
     </View>
   );
 }
@@ -58,7 +58,7 @@ function BoardCard({ item, onPress }: BoardCardProps) {
         <View className="gap-1.5">
           <View className="flex-row items-center gap-1.5">
             {item.popular && <BoardHotBadge />}
-            <Text className="flex-1 text-body04 text-black" numberOfLines={1}>
+            <Text className="flex-1 text-black text-body04" numberOfLines={1}>
               {item.title}
             </Text>
           </View>
@@ -72,16 +72,16 @@ function BoardCard({ item, onPress }: BoardCardProps) {
           <View className="flex-row items-center gap-2">
             <View className="flex-row items-center gap-0.5">
               <HeartIcon size={24} className="text-[#8BC7FF]" filled={item.liked} />
-              <Text className="text-caption02 text-grey-40">{item.likeCount}</Text>
+              <Text className="text-grey-40 text-caption02">{item.likeCount}</Text>
             </View>
 
             <View className="flex-row items-center gap-0.5">
               <ChatBubbleIcon size={24} className="text-[#8BC7FF]" />
-              <Text className="text-caption02 text-grey-40">{item.commentCount}</Text>
+              <Text className="text-grey-40 text-caption02">{item.commentCount}</Text>
             </View>
           </View>
 
-          <Text className="text-caption02 text-grey-40">{formatBoardDate(item)}</Text>
+          <Text className="text-grey-40 text-caption02">{formatBoardDate(item)}</Text>
         </View>
       </View>
     </Pressable>
@@ -104,7 +104,7 @@ function WriteButton({ bottomOffset, onPress }: { bottomOffset: number; onPress:
     >
       <View className="items-center justify-center">
         <ClipboardPen size={24} color="#E8F1FF" strokeWidth={2} />
-        <Text className="text-[12px] text-caption02 leading-[18px] text-[#E8F1FF]">글남기기</Text>
+        <Text className="text-[12px] leading-[18px] text-[#E8F1FF] text-caption02">글남기기</Text>
       </View>
     </Pressable>
   );
@@ -113,8 +113,8 @@ function WriteButton({ bottomOffset, onPress }: { bottomOffset: number; onPress:
 function EmptyState() {
   return (
     <View className="items-center justify-center px-6 py-20">
-      <Text className="text-body04 text-black">등록된 게시글이 없습니다.</Text>
-      <Text className="mt-1 text-body05 text-grey-40">첫 번째 글을 작성해보세요.</Text>
+      <Text className="text-black text-body04">등록된 게시글이 없습니다.</Text>
+      <Text className="mt-1 text-grey-40 text-body05">첫 번째 글을 작성해보세요.</Text>
     </View>
   );
 }
@@ -122,9 +122,9 @@ function EmptyState() {
 function ErrorState({ onRetry }: { onRetry: () => void }) {
   return (
     <View className="items-center justify-center px-6 py-20">
-      <Text className="text-body04 text-black">게시글 목록을 불러오지 못했습니다.</Text>
+      <Text className="text-black text-body04">게시글 목록을 불러오지 못했습니다.</Text>
       <Pressable onPress={onRetry} className="mt-4 rounded-full border border-blue-20 px-4 py-2">
-        <Text className="text-body05 text-blue-35">다시 시도</Text>
+        <Text className="text-blue-35 text-body05">다시 시도</Text>
       </Pressable>
     </View>
   );
@@ -231,7 +231,7 @@ function NoticeBoardScreen() {
               <Text
                 className={cn(
                   'text-center',
-                  activeCategory === tab.key ? 'text-body04 text-black' : 'text-body05 text-grey-40'
+                  activeCategory === tab.key ? 'text-black text-body04' : 'text-grey-40 text-body05'
                 )}
               >
                 {tab.label}
@@ -251,10 +251,10 @@ function NoticeBoardScreen() {
         <View className="flex-1 justify-between bg-white pt-5">
           <View>
             <View className="px-4 pb-3">
-              <Text className="text-title03 text-black">
+              <Text className="text-black text-title03">
                 {BOARD_TABS.find((tab) => tab.key === activeCategory)?.label}
               </Text>
-              <Text className="mt-1 text-body05 text-grey-40">총 {totalElements}개</Text>
+              <Text className="mt-1 text-grey-40 text-body05">총 {totalElements}개</Text>
             </View>
 
             {loading ? (

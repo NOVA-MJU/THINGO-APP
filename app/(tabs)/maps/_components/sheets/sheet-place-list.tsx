@@ -49,7 +49,7 @@ export default function PlaceListSheet({
           </TouchableOpacity>
         </View>
         <View className="items-center px-4 py-10">
-          <Text className="text-body04 text-grey-40">표시할 장소가 없습니다.</Text>
+          <Text className="text-grey-40 text-body04">표시할 장소가 없습니다.</Text>
         </View>
       </View>
     );
@@ -83,15 +83,15 @@ export default function PlaceListSheet({
                   <Icon size={28} className={iconClassName} />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-title03 text-black">{place.name}</Text>
+                  <Text className="text-black text-title03">{place.name}</Text>
                   {place.classroomCode ? (
-                    <Text className="text-body05 text-grey-80">{place.classroomCode}</Text>
+                    <Text className="text-grey-80 text-body05">{place.classroomCode}</Text>
                   ) : place.location ? (
                     <View className="flex-row items-center gap-1">
                       <View className="rounded bg-grey-02 px-1">
-                        <Text className="text-caption02 text-grey-60">도로명</Text>
+                        <Text className="text-grey-60 text-caption02">도로명</Text>
                       </View>
-                      <Text className="text-caption02 text-grey-80" numberOfLines={1}>
+                      <Text className="text-grey-80 text-caption02" numberOfLines={1}>
                         {place.location}
                       </Text>
                     </View>
@@ -102,14 +102,14 @@ export default function PlaceListSheet({
                 </TouchableOpacity>
               </View>
               <View className="mt-2.5 flex-row items-center">
-                <Text className="text-body04 text-grey-40">
+                <Text className="text-grey-40 text-body04">
                   {place.operatingStatus || '운영 정보 없음'}
                 </Text>
                 <View className="px-1.5">
                   <View className="h-[3px] w-[3px] rounded-full bg-grey-30" />
                 </View>
                 {place.distanceMeters !== null && (
-                  <Text className="text-body05 text-grey-30">{place.distanceMeters}m</Text>
+                  <Text className="text-grey-30 text-body05">{place.distanceMeters}m</Text>
                 )}
               </View>
               {place.imageUrl && (
