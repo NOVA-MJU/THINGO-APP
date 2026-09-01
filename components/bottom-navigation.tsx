@@ -54,7 +54,16 @@ export default function BottomNavigation() {
               // 그 탭의 루트 화면이 새로 하나 더 push된 것처럼 보인다. dismissTo로 해당 탭의
               // 중첩 스택에 이미 떠 있는 루트 화면으로 곧장 돌아가야 자연스럽다.
               if (isActive) {
-                router.dismissTo(target);
+                // 홈 탭은 웹에서 하위 라우트(/meal, /posts 등)가 dismissTo로 되돌아갈
+                // 자기 자신의 스택 항목을 갖지 않는다(탭 전환이 push가 아니라 replace라서).
+                // 그래서 dismissTo 대신 매번 새 타임스탬프를 params로 실어 navigate한다.
+                // 모바일은 이 값이 바뀔 때마다 index.tsx가 ALL 화면으로 스크롤하고,
+                // 웹은 '/'(ALL 페이지) 라우트로 이동한다.
+                if (key === 'home') {
+                  router.navigate({ pathname: '/', params: { scrollToAll: String(Date.now()) } });
+                } else {
+                  router.dismissTo(target);
+                }
               } else {
                 router.navigate(target);
               }

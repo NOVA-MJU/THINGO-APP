@@ -82,10 +82,9 @@ export default function ProfileScreen() {
           {/* 나의 활동 */}
           <Text className="mt-4 text-grey-80 text-title03">나의 활동</Text>
           <View className="mt-2 gap-3">
-            {/* TODO: app/(tabs)/profile/maps 라우트가 아직 없어 타입 단언으로 막아둠 */}
             <TouchableOpacity
               className="flex-row items-center gap-4 rounded-xl bg-white px-4 py-6"
-              onPress={() => router.push('/profile/maps' as never)}
+              onPress={() => router.push('/profile/maps/favorites')}
             >
               <Text className="flex-1 text-grey-80 text-body04">명지도 즐겨찾기</Text>
               <Text className="text-grey-40 text-body04">{stats?.mapFavoriteCount ?? '-'}개</Text>
