@@ -602,7 +602,6 @@ export default function PlaceReviewMediaScreen() {
           onToggleLike={handleToggleLike}
         />
       ) : null}
-
     </View>
   );
 }
