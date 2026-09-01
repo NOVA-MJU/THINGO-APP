@@ -25,8 +25,8 @@ export default function DaedongPlaceListSheet({
   return (
     <ScrollView>
       <View className="flex-row items-center px-4">
-        <Text className="text-title03 text-black">대동명지도</Text>
-        <Text className="me-1 ms-3 text-body05 text-grey-80">by 명월</Text>
+        <Text className="text-black text-title03">대동명지도</Text>
+        <Text className="me-1 ms-3 text-grey-80 text-body05">by 명월</Text>
         <MyeongwolIcon size={24} />
         <TouchableOpacity
           hitSlop={4}
@@ -42,7 +42,7 @@ export default function DaedongPlaceListSheet({
 
       {places.length === 0 ? (
         <View className="items-center px-4 py-10">
-          <Text className="text-body04 text-grey-40">표시할 장소가 없습니다.</Text>
+          <Text className="text-grey-40 text-body04">표시할 장소가 없습니다.</Text>
         </View>
       ) : (
         places.map((place, index) => (
@@ -59,30 +59,35 @@ export default function DaedongPlaceListSheet({
                   <RestaurantIcon size={28} className="text-blue-15" />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-title03 text-black">{place.name}</Text>
-                  {(place.classroomCode ?? place.location) && (
-                    <Text className="text-body05 text-grey-80">
-                      {place.classroomCode ?? place.location}
-                    </Text>
-                  )}
+                  <Text className="text-black text-title03">{place.name}</Text>
+                  {place.classroomCode ? (
+                    <Text className="text-grey-80 text-body05">{place.classroomCode}</Text>
+                  ) : place.location ? (
+                    <View className="flex-row items-center gap-1">
+                      <View className="rounded bg-grey-02 px-1">
+                        <Text className="text-grey-60 text-caption02">도로명</Text>
+                      </View>
+                      <Text className="text-grey-80 text-caption02" numberOfLines={1}>
+                        {place.location}
+                      </Text>
+                    </View>
+                  ) : null}
                 </View>
                 <TouchableOpacity hitSlop={4} onPress={() => toggleFavorite(place.id)}>
                   <FavoriteIcon size={28} active={place.favorite} />
                 </TouchableOpacity>
               </View>
-              {(place.operatingStatus || place.distanceMeters !== null) && (
-                <View className="mt-2.5 flex-row items-center gap-1.5">
-                  {place.operatingStatus && (
-                    <Text className="text-body04 text-blue-35">{place.operatingStatus}</Text>
-                  )}
-                  {place.operatingStatus && place.distanceMeters !== null && (
-                    <View className="h-[3px] w-[3px] rounded-full bg-grey-30" />
-                  )}
-                  {place.distanceMeters !== null && (
-                    <Text className="text-body05 text-grey-30">{place.distanceMeters}m</Text>
-                  )}
+              <View className="mt-2.5 flex-row items-center">
+                <Text className="text-grey-40 text-body04">
+                  {place.operatingStatus || '운영 정보 없음'}
+                </Text>
+                <View className="px-1.5">
+                  <View className="h-[3px] w-[3px] rounded-full bg-grey-30" />
                 </View>
-              )}
+                {place.distanceMeters !== null && (
+                  <Text className="text-grey-30 text-body05">{place.distanceMeters}m</Text>
+                )}
+              </View>
               {place.imageUrl && (
                 <Image
                   source={{ uri: place.imageUrl }}

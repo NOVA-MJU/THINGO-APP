@@ -56,8 +56,8 @@ export default function BlockedUsersScreen() {
       <ScrollView className="flex-1 bg-grey-02" contentContainerClassName="flex-grow">
         <View className="flex-1">
           <View className="px-4 py-5">
-            <Text className="text-title01 text-black">차단한 사용자</Text>
-            <Text className="mt-1 text-body05 text-grey-40">총 {members.length}개</Text>
+            <Text className="text-black text-title01">차단한 사용자</Text>
+            <Text className="mt-1 text-grey-40 text-body05">총 {members.length}개</Text>
           </View>
 
           <View className="flex-1">
@@ -67,7 +67,7 @@ export default function BlockedUsersScreen() {
               </View>
             ) : members.length === 0 ? (
               <View className="flex-1 items-center justify-center py-20">
-                <Text className="text-body05 text-black">차단한 사용자가 없습니다.</Text>
+                <Text className="text-black text-body05">차단한 사용자가 없습니다.</Text>
               </View>
             ) : (
               <View className="gap-2 px-4">
@@ -84,8 +84,8 @@ export default function BlockedUsersScreen() {
                         <View className="aspect-square w-10 rounded-full bg-grey-10" />
                       )}
                       <View className="flex-1">
-                        <Text className="text-body04 text-black">{member.nickname}</Text>
-                        <Text className="mt-0.5 text-body05 text-grey-40">
+                        <Text className="text-black text-body04">{member.nickname}</Text>
+                        <Text className="mt-0.5 text-grey-40 text-body05">
                           차단일 {format(parseUTCDate(member.blockedAt), 'yyyy.MM.dd HH:mm')}
                         </Text>
                       </View>
@@ -117,10 +117,10 @@ export default function BlockedUsersScreen() {
         <DialogContent showCloseButton={false} className="min-w-80 p-5">
           <View className="gap-4">
             <View>
-              <DialogTitle className="text-center text-body04 leading-normal text-grey-80">
+              <DialogTitle className="text-center leading-normal text-grey-80 text-body04">
                 {`'${unblockTarget?.nickname}' 차단을 해제하시겠어요?`}
               </DialogTitle>
-              <Text className="text-center text-caption02 text-grey-80">
+              <Text className="text-center text-grey-80 text-caption02">
                 {
                   '차단을 해제하면 이 사용자가 작성한 게시판 글과\n댓글, 명지도 리뷰가 다시 노출됩니다.'
                 }

@@ -526,7 +526,7 @@ export default function PlaceReviewMediaScreen() {
           )
         ) : (
           <View className="h-full w-full items-center justify-center bg-grey-40">
-            <Text className="text-body05 text-white">이미지 없음</Text>
+            <Text className="text-white text-body05">이미지 없음</Text>
           </View>
         )}
       </View>
@@ -560,11 +560,11 @@ export default function PlaceReviewMediaScreen() {
           <View className="min-w-0 pr-14">
             <View className="flex-row items-center gap-2">
               <ReviewAvatar profileImageUrl={reviewProfileImageUrl} />
-              <Text className="text-body04 text-white" numberOfLines={1}>
+              <Text className="text-white text-body04" numberOfLines={1}>
                 {reviewNickname}
               </Text>
             </View>
-            <Text className="mt-5 text-caption02 text-grey-20">
+            <Text className="mt-5 text-grey-20 text-caption02">
               {formatReviewDate(activeReview.createdAt)}
             </Text>
             <ReviewContentPreview
@@ -587,7 +587,7 @@ export default function PlaceReviewMediaScreen() {
           <HeartIcon size={35} filled={Boolean(activeReview.liked)} className="text-white" />
           <View className="h-[16px] items-center justify-center">
             {(activeReview.likeCount ?? 0) > 0 ? (
-              <Text className="text-caption02 leading-[16px] text-white">
+              <Text className="leading-[16px] text-white text-caption02">
                 {activeReview.likeCount}
               </Text>
             ) : null}
@@ -597,7 +597,7 @@ export default function PlaceReviewMediaScreen() {
 
       {!activeReview && resolvedPlaceName ? (
         <View className="absolute left-5 right-5 z-20" style={{ bottom: reviewBottomOffset }}>
-          <Text className="text-body04 leading-[21px] text-white" numberOfLines={2}>
+          <Text className="leading-[21px] text-white text-body04" numberOfLines={2}>
             {resolvedPlaceName} 사진입니다.
           </Text>
         </View>
@@ -622,10 +622,10 @@ export default function PlaceReviewMediaScreen() {
           showCloseButton={false}
         >
           <DialogHeader className="gap-[2px]">
-            <DialogTitle className="text-center text-body02 text-black">
+            <DialogTitle className="text-center text-black text-body02">
               내 리뷰에는 좋아요를 누를 수 없어요
             </DialogTitle>
-            <DialogDescription className="text-center text-body06 text-grey-80">
+            <DialogDescription className="text-center text-grey-80 text-body06">
               다른 사용자가 남긴 리뷰에만 좋아요를 누를 수 있습니다.
             </DialogDescription>
           </DialogHeader>
@@ -636,7 +636,7 @@ export default function PlaceReviewMediaScreen() {
               accessibilityRole="button"
               accessibilityLabel="좋아요 제한 안내 확인"
             >
-              <Text className="text-body06 text-white">확인</Text>
+              <Text className="text-white text-body06">확인</Text>
             </Pressable>
           </DialogFooter>
         </DialogContent>
@@ -669,7 +669,7 @@ function ReviewContentPreview({
       className="relative mt-1"
     >
       <Text
-        className="absolute text-body04 leading-[21px] opacity-0"
+        className="absolute leading-[21px] opacity-0 text-body04"
         onTextLayout={(event) => {
           const lines = event.nativeEvent.lines.map((line) => line.text);
           setMeasuredLines(lines);
@@ -681,22 +681,22 @@ function ReviewContentPreview({
 
       {shouldShowMore && measuredLines.length >= 2 ? (
         <View>
-          <Text className="text-body04 leading-[21px] text-white" numberOfLines={1}>
+          <Text className="leading-[21px] text-white text-body04" numberOfLines={1}>
             {firstLine}
           </Text>
           <View className="flex-row items-center">
             <Text
-              className="min-w-0 flex-1 text-body04 leading-[21px] text-white"
+              className="min-w-0 flex-1 leading-[21px] text-white text-body04"
               numberOfLines={1}
               ellipsizeMode="clip"
             >
               {secondLine}
             </Text>
-            <Text className="text-caption02 leading-[18px] text-grey-20"> ... 더보기</Text>
+            <Text className="leading-[18px] text-grey-20 text-caption02"> ... 더보기</Text>
           </View>
         </View>
       ) : (
-        <Text className="text-body04 leading-[21px] text-white" numberOfLines={2}>
+        <Text className="leading-[21px] text-white text-body04" numberOfLines={2}>
           {content}
         </Text>
       )}

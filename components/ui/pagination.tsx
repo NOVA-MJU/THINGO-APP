@@ -46,7 +46,7 @@ export function Pagination({ currentPage, totalPages, onPageChange, className }:
           >
             {page === currentPage ? (
               <View className="h-5 w-5 items-center justify-center rounded-full bg-mju-primary">
-                <Text className="text-caption01 text-white">{page}</Text>
+                <Text className="text-white text-caption01">{page}</Text>
               </View>
             ) : (
               <View className="h-1.5 w-1.5 rounded-full bg-grey-30" />

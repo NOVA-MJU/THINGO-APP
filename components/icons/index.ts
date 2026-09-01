@@ -1,4 +1,6 @@
 export { default as ArrowLeftIcon } from './arrow-left';
+export { default as BackCircleIcon } from './back-circle';
+export { default as BulletListIcon } from './bullet-list';
 export { default as AlertOffIcon } from './alert-off';
 export { default as AlertOnIcon } from './alert-on';
 export { default as HamburgerIcon } from './hamburger';

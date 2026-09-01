@@ -79,11 +79,11 @@ export default function NewsScreen() {
               <TouchableOpacity onPress={() => openLink(item.url)}>
                 <View className="flex-2 gap-0.5 rounded-b-xl bg-white px-4 py-2">
                   <View style={{ minHeight: 48 }}>
-                    <Text className="text-body02 text-black" numberOfLines={2}>
+                    <Text className="text-black text-body02" numberOfLines={2}>
                       {item.title}
                     </Text>
                   </View>
-                  <Text className="text-caption04 text-grey-30" numberOfLines={1}>
+                  <Text className="text-grey-30 text-caption04" numberOfLines={1}>
                     {formatTimeAgo(item.publishedAt)}
                   </Text>
                 </View>

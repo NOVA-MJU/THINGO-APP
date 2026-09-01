@@ -141,9 +141,10 @@ export default function MapFloorScreen() {
     router.back();
   }
 
-  // 닫기: 딥링크 등 이전 화면이 없을 수도 있으므로 지도 화면으로 명시적 이동
+  // 닫기: 이 화면은 항상 지도 화면(건물 상세 시트)에서 push로만 진입하므로(외부 딥링크 진입 없음),
+  // router.navigate('/maps')로 새 스택을 열지 않고 back()으로 기존 지도 화면으로 되돌아간다
   function onClosePress() {
-    router.navigate('/maps');
+    router.back();
   }
 
   return (
@@ -159,7 +160,7 @@ export default function MapFloorScreen() {
         >
           <ArrowLeftIcon size={24} className="text-grey-20" />
         </TouchableOpacity>
-        <Text className="flex-1 text-center text-body02 text-black" numberOfLines={1}>
+        <Text className="flex-1 text-center text-black text-body02" numberOfLines={1}>
           {building?.name ?? '층별 안내도'}
         </Text>
         <TouchableOpacity
@@ -186,8 +187,8 @@ export default function MapFloorScreen() {
           </GestureDetector>
         ) : (
           <View className="flex-1 items-center justify-center gap-1">
-            <Text className="text-body04 text-grey-40">준비 중인 도면이에요</Text>
-            <Text className="text-caption02 text-grey-20">
+            <Text className="text-grey-40 text-body04">준비 중인 도면이에요</Text>
+            <Text className="text-grey-20 text-caption02">
               buildingId: {buildingId ?? '-'} / floorLabel: {floorLabel ?? '-'}
               {highlightPlaceId ? ` / highlightPlaceId: ${highlightPlaceId}` : ''}
             </Text>

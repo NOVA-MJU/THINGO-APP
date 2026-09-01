@@ -22,7 +22,7 @@ export function AppHeader({ title, right }: AppHeaderProps) {
       </TouchableOpacity>
       {/* 제목은 좌우 콘텐츠 너비에 영향받지 않도록 absolute로 헤더 정중앙에 고정 배치한다 */}
       <View className="absolute inset-0 items-center justify-center" pointerEvents="none">
-        <Text className="text-body02 text-black" numberOfLines={1}>
+        <Text className="text-black text-body02" numberOfLines={1}>
           {title}
         </Text>
       </View>

@@ -28,7 +28,10 @@ const SORT_OPTION_TO_API: Record<SortOption, FavoriteGroupPlaceSort> = {
   가나다순: 'name',
 };
 
-export default function MapsFavoriteDetailScreen() {
+// 마이페이지 > 명지도 즐겨찾기 > 그룹 상세. app/(tabs)/maps/favorites/[favoriteId]/index.tsx와
+// 동일한 화면을 마이페이지 스택에서도 그대로 보여준다(뒤로가기가 지도 탭이 아니라 마이페이지로 돌아가야 하므로
+// 별도 라우트로 둠). 목록/필터/삭제 로직은 완전히 동일하다.
+export default function ProfileMapsFavoriteDetailScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { favoriteId } = useLocalSearchParams<{ favoriteId: string }>();
@@ -109,22 +112,24 @@ export default function MapsFavoriteDetailScreen() {
     },
   });
 
-  // 아이템 클릭 → 지도로 돌아가서 해당 핀을 열어 보여준다.
-  // push가 아니라 dismissTo를 쓴다: push면 스택에 이미 있는 /maps 위에 새 /maps가 또 쌓여서
-  // (favorites → favorites/[id] → maps) 지도가 새로 열리는 것처럼 보이고 뒤로가기도 꼬인다.
-  // dismissTo는 이 화면에 오기 전까지 거쳐온 favorites/favorites/[id]를 스택에서 제거하고
-  // 이미 떠 있던 /maps 인스턴스로 돌아가면서 params만 바꿔치기한다 (merge 옵션을 안 주면
-  // react-navigation이 해당 라우트의 params를 완전히 새 값으로 교체하므로, buildingId/placeId 중
-  // 하나만 넘겨도 이전 방문에서 남아있던 반대쪽 값이 섞여 들어올 걱정이 없다).
+  // 아이템 클릭 → 지도 탭으로 전환해서 해당 핀을 열어 보여준다.
+  // 이 화면은 프로필 탭의 중첩 스택 안에 있고 /maps는 지도 탭의 중첩 스택이라 서로 다른 스택이다.
+  // dismissTo(POP_TO)는 "현재 떠 있는 스택 안에서" 목표 라우트를 찾아 되돌아가는 동작이라
+  // 다른 탭의 스택은 대상이 될 수 없어 아무 반응도 하지 않는다 — app/(tabs)/maps/favorites/[favoriteId]/index.tsx
+  // (지도 탭 안에서 지도 탭으로 돌아가는 동일 스택 이동)와 이 화면이 다른 이유.
+  // 대신 navigate를 쓴다: 탭 전환 + 그 탭 안의 특정 화면/파라미터 지정은 react-navigation의
+  // 표준 중첩 네비게이션 패턴(`navigate(탭, { screen, params })`)이고, expo-router가 이걸
+  // 그대로 다이렉트 NAVIGATE 액션으로 변환해준다. 지도 탭 스택이 이전에 다른 화면(검색 등)까지
+  // 들어가 있었더라도 index 화면으로 정리되고, params는 병합이 아니라 새 값으로 교체된다.
   // type이 BUILDING/PLACE로 갈리는 이유는 지도 화면의 상세 조회·시트 종류가 서로 달라서다
   // (app/(tabs)/maps/index.tsx의 selectCategoryPin과 동일한 분기 — buildingId는 건물 상세 시트,
   // placeId는 장소 상세 시트를 열고 각각의 좌표로 카메라를 이동시킨다).
   function onItemPress(item: FavoriteGroupPlace) {
     if (item.type === 'BUILDING') {
-      router.dismissTo({ pathname: '/maps', params: { buildingId: String(item.pinId) } });
+      router.navigate({ pathname: '/maps', params: { buildingId: String(item.pinId) } });
       return;
     }
-    router.dismissTo({ pathname: '/maps', params: { placeId: String(item.pinId) } });
+    router.navigate({ pathname: '/maps', params: { placeId: String(item.pinId) } });
   }
 
   function onFavoriteTogglePress(pinId: number, isFavorite: boolean) {

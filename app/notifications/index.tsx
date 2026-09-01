@@ -132,7 +132,7 @@ export default function NotificationsScreen() {
               >
                 <Text
                   className={
-                    hasUnread ? 'text-caption02 text-blue-20' : 'text-caption02 text-grey-30'
+                    hasUnread ? 'text-blue-20 text-caption02' : 'text-grey-30 text-caption02'
                   }
                 >
                   모두 읽음
@@ -147,7 +147,7 @@ export default function NotificationsScreen() {
         ListEmptyComponent={
           <View className="flex-1 items-center justify-center gap-3">
             <NotificationIcon className="text-grey-10" size={36} />
-            <Text className="text-body03 text-grey-30">새로운 알림이 없어요</Text>
+            <Text className="text-grey-30 text-body03">새로운 알림이 없어요</Text>
             <Button
               className="flex-row items-center gap-1 rounded-xl pe-[16px] ps-[14px]"
               onPress={() => router.push('/notifications/keyword-alarms')}

@@ -41,7 +41,7 @@ function KeywordGuideIcon({ invalid }: { invalid: boolean }) {
         invalid ? 'bg-error' : 'bg-grey-20'
       )}
     >
-      <Text className="text-caption05 leading-none text-white">i</Text>
+      <Text className="leading-none text-white text-caption05">i</Text>
     </View>
   );
 }
@@ -283,7 +283,7 @@ export default function KeywordEditModal({
                 <Icon as={Trash2} size={20} className="text-grey-30" />
               </Pressable>
               <View className="h-[27px] flex-1 items-center justify-center">
-                <Text className="text-title03 text-black">키워드 수정</Text>
+                <Text className="text-black text-title03">키워드 수정</Text>
               </View>
               <Pressable
                 accessibilityRole="button"
@@ -299,7 +299,7 @@ export default function KeywordEditModal({
             <View className="h-1 bg-grey-02" />
 
             <View className="px-4 pt-4">
-              <Text className="text-body02 text-grey-80">키워드</Text>
+              <Text className="text-grey-80 text-body02">키워드</Text>
               <Input
                 className={cn('mt-2 h-11', isKeywordInvalid && 'border-error')}
                 placeholder="기존 키워드 텍스트 노출"
@@ -317,8 +317,8 @@ export default function KeywordEditModal({
                 <Text
                   className={
                     isKeywordInvalid
-                      ? 'flex-1 text-caption04 text-error'
-                      : 'flex-1 text-caption04 text-grey-40'
+                      ? 'flex-1 text-error text-caption04'
+                      : 'flex-1 text-grey-40 text-caption04'
                   }
                 >
                   {isKeywordInvalid
@@ -336,7 +336,7 @@ export default function KeywordEditModal({
                 variant="sheet"
               />
               {showCategoryError && (
-                <Text className="mt-2 text-caption02 text-error">
+                <Text className="mt-2 text-error text-caption02">
                   알림을 받을 카테고리를 1개 이상 선택해 주세요.
                 </Text>
               )}

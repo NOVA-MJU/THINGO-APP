@@ -285,9 +285,9 @@ export default function PlaceCommunitySection({
   if (COMING_SOON_CATEGORY_CODES.has(categoryCode)) {
     return (
       <View className="mt-4 px-4 py-5">
-        <Text className="text-title03 text-black">커뮤니티</Text>
+        <Text className="text-black text-title03">커뮤니티</Text>
         <View className="mt-3 h-[88px] items-center justify-center rounded-[4px] border border-grey-10 bg-white">
-          <Text className="text-body05 text-grey-30">곧 만나볼 수 있어요!</Text>
+          <Text className="text-grey-30 text-body05">곧 만나볼 수 있어요!</Text>
         </View>
       </View>
     );
@@ -296,7 +296,7 @@ export default function PlaceCommunitySection({
   return (
     <View className="mt-4">
       <View className="px-4">
-        <Text className="text-title03 text-black">사진·영상</Text>
+        <Text className="text-black text-title03">사진·영상</Text>
       </View>
 
       <NativeViewGestureHandler disallowInterruption>
@@ -329,8 +329,8 @@ export default function PlaceCommunitySection({
       <View className="mt-5 px-4">
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center gap-1.5">
-            <Text className="text-title03 text-black">리뷰</Text>
-            <Text className="text-body05 text-grey-40">{reviews.length}</Text>
+            <Text className="text-black text-title03">리뷰</Text>
+            <Text className="text-grey-40 text-body05">{reviews.length}</Text>
           </View>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -339,7 +339,7 @@ export default function PlaceCommunitySection({
                 accessibilityRole="button"
                 accessibilityLabel="리뷰 정렬 선택"
               >
-                <Text className="text-caption02 text-grey-40">{selectedSortLabel}</Text>
+                <Text className="text-grey-40 text-caption02">{selectedSortLabel}</Text>
                 <ArrowDownIcon size={14} className="text-grey-30" />
               </TouchableOpacity>
             </DropdownMenuTrigger>
@@ -402,7 +402,7 @@ export default function PlaceCommunitySection({
           </View>
         ) : (
           <View className="mt-3 h-[88px] items-center justify-center rounded-[4px] border border-grey-10 bg-white">
-            <Text className="text-body05 text-grey-30">첫 리뷰를 남겨주세요!</Text>
+            <Text className="text-grey-30 text-body05">첫 리뷰를 남겨주세요!</Text>
           </View>
         )}
       </View>
@@ -413,10 +413,10 @@ export default function PlaceCommunitySection({
           showCloseButton={false}
         >
           <DialogHeader className="gap-1">
-            <DialogTitle className="text-center text-body04 text-grey-80">
+            <DialogTitle className="text-center text-grey-80 text-body04">
               리뷰를 삭제하시겠습니까?
             </DialogTitle>
-            <DialogDescription className="text-center text-caption02 text-grey-80">
+            <DialogDescription className="text-center text-grey-80 text-caption02">
               삭제한 리뷰는 복구할 수 없습니다.
             </DialogDescription>
           </DialogHeader>
@@ -428,7 +428,7 @@ export default function PlaceCommunitySection({
               accessibilityRole="button"
               accessibilityLabel="리뷰 삭제 취소"
             >
-              <Text className="text-body05 text-grey-40">취소</Text>
+              <Text className="text-grey-40 text-body05">취소</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleConfirmDeleteReview}
@@ -437,7 +437,7 @@ export default function PlaceCommunitySection({
               accessibilityRole="button"
               accessibilityLabel="리뷰 삭제 확인"
             >
-              <Text className="text-body05 text-white">
+              <Text className="text-white text-body05">
                 {isDeletingReview ? '삭제 중' : '삭제하기'}
               </Text>
             </TouchableOpacity>
@@ -452,15 +452,15 @@ export default function PlaceCommunitySection({
         <DialogContent showCloseButton={false} className="min-w-80 p-5">
           <View className="gap-4">
             <View>
-              <DialogTitle className="text-center text-body04 leading-normal text-grey-80">
+              <DialogTitle className="text-center leading-normal text-grey-80 text-body04">
                 {`'${resolveReviewNickname(blockTargetReview?.nickname, undefined)}' 차단하시겠어요?`}
               </DialogTitle>
-              <Text className="text-center text-caption02 text-grey-80">
+              <Text className="text-center text-grey-80 text-caption02">
                 {
                   '차단하면 이 사용자가 작성한 모든 게시판 글과\n댓글, 명지도 리뷰가 즉시 숨겨집니다.'
                 }
               </Text>
-              <Text className="text-center text-caption04 text-grey-40">
+              <Text className="text-center text-grey-40 text-caption04">
                 (상대방에게는 차단 사실을 알리지 않아요.)
               </Text>
             </View>
@@ -491,10 +491,10 @@ export default function PlaceCommunitySection({
           showCloseButton={false}
         >
           <DialogHeader className="gap-[2px]">
-            <DialogTitle className="text-center text-body02 text-black">
+            <DialogTitle className="text-center text-black text-body02">
               내 리뷰에는 좋아요를 누를 수 없어요
             </DialogTitle>
-            <DialogDescription className="text-center text-body06 text-grey-80">
+            <DialogDescription className="text-center text-grey-80 text-body06">
               다른 사용자가 남긴 리뷰에만 좋아요를 누를 수 있습니다.
             </DialogDescription>
           </DialogHeader>
@@ -505,7 +505,7 @@ export default function PlaceCommunitySection({
               accessibilityRole="button"
               accessibilityLabel="좋아요 제한 안내 확인"
             >
-              <Text className="text-body06 text-white">확인</Text>
+              <Text className="text-white text-body06">확인</Text>
             </TouchableOpacity>
           </DialogFooter>
         </DialogContent>
@@ -526,8 +526,8 @@ export default function PlaceCommunitySection({
             </TouchableOpacity>
           </View>
           <View className="mt-[18px] flex-row items-center gap-1 px-4">
-            <Text className="text-body02 text-grey-80">신고 사유를 알려주세요.</Text>
-            <Text className="text-body02 text-error">*</Text>
+            <Text className="text-grey-80 text-body02">신고 사유를 알려주세요.</Text>
+            <Text className="text-error text-body02">*</Text>
           </View>
 
           {REPORT_REASON_OPTIONS.map((reason) => (
@@ -538,9 +538,9 @@ export default function PlaceCommunitySection({
             >
               <RadioIcon size={20} checked={selectedReportReasonId === reason.id} />
               <View className="flex-1 gap-1">
-                <Text className="text-body05 text-grey-60">{reason.title}</Text>
+                <Text className="text-grey-60 text-body05">{reason.title}</Text>
                 {reason.description ? (
-                  <Text className="text-caption02 text-grey-40">{reason.description}</Text>
+                  <Text className="text-grey-40 text-caption02">{reason.description}</Text>
                 ) : null}
               </View>
             </TouchableOpacity>
@@ -551,14 +551,14 @@ export default function PlaceCommunitySection({
               <TextInput
                 multiline
                 textAlignVertical="top"
-                className="h-[96px] py-0 font-pretendard text-body05 text-black"
+                className="h-[96px] py-0 font-pretendard text-black text-body05"
                 value={reportEtcText}
                 onChangeText={setReportEtcText}
                 placeholder="신고 사유를 입력해주세요."
                 placeholderTextColor="#909499"
                 maxLength={REPORT_ETC_MAX_LENGTH}
               />
-              <Text className="text-right text-caption02 text-grey-40">
+              <Text className="text-right text-grey-40 text-caption02">
                 {reportEtcText.length}/{REPORT_ETC_MAX_LENGTH}
               </Text>
             </View>
@@ -616,16 +616,13 @@ function ReviewPromptCard({
     <View className="mx-4 mt-5 rounded-[12px] bg-grey-02 px-4 py-3">
       <View className="relative min-h-[44px]">
         <View className="min-w-0 pr-[108px]">
-          <Text
-            className="font-pretendard-normal text-body04 leading-[21px] text-grey-80"
-            numberOfLines={1}
-          >
+          <Text className="leading-[21px] text-grey-80 text-body04" numberOfLines={1}>
             {placeName}
           </Text>
-          <Text className="mt-0.5 text-body05 leading-[21px] text-grey-60" numberOfLines={1}>
+          <Text className="mt-0.5 leading-[21px] text-grey-60 text-body05" numberOfLines={1}>
             어떠셨나요?
           </Text>
-          <Text className="text-body05 leading-[21px] text-grey-60" numberOfLines={1}>
+          <Text className="leading-[21px] text-grey-60 text-body05" numberOfLines={1}>
             명지대생의 솔직한 후기를 남겨주세요!
           </Text>
         </View>
@@ -638,7 +635,7 @@ function ReviewPromptCard({
         className="mt-2 h-[36px] flex-row items-center justify-center gap-[10px] rounded-[8px] border border-blue-20 bg-grey-02"
       >
         <ReviewWriteEditIcon width={20} height={20} />
-        <Text className="text-body05 leading-[21px] text-blue-35">리뷰 쓰기</Text>
+        <Text className="leading-[21px] text-blue-35 text-body05">리뷰 쓰기</Text>
       </TouchableOpacity>
     </View>
   );
@@ -707,7 +704,7 @@ function ReviewCard({
       <View className="flex-row items-center justify-between">
         <View className="flex-row items-center gap-2">
           <ReviewAvatar profileImageUrl={profileImageUrl} />
-          <Text className="text-body05 text-grey-80">{nickname}</Text>
+          <Text className="text-grey-80 text-body05">{nickname}</Text>
         </View>
         <View>
           <TouchableOpacity
@@ -769,7 +766,7 @@ function ReviewCard({
                 className="flex-row items-center gap-0.5 rounded-full bg-grey-02 px-1.5 py-0.5"
               >
                 {keyword.emoji ? <Text className="text-[10px]">{keyword.emoji}</Text> : null}
-                <Text className="text-caption04 text-grey-40">{keyword.label}</Text>
+                <Text className="text-grey-40 text-caption04">{keyword.label}</Text>
               </View>
             );
           })}
@@ -778,7 +775,7 @@ function ReviewCard({
 
       <View className="relative mt-2">
         <Text
-          className="text-body05 leading-[20px] text-grey-80"
+          className="leading-[20px] text-grey-80 text-body05"
           numberOfLines={isExpanded ? undefined : COLLAPSED_REVIEW_LINE_COUNT}
           onTextLayout={!isExpanded ? handleCollapsedTextLayout : undefined}
         >
@@ -791,7 +788,7 @@ function ReviewCard({
             accessibilityRole="button"
             accessibilityLabel="리뷰 더보기"
           >
-            <Text className="text-body05 leading-[20px] text-grey-30">... 더보기</Text>
+            <Text className="leading-[20px] text-grey-30 text-body05">... 더보기</Text>
           </Pressable>
         ) : null}
       </View>
@@ -803,7 +800,7 @@ function ReviewCard({
           accessibilityRole="button"
           accessibilityLabel="리뷰 접기"
         >
-          <Text className="text-caption02 text-grey-40">접기</Text>
+          <Text className="text-grey-40 text-caption02">접기</Text>
         </TouchableOpacity>
       ) : null}
 
@@ -834,10 +831,10 @@ function ReviewCard({
         <TouchableOpacity onPress={onToggleLike} className="flex-row items-center gap-1">
           <HeartIcon size={18} filled={review.liked} className="text-blue-20" />
           {review.likeCount > 0 ? (
-            <Text className="text-caption02 text-grey-40">{review.likeCount}</Text>
+            <Text className="text-grey-40 text-caption02">{review.likeCount}</Text>
           ) : null}
         </TouchableOpacity>
-        <Text className="text-caption02 text-grey-30">{formatReviewDate(review.createdAt)}</Text>
+        <Text className="text-grey-30 text-caption02">{formatReviewDate(review.createdAt)}</Text>
       </View>
     </View>
   );
@@ -855,7 +852,7 @@ function ReviewDropdownMenuItem({ label, onPress }: { label: string; onPress: ()
     >
       <Text
         className={cn(
-          'w-full text-center text-caption02 leading-[18px]',
+          'w-full text-center leading-[18px] text-caption02',
           isPressed ? 'text-blue-35' : 'text-grey-30'
         )}
       >

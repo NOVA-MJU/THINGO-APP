@@ -8,6 +8,9 @@ import {
 import { AppHeader } from '@/components/app-header';
 import { ArrowDownIcon, MoreVerticalIcon, PlusIcon } from '@/components/icons';
 import { FavoriteBadgeIcon, PinIcon } from '@/components/icons/map';
+// 그룹 추가/수정 시트와 배지 색상 매핑은 명지도 즐겨찾기 화면(app/(tabs)/maps/favorites)의 것을 그대로 재사용한다.
+// 자기 데이터 조회·mutation·상태를 스스로 다 가지고 있어 다른 화면에 놔도 혼자 동작하는 컴포넌트라
+// 마이페이지용으로 따로 복제하지 않았다 (app/(tabs)/maps/_hooks/AGENTS.md 컴포넌트 분리 기준 참고).
 import GroupEditSheet, {
   type GroupEditSheetHandle,
 } from '@/app/(tabs)/maps/favorites/_components/group-edit-sheet';
@@ -21,11 +24,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Text } from '@/components/ui/text';
-import { useAuth } from '@/context/auth-context';
 import { showAlert } from '@/lib/alert';
 import { cn } from '@/lib/utils';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Redirect, useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import * as React from 'react';
 import type { GestureResponderEvent } from 'react-native';
 import { ActivityIndicator, FlatList, Pressable, TouchableOpacity, View } from 'react-native';
@@ -53,10 +55,11 @@ function getGroupKey(group: FavoriteGroup): string {
   return group.id !== null ? String(group.id) : group.type;
 }
 
-export default function MapsFavoritesScreen() {
+// 마이페이지 > 명지도 즐겨찾기. 로그인 필수 화면 가드는 app/(tabs)/profile/_layout.tsx가
+// 이미 담당하므로(!user면 /login으로 리다이렉트) 이 화면에서 별도로 처리하지 않는다.
+export default function ProfileMapsFavoritesScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user, isInitializing } = useAuth();
   const [isSortMenuOpen, setSortMenuOpen] = React.useState(false);
   const [sortOption, setSortOption] = React.useState<SortOption>('최신순');
   // 케밥 메뉴가 열려있는 그룹 key와, 눌린 위치(pageY) — 메뉴를 그 아래에 띄우는 데 사용
@@ -81,7 +84,6 @@ export default function MapsFavoritesScreen() {
   const favoriteGroupsQuery = useQuery({
     queryKey: ['favorite-groups', apiSort],
     queryFn: () => getFavoriteGroups(apiSort),
-    enabled: !!user,
   });
   const favoriteGroups = favoriteGroupsQuery.data ?? EMPTY_FAVORITE_GROUPS;
 
@@ -104,9 +106,6 @@ export default function MapsFavoritesScreen() {
     [favoriteGroups, openGroupMenuKey]
   );
 
-  // 로그인해야만 볼 수 있는 화면 — 초기화가 끝났는데 로그인이 안 돼 있으면 로그인 화면으로 보낸다
-  if (!isInitializing && !user) return <Redirect href="/login" />;
-
   function onNewGroupPress() {
     setSortMenuOpen(false);
     setOpenGroupMenuKey(null);
@@ -125,7 +124,9 @@ export default function MapsFavoritesScreen() {
       return;
     }
     setPendingGroupKey(getGroupKey(group));
-    router.push(`/maps/favorites/${group.id}`);
+    // 타입 단언: 새로 추가한 라우트라 로컬에 캐시된 expo-router 타입 선언(.expo/types)이
+    // 아직 이 경로를 모른다 — pnpm dev를 한 번 실행하면 자동 재생성되며 사라지는 임시 처리
+    router.push(`/profile/maps/favorites/${group.id}` as never);
   }
 
   // 그룹 아이템 케밥 아이콘 클릭 — 정렬 드롭다운은 닫고, 눌린 위치 아래에 케밥 메뉴를 띄운다

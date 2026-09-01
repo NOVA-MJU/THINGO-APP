@@ -15,7 +15,6 @@ import { ScrollView, TouchableOpacity, View } from 'react-native';
 export default function MealScreen() {
   const [selectedDate, setSelectedDate] = React.useState<string | null>(null);
   const [menus, setMenus] = React.useState<DailyMenu[]>([]);
-  const dateScrollRef = React.useRef<ScrollView>(null);
 
   // 오늘 날짜(today)와 이번 주 평일 목록(dates) 계산 — 마운트 시 1회만 실행
   const { today, dates } = React.useMemo(() => {
@@ -70,35 +69,34 @@ export default function MealScreen() {
     <ScrollView className="native:w-screen web:w-full" contentContainerClassName="flex-grow">
       <View className="gap-4 border-b border-grey-10 bg-white pb-3 pt-4">
         <View className="flex-row items-center gap-2 px-6">
-          <Text className="text-body02 text-black">
+          <Text className="text-black text-body02">
             {today.date}({today.day})
           </Text>
 
+          {/* 오늘 날짜로 돌아가기 버튼 */}
           {selectedDate !== today.date && (
             <TouchableOpacity onPress={handleSetToday}>
               <View className="flex-row items-center gap-0.5 rounded-full bg-blue-02 px-2 py-[3px]">
-                <Text className="text-caption01 text-blue-20">오늘</Text>
+                <Text className="text-blue-20 text-caption01">오늘</Text>
                 <UndoIcon size={12} className="text-blue-20" />
               </View>
             </TouchableOpacity>
           )}
         </View>
 
-        {/* 날짜 선택기 */}
-        <ScrollView
-          ref={dateScrollRef}
-          horizontal
-          nestedScrollEnabled
-          showsHorizontalScrollIndicator={false}
-          contentContainerClassName="px-5 flex-row gap-2"
-        >
+        {/* 날짜 선택기 — 평일 5일을 화면 너비에 맞춰 균등 배분 */}
+        <View className="flex-row gap-2 px-5">
           {dates.map((item) => {
             const isSelected = selectedDate === item.date;
             return (
-              <TouchableOpacity key={item.date} onPress={() => setSelectedDate(item.date)}>
+              <TouchableOpacity
+                key={item.date}
+                className="flex-1"
+                onPress={() => setSelectedDate(item.date)}
+              >
                 <View
                   className={cn(
-                    'w-[60px] items-center gap-[6.5px] rounded-lg pb-[6.5px] pt-[4px]',
+                    'items-center gap-[6.5px] rounded-lg pb-[6.5px] pt-[4px]',
                     isSelected ? 'bg-mju-primary' : 'bg-white'
                   )}
                 >
@@ -112,25 +110,25 @@ export default function MealScreen() {
               </TouchableOpacity>
             );
           })}
-        </ScrollView>
+        </View>
       </View>
       <View className="flex-1 gap-2.5 bg-grey-02 px-4 pb-9 pt-5">
         {/* 조식 */}
         <View className="gap-2.5 rounded-xl bg-white px-4 py-5">
           <View className="flex-row items-center">
             <BreakfastMealIcon />
-            <Text className="ms-1 text-body02 text-black">조식</Text>
-            <Text className="ms-2 text-caption02 text-grey-60">(08:00 - 09:00)</Text>
+            <Text className="ms-1 text-black text-body02">조식</Text>
+            <Text className="ms-2 text-grey-60 text-caption02">(08:00 - 09:00)</Text>
           </View>
           <View className="flex-row flex-wrap gap-2">
             {breakfast.length > 0 ? (
               breakfast.map((meal) => (
                 <View key={meal} className="rounded-sm bg-grey-02 px-1 py-0.5">
-                  <Text className="text-body05 text-grey-80">{meal}</Text>
+                  <Text className="text-grey-80 text-body05">{meal}</Text>
                 </View>
               ))
             ) : (
-              <Text className="text-body05 text-grey-40">식단 정보가 없습니다.</Text>
+              <Text className="text-grey-40 text-body05">식단 정보가 없습니다.</Text>
             )}
           </View>
         </View>
@@ -139,18 +137,18 @@ export default function MealScreen() {
         <View className="gap-2.5 rounded-xl bg-white px-4 py-5">
           <View className="flex-row items-center">
             <LunchMealIcon />
-            <Text className="ms-1 text-body02 text-black">중식</Text>
-            <Text className="ms-2 text-caption02 text-grey-60">(11:30 - 14:00)</Text>
+            <Text className="ms-1 text-black text-body02">중식</Text>
+            <Text className="ms-2 text-grey-60 text-caption02">(11:30 - 14:00)</Text>
           </View>
           <View className="flex-row flex-wrap gap-2">
             {lunch.length > 0 ? (
               lunch.map((meal) => (
                 <View key={meal} className="rounded-sm bg-grey-02 px-1 py-0.5">
-                  <Text className="text-body05 text-grey-80">{meal}</Text>
+                  <Text className="text-grey-80 text-body05">{meal}</Text>
                 </View>
               ))
             ) : (
-              <Text className="text-body05 text-grey-40">식단 정보가 없습니다.</Text>
+              <Text className="text-grey-40 text-body05">식단 정보가 없습니다.</Text>
             )}
           </View>
         </View>
@@ -159,18 +157,18 @@ export default function MealScreen() {
         <View className="gap-2.5 rounded-xl bg-white px-4 py-5">
           <View className="flex-row items-center">
             <DinnerMealIcon />
-            <Text className="ms-1 text-body02 text-black">석식</Text>
-            <Text className="ms-2 text-caption02 text-grey-60">(17:00 - 18:30)</Text>
+            <Text className="ms-1 text-black text-body02">석식</Text>
+            <Text className="ms-2 text-grey-60 text-caption02">(17:00 - 18:30)</Text>
           </View>
           <View className="flex-row flex-wrap gap-2">
             {dinner.length > 0 ? (
               dinner.map((meal) => (
                 <View key={meal} className="rounded-sm bg-grey-02 px-1 py-0.5">
-                  <Text className="text-body05 text-grey-80">{meal}</Text>
+                  <Text className="text-grey-80 text-body05">{meal}</Text>
                 </View>
               ))
             ) : (
-              <Text className="text-body05 text-grey-40">식단 정보가 없습니다.</Text>
+              <Text className="text-grey-40 text-body05">식단 정보가 없습니다.</Text>
             )}
           </View>
         </View>
@@ -179,10 +177,10 @@ export default function MealScreen() {
         <View className="gap-0.5 rounded-xl border border-blue-05 bg-blue-02 px-5 py-3">
           <View className="flex-row items-center">
             <LocationIcon size={16} className="text-blue-10" />
-            <Text className="ms-1 text-body05 text-grey-60">인문캠퍼스 학생회관 3층 식당</Text>
+            <Text className="ms-1 text-grey-60 text-body05">인문캠퍼스 학생회관 3층 식당</Text>
           </View>
-          <Text className="text-body05 text-grey-60">조식 ₩1,000 | 중식·석식 ₩6,500</Text>
-          <Text className="text-caption02 text-grey-40">*평일만 운영됩니다.</Text>
+          <Text className="text-grey-60 text-body05">조식 ₩1,000 | 중식·석식 ₩6,500</Text>
+          <Text className="text-grey-40 text-caption02">*평일만 운영됩니다.</Text>
         </View>
       </View>
       <Footer />

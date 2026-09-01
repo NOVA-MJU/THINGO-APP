@@ -12,6 +12,16 @@ export default function CategoryScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
+  // 모바일은 홈 탭이 '/' 싱글 페이지 + tab 쿼리파라미터(스와이프 뷰)로 동작하고,
+  // 웹은 탭마다 URL이 따로 있어서 플랫폼별로 이동 방식을 분기해야 함
+  const goToHomeTab = (tab: string, webPathname: string, extraParams?: Record<string, string>) => {
+    if (Platform.OS === 'web') {
+      router.navigate({ pathname: webPathname, params: extraParams } as any);
+    } else {
+      router.navigate({ pathname: '/', params: { tab, ...extraParams } } as any);
+    }
+  };
+
   return (
     <>
       {Platform.OS === 'web' && (
@@ -23,71 +33,67 @@ export default function CategoryScreen() {
         </Head>
       )}
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom, paddingTop: insets.top }}>
-        <Text className="px-4 pb-2 pt-5 text-title01 text-black">카테고리</Text>
-        <Text className="px-5 py-2.5 text-body02 text-blue-35">Information</Text>
+        <Text className="px-4 pb-2 pt-5 text-black text-title01">카테고리</Text>
+        <Text className="px-5 py-2.5 text-blue-35 text-body02">Information</Text>
         <View>
           <TouchableOpacity
             className="flex-row items-center px-5 py-2.5 hover:bg-blue-05"
             onPress={() => router.navigate('/maps')}
           >
-            <Text className="flex-1 text-body05 text-black">명지도</Text>
+            <Text className="flex-1 text-black text-body05">명지도</Text>
             <ArrowRightIcon className="text-grey-20" size={20} />
           </TouchableOpacity>
           <TouchableOpacity
             className="flex-row items-center px-5 py-2.5 hover:bg-blue-05"
-            onPress={() => router.navigate('/notices')}
+            onPress={() => goToHomeTab('notices', '/notices')}
           >
-            <Text className="flex-1 text-body05 text-black">공지사항</Text>
+            <Text className="flex-1 text-black text-body05">공지사항</Text>
             <ArrowRightIcon className="text-grey-20" size={20} />
           </TouchableOpacity>
           <TouchableOpacity
             className="flex-row items-center px-5 py-2.5 hover:bg-blue-05"
-            onPress={() => router.navigate('/academic-calendar')}
+            onPress={() => goToHomeTab('academic-calendar', '/academic-calendar')}
           >
-            <Text className="flex-1 text-body05 text-black">학사일정</Text>
+            <Text className="flex-1 text-black text-body05">학사일정</Text>
             <ArrowRightIcon className="text-grey-20" size={20} />
           </TouchableOpacity>
           <TouchableOpacity
             className="flex-row items-center px-5 py-2.5 hover:bg-blue-05"
-            onPress={() => router.navigate('/meal')}
+            onPress={() => goToHomeTab('meal', '/meal')}
           >
-            <Text className="flex-1 text-body05 text-black">학식</Text>
+            <Text className="flex-1 text-black text-body05">학식</Text>
             <ArrowRightIcon className="text-grey-20" size={20} />
           </TouchableOpacity>
           <TouchableOpacity
             className="flex-row items-center px-5 py-2.5 hover:bg-blue-05"
-            onPress={() => router.navigate('/newspaper')}
+            onPress={() => goToHomeTab('newspaper', '/newspaper')}
           >
-            <Text className="flex-1 text-body05 text-black">명대신문</Text>
+            <Text className="flex-1 text-black text-body05">명대신문</Text>
             <ArrowRightIcon className="text-grey-20" size={20} />
           </TouchableOpacity>
           <TouchableOpacity
             className="flex-row items-center px-5 py-2.5 hover:bg-blue-05"
-            onPress={() => router.navigate('/news')}
+            onPress={() => goToHomeTab('news', '/news')}
           >
-            <Text className="flex-1 text-body05 text-black">명대뉴스</Text>
+            <Text className="flex-1 text-black text-body05">명대뉴스</Text>
             <ArrowRightIcon className="text-grey-20" size={20} />
           </TouchableOpacity>
         </View>
         <View className="my-2 h-[1px] bg-grey-02" />
-        <Text className="px-5 py-2.5 text-body02 text-blue-35">Community</Text>
+        <Text className="px-5 py-2.5 text-blue-35 text-body02">Community</Text>
         <View>
           <TouchableOpacity
             className="flex-row items-center px-5 py-2.5 hover:bg-blue-05"
-            onPress={() =>
-              router.navigate({ pathname: '/posts', params: { boardCategory: 'info' } })
-            }
+            onPress={() => goToHomeTab('board', '/posts', { boardCategory: 'info' })}
           >
-            <Text className="flex-1 text-body05 text-black">정보게시판</Text>
+            <Text className="flex-1 text-black text-body05">정보게시판</Text>
             <ArrowRightIcon className="text-grey-20" size={20} />
           </TouchableOpacity>
           <TouchableOpacity
             className="flex-row items-center px-5 py-2.5 hover:bg-blue-05"
-            onPress={() =>
-              router.navigate({ pathname: '/posts', params: { boardCategory: 'free' } })
-            }
+            onPress={() => goToHomeTab('board', '/posts', { boardCategory: 'free' })}
           >
-            <Text className="flex-1 text-body05 text-black">자유게시판</Text>
+            <Text className="flex-1 text-black text-body05">자유게시판</Text>
             <ArrowRightIcon className="text-grey-20" size={20} />
           </TouchableOpacity>
         </View>

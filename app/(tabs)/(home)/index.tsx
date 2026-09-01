@@ -22,11 +22,15 @@ import { useNotificationBadge } from '@/hooks/useNotificationBadge';
 const { width } = Dimensions.get('window');
 const TABS = ['ALL', '학식', '게시판', '공지사항', '학사일정', '명대신문', '명대뉴스'];
 const TAB_PATHS = ['/', '/meal', '/posts', '/notices', '/academic-calendar', '/newspaper', '/news'];
+// 모바일에서 `tab` 쿼리 파라미터로 넘어오는 값 (TABS와 인덱스 대응). 웹 라우트 슬러그(TAB_PATHS)와
+// 별개로 관리하는 이유는 게시판이 이미 'board'라는 값으로 여러 화면(posts/[postId] 등)에서 쓰이고 있어서
+const TAB_QUERY_SLUGS = ['', 'meal', 'board', 'notices', 'academic-calendar', 'newspaper', 'news'];
 const HOME_TITLE = '띵고 Thingo - 명지대학교 통합 정보 탐색 플랫폼';
 
 export default function Screen() {
-  const { tab } = useLocalSearchParams<{
+  const { tab, scrollToAll } = useLocalSearchParams<{
     tab?: string | string[];
+    scrollToAll?: string | string[];
   }>();
 
   const targetTab = Array.isArray(tab) ? tab[0] : tab;
@@ -59,12 +63,22 @@ export default function Screen() {
   };
 
   React.useEffect(() => {
-    if (targetTab !== 'board') return;
+    if (!targetTab) return;
 
-    const boardTabIndex = 2;
-    setCurrentTab(TABS[boardTabIndex]);
-    scrollRef.current?.scrollTo({ x: width * boardTabIndex, animated: false });
+    const tabIndex = TAB_QUERY_SLUGS.indexOf(targetTab);
+    if (tabIndex === -1) return;
+
+    setCurrentTab(TABS[tabIndex]);
+    scrollRef.current?.scrollTo({ x: width * tabIndex, animated: false });
   }, [targetTab]);
+
+  // 하단 네비게이션의 홈 탭을 다시 눌렀을 때 신호로 쓰는 값(매번 새 타임스탬프이므로
+  // 이미 ALL 화면에 있어도 재클릭할 때마다 effect가 다시 실행된다)
+  React.useEffect(() => {
+    if (!scrollToAll) return;
+    setCurrentTab(TABS[0]);
+    scrollRef.current?.scrollTo({ x: 0, animated: true });
+  }, [scrollToAll]);
 
   // web: 헤더·TabBar는 _layout.tsx 제공, AllScreen만 렌더링
   if (Platform.OS === 'web') {
@@ -100,7 +114,7 @@ export default function Screen() {
             <Link href="/search" asChild>
               <TouchableOpacity className="flex-1 flex-row items-center gap-2 rounded-full bg-grey-02 px-3 py-1.5">
                 <SearchIcon className="text-grey-30" />
-                <Text className="text-body06 text-grey-40">검색어를 입력하세요</Text>
+                <Text className="text-grey-40 text-body06">검색어를 입력하세요</Text>
               </TouchableOpacity>
             </Link>
           </View>
@@ -154,7 +168,7 @@ export default function Screen() {
       {/* 로그인 유도 dialog */}
       <Dialog open={notificationDialogVisible} onOpenChange={setNotificationDialogVisible}>
         <DialogContent className="w-80 items-center gap-4 p-5" showCloseButton={false}>
-          <DialogTitle className="text-body04 text-grey-80">
+          <DialogTitle className="text-grey-80 text-body04">
             로그인이 필요한 서비스입니다.
           </DialogTitle>
           <View className="w-full flex-row items-center gap-2">

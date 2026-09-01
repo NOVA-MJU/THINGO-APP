@@ -126,19 +126,19 @@ export default function ProfileEditScreen() {
         <View className="mb-14 flex-1 px-4">
           {/* 계정 정보 */}
           <View className="mt-5 flex-row">
-            <Text className="text-title01 text-black">계정 정보</Text>
-            <Text className="ms-1 text-title01 text-error">*</Text>
+            <Text className="text-black text-title01">계정 정보</Text>
+            <Text className="ms-1 text-error text-title01">*</Text>
           </View>
           <View className="mt-2 rounded-xl bg-white p-4">
             {/* 이메일 */}
-            <Text className="text-body04 text-grey-80">이메일</Text>
+            <Text className="text-grey-80 text-body04">이메일</Text>
             <View className="mt-2 rounded-lg border border-grey-10 bg-grey-02 p-3">
-              <Text className="text-body06 text-grey-40">{user?.email}</Text>
+              <Text className="text-grey-40 text-body06">{user?.email}</Text>
             </View>
-            <Text className="mt-2 text-caption02 text-grey-30">※ 이메일은 수정할 수 없습니다.</Text>
+            <Text className="mt-2 text-grey-30 text-caption02">※ 이메일은 수정할 수 없습니다.</Text>
 
             {/* 비밀번호 변경 */}
-            <Text className="mt-4 text-body04 text-grey-80">현재 비밀번호</Text>
+            <Text className="mt-4 text-grey-80 text-body04">현재 비밀번호</Text>
             <Input
               className="mt-2"
               placeholder="현재 비밀번호를 입력하세요"
@@ -146,7 +146,7 @@ export default function ProfileEditScreen() {
               value={currentPassword}
               onChangeText={setCurrentPassword}
             />
-            <Text className="mt-4 text-body04 text-grey-80">새 비밀번호</Text>
+            <Text className="mt-4 text-grey-80 text-body04">새 비밀번호</Text>
             <Input
               className="mt-2"
               placeholder="새 비밀번호를 입력하세요"
@@ -158,11 +158,11 @@ export default function ProfileEditScreen() {
             />
             <View className="mt-2 flex-row items-center gap-1">
               <InfoCircleIcon size={16} className="text-grey-30" />
-              <Text className="text-caption02 text-grey-30">
+              <Text className="text-grey-30 text-caption02">
                 영문, 숫자, 특수문자 포함 8자 이상
               </Text>
             </View>
-            <Text className="mt-4 text-body04 text-grey-80">새 비밀번호 확인</Text>
+            <Text className="mt-4 text-grey-80 text-body04">새 비밀번호 확인</Text>
             <Input
               className="mt-2"
               placeholder="비밀번호를 다시 입력하세요"
@@ -186,12 +186,12 @@ export default function ProfileEditScreen() {
 
           {/* 기본 정보 */}
           <View className="mt-4 flex-row">
-            <Text className="text-title01 text-black">기본 정보</Text>
-            <Text className="ms-1 text-title01 text-error">*</Text>
+            <Text className="text-black text-title01">기본 정보</Text>
+            <Text className="ms-1 text-error text-title01">*</Text>
           </View>
           <View className="mt-2 rounded-xl bg-white p-4">
             {/* 프로필 이미지 */}
-            <Text className="text-body04 text-grey-80">프로필</Text>
+            <Text className="text-grey-80 text-body04">프로필</Text>
             <View className="relative mt-2 self-start">
               <TouchableOpacity onPress={handlePickProfileImage} disabled={isUploadingImage}>
                 <View className="aspect-square w-[88px] items-center justify-center overflow-hidden rounded-xl border border-grey-10">
@@ -202,7 +202,7 @@ export default function ProfileEditScreen() {
                       resizeMode="cover"
                     />
                   ) : (
-                    <Text className="text-caption02 text-grey-20">
+                    <Text className="text-grey-20 text-caption02">
                       {isUploadingImage ? '업로드 중...' : '이미지 업로드'}
                     </Text>
                   )}
@@ -222,7 +222,7 @@ export default function ProfileEditScreen() {
             </View>
 
             {/* 닉네임 */}
-            <Text className="mt-4 text-body04 text-grey-80">닉네임</Text>
+            <Text className="mt-4 text-grey-80 text-body04">닉네임</Text>
             <View className="flex-row items-center gap-2.5">
               <Input
                 className="mt-2 flex-1"
@@ -247,7 +247,7 @@ export default function ProfileEditScreen() {
             </View>
 
             {/* 단과대 */}
-            <Text className="mt-4 text-body04 text-grey-80">단과대</Text>
+            <Text className="mt-4 text-grey-80 text-body04">단과대</Text>
             <DropdownMenu.Root>
               <DropdownMenu.Trigger>
                 <View className="mt-2 flex-row items-center rounded-md border border-grey-10 px-3 py-[9.5px]">
@@ -276,7 +276,7 @@ export default function ProfileEditScreen() {
             </DropdownMenu.Root>
 
             {/* 학과 */}
-            <Text className="mt-4 text-body04 text-grey-80">학과</Text>
+            <Text className="mt-4 text-grey-80 text-body04">학과</Text>
             <DropdownMenu.Root>
               <DropdownMenu.Trigger disabled={!selectedCollege}>
                 <View
@@ -304,11 +304,11 @@ export default function ProfileEditScreen() {
             </DropdownMenu.Root>
 
             {/* 학번 */}
-            <Text className="mt-4 text-body04 text-grey-80">학번</Text>
+            <Text className="mt-4 text-grey-80 text-body04">학번</Text>
             <View className="mt-2 flex-1 rounded-lg border border-grey-10 bg-grey-02 p-3">
-              <Text className="text-body06 text-grey-40">{user?.studentNumber}</Text>
+              <Text className="text-grey-40 text-body06">{user?.studentNumber}</Text>
             </View>
-            <Text className="mt-2 text-caption02 text-grey-30">※학번은 수정할 수 없습니다.</Text>
+            <Text className="mt-2 text-grey-30 text-caption02">※학번은 수정할 수 없습니다.</Text>
           </View>
 
           {/* 저장하기 버튼 */}

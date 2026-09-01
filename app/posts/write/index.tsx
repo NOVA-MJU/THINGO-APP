@@ -311,7 +311,7 @@ export default function BoardWriteScreen() {
           accessibilityLabel="이전"
         >
           <ArrowLeftIcon className="text-black" />
-          <Text className="text-body03 text-black">이전</Text>
+          <Text className="text-black text-body03">이전</Text>
         </Pressable>
       </View>
 
@@ -343,10 +343,10 @@ export default function BoardWriteScreen() {
       <Dialog open={exitDialogOpen} onOpenChange={setExitDialogOpen}>
         <DialogContent className="mx-6 w-[320px] max-w-[320px] gap-4 rounded-xl border-none py-[24px]">
           <DialogHeader className="gap-1">
-            <DialogTitle className="text-center text-body03 text-black">
+            <DialogTitle className="text-center text-black text-body03">
               {isEditMode ? '게시물 수정을 중단하시겠습니까?' : '게시물 작성을 중단하시겠습니까?'}
             </DialogTitle>
-            <DialogDescription className="text-center text-body06 text-grey-80">
+            <DialogDescription className="text-center text-grey-80 text-body06">
               {isEditMode ? '변경된 내용이 저장되지 않습니다.' : '기록된 모든 내용이 삭제됩니다.'}
             </DialogDescription>
           </DialogHeader>
@@ -356,14 +356,14 @@ export default function BoardWriteScreen() {
               onPress={() => setExitDialogOpen(false)}
               className="h-[36px] flex-1 items-center justify-center rounded-xl bg-grey-10"
             >
-              <Text className="text-body06 text-black">취소</Text>
+              <Text className="text-black text-body06">취소</Text>
             </Pressable>
 
             <Pressable
               onPress={handleDiscard}
               className="h-[36px] flex-1 items-center justify-center rounded-xl bg-error"
             >
-              <Text className="text-body06 text-white">그만하기</Text>
+              <Text className="text-white text-body06">그만하기</Text>
             </Pressable>
           </View>
         </DialogContent>
@@ -385,7 +385,7 @@ function LoadingView({
     <View className="flex-1 bg-white" style={{ paddingTop: topInset }}>
       <View className="flex-1 items-center justify-center gap-3">
         <ActivityIndicator />
-        <Text className="text-body05 text-grey-40">{message}</Text>
+        <Text className="text-grey-40 text-body05">{message}</Text>
       </View>
       <View style={{ paddingBottom: bottomInset }}>
         <Footer />
@@ -408,7 +408,7 @@ function ErrorView({
   return (
     <View className="flex-1 bg-white" style={{ paddingTop: topInset }}>
       <View className="flex-1 items-center justify-center gap-4 px-4">
-        <Text className="text-center text-body04 text-black">{message}</Text>
+        <Text className="text-center text-black text-body04">{message}</Text>
         <Button onPress={onConfirm} className="rounded-xl px-5">
           <Text>확인</Text>
         </Button>
@@ -459,7 +459,7 @@ function WriteForm({
           value={title}
           onChangeText={onTitleChange}
           placeholder="제목"
-          className="h-[40px] rounded-xl border-grey-10 bg-white px-3 text-body03 text-black"
+          className="h-[40px] rounded-xl border-grey-10 bg-white px-3 text-black text-body03"
           maxLength={100}
         />
 
@@ -594,7 +594,7 @@ function PostImageUploadPreviewV3({
           onPress={handleUploadPress}
           className="h-[92px] w-[112px] rounded-xl border border-grey-10 bg-grey-02 px-2 py-0"
         >
-          <Text className="text-center text-caption02 text-grey-40" numberOfLines={2}>
+          <Text className="text-center text-grey-40 text-caption02" numberOfLines={2}>
             {isLoading ? '업로드 중...' : '이미지 업로드'}
           </Text>
         </Button>
@@ -613,12 +613,12 @@ function PostImageUploadPreviewV3({
               </Pressable>
             </>
           ) : (
-            <Text className="text-caption02 text-grey-30">미리보기</Text>
+            <Text className="text-grey-30 text-caption02">미리보기</Text>
           )}
         </View>
       </View>
 
-      {error ? <Text className="mt-2 text-caption02 text-error">{error}</Text> : null}
+      {error ? <Text className="mt-2 text-error text-caption02">{error}</Text> : null}
     </View>
   );
 }
@@ -646,7 +646,7 @@ export function PostImageUploadPreviewV2({
           onPress={handleUploadPress}
           className="h-[92px] w-[112px] rounded-xl border border-grey-10 bg-grey-02 px-2 py-0"
         >
-          <Text className="text-center text-caption02 text-grey-40" numberOfLines={2}>
+          <Text className="text-center text-grey-40 text-caption02" numberOfLines={2}>
             {isLoading ? '업로드 중...' : '이미지 업로드'}
           </Text>
         </Button>
@@ -665,12 +665,12 @@ export function PostImageUploadPreviewV2({
               </Pressable>
             </>
           ) : (
-            <Text className="text-caption02 text-grey-30">미리보기</Text>
+            <Text className="text-grey-30 text-caption02">미리보기</Text>
           )}
         </View>
       </View>
 
-      {error ? <Text className="mt-2 text-caption02 text-error">{error}</Text> : null}
+      {error ? <Text className="mt-2 text-error text-caption02">{error}</Text> : null}
     </View>
   );
 }
@@ -695,7 +695,7 @@ function BoardDropdown({ value, onChange }: BoardDropdownProps) {
           accessibilityLabel="게시판 선택"
           className="h-[40px] flex-row items-center rounded-xl border border-grey-10 bg-white px-3"
         >
-          <Text className="flex-1 text-body03 text-blue-20" numberOfLines={1}>
+          <Text className="flex-1 text-blue-20 text-body03" numberOfLines={1}>
             {selectedLabel}
           </Text>
           <ArrowDownIcon size={24} className="text-grey-30" />
@@ -712,7 +712,7 @@ function BoardDropdown({ value, onChange }: BoardDropdownProps) {
                 }}
                 style={webBoardDropdownItemStyle}
               >
-                <Text className="text-body03 text-black">{option.label}</Text>
+                <Text className="text-black text-body03">{option.label}</Text>
               </Pressable>
             ))}
           </View>
@@ -725,7 +725,7 @@ function BoardDropdown({ value, onChange }: BoardDropdownProps) {
     <DropdownMenu.Root>
       <DropdownMenu.Trigger>
         <View className="h-[40px] flex-row items-center rounded-xl border border-grey-10 bg-white px-3">
-          <Text className="flex-1 text-body03 text-blue-20" numberOfLines={1}>
+          <Text className="flex-1 text-blue-20 text-body03" numberOfLines={1}>
             {selectedLabel}
           </Text>
           <ArrowDownIcon size={24} className="text-grey-30" />
@@ -783,10 +783,10 @@ function LoggedOutView({ bottomInset, onLoginPress }: LoggedOutViewProps) {
     <View className="flex-1 justify-between bg-white">
       <View className="flex-1 items-center justify-center px-4 pb-16">
         <InfoOutlineIcon size={24} className="text-grey-20" />
-        <Text className="mt-3 text-body03 text-grey-30">로그인 후 이용 가능합니다.</Text>
+        <Text className="mt-3 text-grey-30 text-body03">로그인 후 이용 가능합니다.</Text>
 
         <Button onPress={onLoginPress} className="mt-10 h-[40px] w-full rounded-xl bg-blue-35">
-          <Text className="text-body05 text-white">Thingo 로그인하기</Text>
+          <Text className="text-white text-body05">Thingo 로그인하기</Text>
         </Button>
       </View>
 

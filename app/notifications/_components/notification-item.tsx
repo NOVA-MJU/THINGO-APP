@@ -33,16 +33,16 @@ export default function NotificationItem({ item, onPress }: NotificationItemProp
         </View>
 
         {/* 등록 키워드 표시 */}
-        <Text className="text-caption02 text-grey-40">{`#${item.keyword}`}</Text>
+        <Text className="text-grey-40 text-caption02">{`#${item.keyword}`}</Text>
       </View>
 
       {/* 알림 제목 */}
-      <Text className="w-full text-body05 text-black" numberOfLines={2}>
+      <Text className="w-full text-black text-body05" numberOfLines={2}>
         {item.title}
       </Text>
 
       {/* 알림 날짜 */}
-      <Text className="text-caption02 text-grey-20" numberOfLines={1}>
+      <Text className="text-grey-20 text-caption02" numberOfLines={1}>
         {formatTimeAgo(item.sentAt)}
       </Text>
     </Pressable>

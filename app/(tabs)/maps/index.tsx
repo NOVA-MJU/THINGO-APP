@@ -99,6 +99,7 @@ export default function MapsScreen() {
   const mapRef = React.useRef<NaverMapHandle>(null);
   const bottomSheetRef = React.useRef<BottomSheet>(null);
   const locationSubscriptionRef = React.useRef<Location.LocationSubscription | null>(null);
+  const headingSubscriptionRef = React.useRef<Location.LocationSubscription | null>(null);
 
   // 스택 레이어별 ref/현재 index/가려지기 전 index 를 추적 (렌더링 없이 즉시 스냅해야 해서 state가 아닌 ref로 관리)
   const layerRefsRef = React.useRef(new Map<string, React.RefObject<BottomSheet | null>>());
@@ -491,6 +492,8 @@ export default function MapsScreen() {
   }
 
   // 사용자 위치 추적 시작 (native 전용, 지도의 현위치 오버레이 표시용)
+  // heading은 여기서 다루지 않는다 - GPS 진행 방향은 정지 상태에서 부정확하므로
+  // startWatchingUserHeading의 나침반 값을 덮어쓰지 않게 기존 heading을 그대로 유지한다
   async function startWatchingUserLocation() {
     if (Platform.OS === 'web' || locationSubscriptionRef.current) return;
 
@@ -500,26 +503,43 @@ export default function MapsScreen() {
     locationSubscriptionRef.current = await Location.watchPositionAsync(
       { accuracy: Location.Accuracy.High, timeInterval: 2000, distanceInterval: 5 },
       (location) => {
-        setUserLocation({
+        setUserLocation((prev) => ({
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
-          heading: location.coords.heading ?? undefined,
-        });
+          heading: prev?.heading,
+        }));
       }
     );
   }
 
-  // 이미 위치 권한이 허용된 경우, 화면 진입 시 바로 위치 추적 시작
+  // 기기 나침반(자기장 센서) 방향 추적 시작 (native 전용)
+  // GPS 진행 방향(coords.heading)과 달리 정지 상태에서도 실제 기기가 향한 방향을 반영한다
+  async function startWatchingUserHeading() {
+    if (Platform.OS === 'web' || headingSubscriptionRef.current) return;
+
+    headingSubscriptionRef.current = await Location.watchHeadingAsync((heading) => {
+      // trueHeading은 위치 권한이 없으면 -1이 오므로 이 경우 자기 방위(magHeading)로 대체
+      const value = heading.trueHeading >= 0 ? heading.trueHeading : heading.magHeading;
+      setUserLocation((prev) => (prev ? { ...prev, heading: value } : prev));
+    });
+  }
+
+  // 이미 위치 권한이 허용된 경우, 화면 진입 시 바로 위치/방향 추적 시작
   React.useEffect(() => {
     if (Platform.OS === 'web') return;
 
     Location.getForegroundPermissionsAsync().then(({ status }) => {
-      if (status === 'granted') startWatchingUserLocation();
+      if (status === 'granted') {
+        startWatchingUserLocation();
+        startWatchingUserHeading();
+      }
     });
 
     return () => {
       locationSubscriptionRef.current?.remove();
       locationSubscriptionRef.current = null;
+      headingSubscriptionRef.current?.remove();
+      headingSubscriptionRef.current = null;
     };
   }, []);
 
@@ -565,6 +585,7 @@ export default function MapsScreen() {
     }
 
     startWatchingUserLocation();
+    startWatchingUserHeading();
 
     try {
       const location = await Location.getCurrentPositionAsync({
@@ -667,8 +688,13 @@ export default function MapsScreen() {
         initialLongitude={CAMPUS_LONGITUDE}
         initialZoom={16}
         camera={selectedCamera}
-        busStopMarkers={BUS_STOPS}
-        buildingMarkers={selectedSearchResult || selectedCategoryCode ? [] : buildingMarkers}
+        // 버스 정류장 마커는 base 시트가 bus 모드일 때만 노출 (카테고리/검색 화면에서는 지도가 혼잡해지는 것을 방지)
+        busStopMarkers={selectedSheetMode === 'bus' ? BUS_STOPS : []}
+        buildingMarkers={
+          selectedSearchResult || selectedCategoryCode || selectedSheetMode === 'bus'
+            ? []
+            : buildingMarkers
+        }
         placeMarkers={
           selectedSearchResult
             ? searchResultMarkers
@@ -708,7 +734,7 @@ export default function MapsScreen() {
                 <ThingoLogoSmall size={32} />
               </TouchableOpacity>
               <TouchableOpacity className="flex-1" onPress={onSearchButtonPress} hitSlop={4}>
-                <Text className="text-body05 text-grey-20">건물명, 강의실 코드를 검색해보세요</Text>
+                <Text className="text-grey-20 text-body05">건물명, 강의실 코드를 검색해보세요</Text>
               </TouchableOpacity>
               <SearchIcon size={24} className="text-grey-40" />
             </View>
@@ -726,7 +752,7 @@ export default function MapsScreen() {
                 onPress={onFavoritesButtonPress}
               >
                 <StarIcon size={24} className="text-blue-05" />
-                <Text className="text-caption05 text-blue-05" style={{ fontSize: 9 }}>
+                <Text className="text-blue-05 text-caption05" style={{ fontSize: 9 }}>
                   즐겨찾기
                 </Text>
               </TouchableOpacity>
@@ -760,7 +786,7 @@ export default function MapsScreen() {
                   hitSlop={2}
                 >
                   <chip.Icon size={20} className={chip.iconClassName} />
-                  <Text className="text-caption02 text-black">{chip.label}</Text>
+                  <Text className="text-black text-caption02">{chip.label}</Text>
                 </TouchableOpacity>
               </View>
             ))}

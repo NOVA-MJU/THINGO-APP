@@ -31,9 +31,9 @@ export default function DepartmentSelectModal({
         <TouchableOpacity className="flex-1" activeOpacity={1} onPress={onClose} />
         <View className="rounded-t-2xl bg-white px-4 pt-5">
           <View className="mb-4 flex-row items-center justify-between">
-            <Text className="text-title02 text-grey-80">{title}</Text>
+            <Text className="text-grey-80 text-title02">{title}</Text>
             <TouchableOpacity onPress={onClose} hitSlop={12}>
-              <Text className="text-body04 text-primary">닫기</Text>
+              <Text className="text-primary text-body04">닫기</Text>
             </TouchableOpacity>
           </View>
           <FlatList
@@ -55,7 +55,7 @@ export default function DepartmentSelectModal({
                 >
                   <Text
                     className={cn(
-                      'text-body05 text-grey-80',
+                      'text-grey-80 text-body05',
                       selected && 'font-medium text-primary'
                     )}
                   >

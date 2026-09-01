@@ -35,7 +35,7 @@ export default function KeywordItem({
           <AlertOffIcon size={20} className="text-grey-30" />
         )}
       </Pressable>
-      <Text className="min-w-0 flex-1 text-body03 text-grey-80" numberOfLines={1}>
+      <Text className="min-w-0 flex-1 text-grey-80 text-body03" numberOfLines={1}>
         {alarm.keyword}
       </Text>
       <Pressable
