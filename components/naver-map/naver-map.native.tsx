@@ -154,9 +154,10 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
         position: userLocation ?? undefined,
         bearing: userLocation?.heading ?? 0,
         image: require('@/assets/map-marker-overlay.png'),
-        imageWidth: 26,
-        imageHeight: 36,
-        anchor: { x: 0.5, y: 0.636 },
+        imageWidth: 50,
+        imageHeight: 50,
+        // anchor.y: dot(원)의 실제 중심 y좌표(74/150 지점)를 이미지 픽셀 디코딩으로 측정한 값 (150×150px 에셋 기준)
+        anchor: { x: 0.5, y: 0.493 },
       }}
     >
       {busStopMarkers.map((marker) => (

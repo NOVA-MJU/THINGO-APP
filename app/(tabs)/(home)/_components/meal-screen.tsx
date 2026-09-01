@@ -15,7 +15,6 @@ import { ScrollView, TouchableOpacity, View } from 'react-native';
 export default function MealScreen() {
   const [selectedDate, setSelectedDate] = React.useState<string | null>(null);
   const [menus, setMenus] = React.useState<DailyMenu[]>([]);
-  const dateScrollRef = React.useRef<ScrollView>(null);
 
   // 오늘 날짜(today)와 이번 주 평일 목록(dates) 계산 — 마운트 시 1회만 실행
   const { today, dates } = React.useMemo(() => {
@@ -74,6 +73,7 @@ export default function MealScreen() {
             {today.date}({today.day})
           </Text>
 
+          {/* 오늘 날짜로 돌아가기 버튼 */}
           {selectedDate !== today.date && (
             <TouchableOpacity onPress={handleSetToday}>
               <View className="flex-row items-center gap-0.5 rounded-full bg-blue-02 px-2 py-[3px]">
@@ -84,21 +84,19 @@ export default function MealScreen() {
           )}
         </View>
 
-        {/* 날짜 선택기 */}
-        <ScrollView
-          ref={dateScrollRef}
-          horizontal
-          nestedScrollEnabled
-          showsHorizontalScrollIndicator={false}
-          contentContainerClassName="px-5 flex-row gap-2"
-        >
+        {/* 날짜 선택기 — 평일 5일을 화면 너비에 맞춰 균등 배분 */}
+        <View className="flex-row gap-2 px-5">
           {dates.map((item) => {
             const isSelected = selectedDate === item.date;
             return (
-              <TouchableOpacity key={item.date} onPress={() => setSelectedDate(item.date)}>
+              <TouchableOpacity
+                key={item.date}
+                className="flex-1"
+                onPress={() => setSelectedDate(item.date)}
+              >
                 <View
                   className={cn(
-                    'w-[60px] items-center gap-[6.5px] rounded-lg pb-[6.5px] pt-[4px]',
+                    'items-center gap-[6.5px] rounded-lg pb-[6.5px] pt-[4px]',
                     isSelected ? 'bg-mju-primary' : 'bg-white'
                   )}
                 >
@@ -112,7 +110,7 @@ export default function MealScreen() {
               </TouchableOpacity>
             );
           })}
-        </ScrollView>
+        </View>
       </View>
       <View className="flex-1 gap-2.5 bg-grey-02 px-4 pb-9 pt-5">
         {/* 조식 */}

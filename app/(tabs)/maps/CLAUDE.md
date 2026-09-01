@@ -12,17 +12,18 @@
 
 사용자 현재 위치는 네이버 지도 SDK가 기본 제공하는 `locationOverlay`로 표시한다 (`NaverMapView`의 `locationOverlay` prop, native 전용).
 
-- 아이콘 에셋: `assets/map-marker-overlay.png` (84×118px, 원(dot) + 방향 화살표가 합쳐진 그래픽)
-- `anchor: { x: 0.5, y: 0.636 }`: 화살표가 dot 위로 튀어나와 있어 이미지가 세로로 비대칭이다. 기본값 `{0.5, 0.5}`(이미지 정중앙)를 쓰면 GPS 좌표가 dot이 아니라 화살표 쪽으로 치우쳐 표시된다. `anchor.y`는 PNG를 직접 픽셀 디코딩해서 dot(원)의 실제 중심 y좌표(75)를 이미지 전체 높이(118)로 나눠 구한 값(75/118 ≈ 0.636)이다. **에셋을 다시 export하면 이 값도 다시 계산해야 한다** — 원의 중심이 이미지 원점 기준 몇 %인지 재측정할 것.
-- `bearing`: `location.coords.heading`(이동 방향, 도 단위)을 그대로 넘겨서 화살표가 anchor(=dot 중심)를 축으로 회전하도록 함
+- 아이콘 에셋: `assets/map-marker-overlay.png` (150×150px, 50×50dp 표시 기준 3배 스케일. 원(dot) + 방향 화살표 + 은은한 halo 배경이 합쳐진 그래픽)
+- `anchor: { x: 0.5, y: 0.493 }`: 화살표가 dot 위로 튀어나와 있어 이미지가 세로로 비대칭이다. 기본값 `{0.5, 0.5}`(이미지 정중앙)를 쓰면 GPS 좌표가 dot이 아니라 화살표 쪽으로 치우쳐 표시된다. `anchor.y`는 PNG를 직접 픽셀 디코딩해서 dot(원)의 실제 중심 y좌표(74)를 이미지 전체 높이(150)로 나눠 구한 값(74/150 ≈ 0.493)이다. **에셋을 다시 export하면 이 값도 다시 계산해야 한다** — 원의 중심이 이미지 원점 기준 몇 %인지 재측정할 것.
+- `bearing`: `userLocation.heading`(도 단위)을 그대로 넘겨서 화살표가 anchor(=dot 중심)를 축으로 회전하도록 함. 이 값은 GPS 진행 방향(`location.coords.heading`)이 아니라 `Location.watchHeadingAsync`의 나침반 방향(`trueHeading`, 없으면 `magHeading`)에서 옴 - GPS 진행 방향은 정지 상태에서 부정확/미갱신이라 제자리에서 방향을 표시하려면 나침반이 필요함
 - `MapImageProp`(`locationOverlay.image`)은 `require()` 이미지 리소스만 받는다 — `NaverMapMarkerOverlay`(장소/건물 마커)처럼 임의의 React/SVG 컴포넌트를 못 쓴다. 아이콘을 바꾸려면 PNG를 다시 export해야 한다.
 
 ### 위치 추적 생명주기 (`app/(tabs)/maps/index.tsx`)
 
-- `startWatchingUserLocation()`: `Location.watchPositionAsync`로 구독 시작, `locationSubscriptionRef`에 보관해 중복 구독 방지
-- 화면 진입 시 이미 위치 권한이 허용돼 있으면 자동으로 추적 시작 (재요청 안 함, `getForegroundPermissionsAsync`로만 확인)
-- 기존 "현위치" 버튼(`onCurrentLocationPress`)을 누르면 권한 요청 + 카메라 이동과 함께 추적도 시작됨
-- unmount 시 `locationSubscriptionRef.current?.remove()`로 구독 해제
+- `startWatchingUserLocation()`: `Location.watchPositionAsync`로 좌표(위도/경도)만 구독, `locationSubscriptionRef`에 보관해 중복 구독 방지. 콜백에서 `heading`은 건드리지 않고 이전 state 값을 그대로 유지한다(`setUserLocation((prev) => ({ ..., heading: prev?.heading }))`) - `startWatchingUserHeading`이 갱신한 나침반 값을 덮어쓰지 않기 위함
+- `startWatchingUserHeading()`: `Location.watchHeadingAsync`로 나침반 방향만 구독, `headingSubscriptionRef`에 보관해 중복 구독 방지. `userLocation`이 아직 없으면(위치 좌표를 못 받은 상태) 업데이트를 무시한다
+- 화면 진입 시 이미 위치 권한이 허용돼 있으면 위치/나침반 추적을 둘 다 자동 시작 (재요청 안 함, `getForegroundPermissionsAsync`로만 확인)
+- 기존 "현위치" 버튼(`onCurrentLocationPress`)을 누르면 권한 요청 + 카메라 이동과 함께 위치/나침반 추적도 둘 다 시작됨
+- unmount 시 `locationSubscriptionRef.current?.remove()`, `headingSubscriptionRef.current?.remove()`로 두 구독 모두 해제
 
 ### web 제약
 

@@ -25,8 +25,9 @@ const TAB_PATHS = ['/', '/meal', '/posts', '/notices', '/academic-calendar', '/n
 const HOME_TITLE = '띵고 Thingo - 명지대학교 통합 정보 탐색 플랫폼';
 
 export default function Screen() {
-  const { tab } = useLocalSearchParams<{
+  const { tab, scrollToAll } = useLocalSearchParams<{
     tab?: string | string[];
+    scrollToAll?: string | string[];
   }>();
 
   const targetTab = Array.isArray(tab) ? tab[0] : tab;
@@ -65,6 +66,14 @@ export default function Screen() {
     setCurrentTab(TABS[boardTabIndex]);
     scrollRef.current?.scrollTo({ x: width * boardTabIndex, animated: false });
   }, [targetTab]);
+
+  // 하단 네비게이션의 홈 탭을 다시 눌렀을 때 신호로 쓰는 값(매번 새 타임스탬프이므로
+  // 이미 ALL 화면에 있어도 재클릭할 때마다 effect가 다시 실행된다)
+  React.useEffect(() => {
+    if (!scrollToAll) return;
+    setCurrentTab(TABS[0]);
+    scrollRef.current?.scrollTo({ x: 0, animated: true });
+  }, [scrollToAll]);
 
   // web: 헤더·TabBar는 _layout.tsx 제공, AllScreen만 렌더링
   if (Platform.OS === 'web') {
