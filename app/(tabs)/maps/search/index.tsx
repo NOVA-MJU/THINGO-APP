@@ -10,6 +10,7 @@ import { Text } from '@/components/ui/text';
 import { formatMapDistance, getOperatingStatusClassName } from '@/lib/maps/format';
 import { getMapIcon, getMapIconClassName } from '@/lib/maps/icons';
 import { cn } from '@/lib/utils';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
@@ -27,7 +28,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMapSearchSelection } from '@/context/map-search-selection';
 
-const DUMMY_RECENT_SEARCHES = ['학생회관', '도서관', '프린터', '은행 ATM'];
+const MAX_RECENT_SEARCH_COUNT = 10;
+const RECENT_SEARCHES_KEY = 'map_recent_searches';
 const AUTOCOMPLETE_DEBOUNCE_MS = 250;
 
 type SearchCoordinates = {
@@ -53,13 +55,15 @@ export default function MapsSearchScreen() {
   const inputRef = React.useRef<TextInput>(null);
   const [query, setQuery] = React.useState('');
   const [submittedKeyword, setSubmittedKeyword] = React.useState('');
-  const [recentSearches, setRecentSearches] = React.useState(DUMMY_RECENT_SEARCHES);
+  const [recentSearches, setRecentSearches] = React.useState<string[]>([]);
   const [coordinates, setCoordinates] = React.useState<SearchCoordinates | null>(null);
+  const isRecentSearchesLoaded = React.useRef(false);
 
   const trimmedQuery = query.trim();
   const debouncedQuery = useDebouncedValue(trimmedQuery, AUTOCOMPLETE_DEBOUNCE_MS);
   const isEditing = !!trimmedQuery && trimmedQuery !== submittedKeyword;
 
+  // 검색어 자동완성 요청
   const suggestionsQuery = useQuery({
     queryKey: ['map-search-suggestions', debouncedQuery],
     queryFn: () => getMapSearchSuggestions({ keyword: debouncedQuery }),
@@ -67,6 +71,7 @@ export default function MapsSearchScreen() {
     staleTime: 30_000,
   });
 
+  // 검색 요청
   const searchQuery = useInfiniteQuery({
     queryKey: ['map-search', submittedKeyword, coordinates?.latitude, coordinates?.longitude],
     queryFn: ({ pageParam }) =>
@@ -83,16 +88,37 @@ export default function MapsSearchScreen() {
     enabled: !!submittedKeyword,
   });
 
+  // 페이지별로 나뉜 결과를 하나의 리스트로 평탄화
   const searchResults = React.useMemo(
     () => searchQuery.data?.pages.flat() ?? [],
     [searchQuery.data]
   );
 
+  // 화면 진입 시 검색창에 자동 포커스(레이아웃 완료 후 포커스가 걸리도록 약간 지연)
   React.useEffect(() => {
     const timer = setTimeout(() => inputRef.current?.focus(), 50);
     return () => clearTimeout(timer);
   }, []);
 
+  // 저장된 최근 검색어 로드
+  React.useEffect(() => {
+    AsyncStorage.getItem(RECENT_SEARCHES_KEY)
+      .then((stored) => {
+        if (stored) setRecentSearches(JSON.parse(stored));
+      })
+      .catch(() => {})
+      .finally(() => {
+        isRecentSearchesLoaded.current = true;
+      });
+  }, []);
+
+  // 최근 검색어가 바뀔 때마다 저장(로드 완료 전에는 빈 배열로 덮어쓰지 않도록 가드)
+  React.useEffect(() => {
+    if (!isRecentSearchesLoaded.current) return;
+    AsyncStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(recentSearches)).catch(() => {});
+  }, [recentSearches]);
+
+  // 권한이 이미 허용된 경우에만 마지막으로 알려진 위치를 가져와 거리 계산에 사용
   React.useEffect(() => {
     let active = true;
 
@@ -119,10 +145,14 @@ export default function MapsSearchScreen() {
     };
   }, []);
 
+  // 최근 검색어 추가
   function addRecentSearch(keyword: string) {
-    setRecentSearches((prev) => [keyword, ...prev.filter((recent) => recent !== keyword)]);
+    setRecentSearches((prev) =>
+      [keyword, ...prev.filter((recent) => recent !== keyword)].slice(0, MAX_RECENT_SEARCH_COUNT)
+    );
   }
 
+  // 검색 결과 조회
   function runSearch(keyword: string) {
     const trimmedKeyword = keyword.trim();
     if (!trimmedKeyword) return;
@@ -133,12 +163,14 @@ export default function MapsSearchScreen() {
     Keyboard.dismiss();
   }
 
+  // 입력한 검색어 삭제
   function onClearQueryPress() {
     setQuery('');
     setSubmittedKeyword('');
     inputRef.current?.focus();
   }
 
+  // 검색 결과 클릭 시 선택한 장소를 지도 화면으로 전달하고 검색창 닫기
   function onSearchResultPress(item: MapSearchItem) {
     selectSearchResult(item);
     router.back();
@@ -214,6 +246,7 @@ export default function MapsSearchScreen() {
   );
 }
 
+// 최근 검색어
 function RecentSearches({
   recentSearches,
   onClear,
@@ -243,14 +276,17 @@ function RecentSearches({
           contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
         >
           {recentSearches.map((keyword) => (
-            <View key={keyword} className="flex-row rounded-full border border-grey-10 bg-white">
-              <TouchableOpacity onPress={() => onPress(keyword)}>
-                <Text className="my-1.5 me-[3px] ms-3 text-grey-60 text-body05">{keyword}</Text>
-              </TouchableOpacity>
+            <TouchableOpacity
+              key={keyword}
+              className="flex-row rounded-full border border-grey-10 bg-white"
+              onPress={() => onPress(keyword)}
+              hitSlop={4}
+            >
+              <Text className="my-1.5 me-[3px] ms-3 text-grey-60 text-body05">{keyword}</Text>
               <TouchableOpacity onPress={() => onDelete(keyword)} hitSlop={4}>
                 <XIcon size={12} className="my-[10.5px] me-[11px] ms-[3px] text-grey-20" />
               </TouchableOpacity>
-            </View>
+            </TouchableOpacity>
           ))}
         </ScrollView>
       ) : (

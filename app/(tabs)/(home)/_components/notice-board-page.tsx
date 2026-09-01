@@ -101,10 +101,11 @@ function WriteButton({ bottomOffset, onPress }: { bottomOffset: number; onPress:
         shadowOpacity: 0.15,
         shadowRadius: 4,
       }}
+      hitSlop={4}
     >
       <View className="items-center justify-center">
         <ClipboardPen size={24} color="#E8F1FF" strokeWidth={2} />
-        <Text className="text-[12px] leading-[18px] text-[#E8F1FF] text-caption02">글남기기</Text>
+        <Text className="text-blue-05 text-caption02">글남기기</Text>
       </View>
     </Pressable>
   );
@@ -140,7 +141,7 @@ function NoticeBoardScreen() {
   const activeCategory: BoardCategoryTab = boardCategory === 'free' ? 'free' : 'info';
   const currentPage = Number(page ?? '1');
 
-  const { bottom } = useSafeAreaInsets();
+  const insets = useSafeAreaInsets();
   const scrollRef = React.useRef<ScrollView>(null);
   const [boards, setBoards] = React.useState<Board[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -293,7 +294,7 @@ function NoticeBoardScreen() {
         </View>
       </ScrollView>
 
-      <WriteButton bottomOffset={bottom + 30} onPress={() => router.push('/posts/write')} />
+      <WriteButton bottomOffset={20} onPress={() => router.push('/posts/write')} />
     </View>
   );
 }
