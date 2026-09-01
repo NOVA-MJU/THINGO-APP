@@ -22,6 +22,9 @@ import { useNotificationBadge } from '@/hooks/useNotificationBadge';
 const { width } = Dimensions.get('window');
 const TABS = ['ALL', '학식', '게시판', '공지사항', '학사일정', '명대신문', '명대뉴스'];
 const TAB_PATHS = ['/', '/meal', '/posts', '/notices', '/academic-calendar', '/newspaper', '/news'];
+// 모바일에서 `tab` 쿼리 파라미터로 넘어오는 값 (TABS와 인덱스 대응). 웹 라우트 슬러그(TAB_PATHS)와
+// 별개로 관리하는 이유는 게시판이 이미 'board'라는 값으로 여러 화면(posts/[postId] 등)에서 쓰이고 있어서
+const TAB_QUERY_SLUGS = ['', 'meal', 'board', 'notices', 'academic-calendar', 'newspaper', 'news'];
 const HOME_TITLE = '띵고 Thingo - 명지대학교 통합 정보 탐색 플랫폼';
 
 export default function Screen() {
@@ -60,11 +63,13 @@ export default function Screen() {
   };
 
   React.useEffect(() => {
-    if (targetTab !== 'board') return;
+    if (!targetTab) return;
 
-    const boardTabIndex = 2;
-    setCurrentTab(TABS[boardTabIndex]);
-    scrollRef.current?.scrollTo({ x: width * boardTabIndex, animated: false });
+    const tabIndex = TAB_QUERY_SLUGS.indexOf(targetTab);
+    if (tabIndex === -1) return;
+
+    setCurrentTab(TABS[tabIndex]);
+    scrollRef.current?.scrollTo({ x: width * tabIndex, animated: false });
   }, [targetTab]);
 
   // 하단 네비게이션의 홈 탭을 다시 눌렀을 때 신호로 쓰는 값(매번 새 타임스탬프이므로
