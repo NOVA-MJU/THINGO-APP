@@ -6,14 +6,6 @@ import {
   type MediaOrientation,
 } from '@/components/maps/reviews/video-media-player';
 import { ZoomableMedia } from '@/components/maps/reviews/zoomable-media';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Text } from '@/components/ui/text';
 import { useAuth } from '@/context/auth-context';
 import { showAlert } from '@/lib/alert';
@@ -95,7 +87,6 @@ export default function PlaceReviewMediaScreen() {
   const [isStoryPaused, setIsStoryPaused] = React.useState(false);
   const [isZooming, setIsZooming] = React.useState(false);
   const [isMediaZoomed, setIsMediaZoomed] = React.useState(false);
-  const [selfLikeDialogOpen, setSelfLikeDialogOpen] = React.useState(false);
   const [storyProgress, setStoryProgress] = React.useState(0);
   const contentSheetProgress = React.useRef(new Animated.Value(0)).current;
   const storyProgressAnimation = React.useRef(new Animated.Value(0)).current;
@@ -433,10 +424,6 @@ export default function PlaceReviewMediaScreen() {
 
   async function handleToggleLike() {
     if (!activeReview) return;
-    if (isCurrentUserReview(activeReview, user?.uuid, user?.nickname)) {
-      setSelfLikeDialogOpen(true);
-      return;
-    }
 
     try {
       const nextReview = await togglePlaceReviewLike(activeReview.id);
@@ -616,31 +603,6 @@ export default function PlaceReviewMediaScreen() {
         />
       ) : null}
 
-      <Dialog open={selfLikeDialogOpen} onOpenChange={setSelfLikeDialogOpen}>
-        <DialogContent
-          className="w-[320px] max-w-[320px] gap-4 rounded-[12px] border-2 border-grey-02 bg-white p-[24px]"
-          showCloseButton={false}
-        >
-          <DialogHeader className="gap-[2px]">
-            <DialogTitle className="text-center text-black text-body02">
-              내 리뷰에는 좋아요를 누를 수 없어요
-            </DialogTitle>
-            <DialogDescription className="text-center text-grey-80 text-body06">
-              다른 사용자가 남긴 리뷰에만 좋아요를 누를 수 있습니다.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="h-[36px] flex-row">
-            <Pressable
-              onPress={() => setSelfLikeDialogOpen(false)}
-              className="h-[36px] flex-1 items-center justify-center rounded-[8px] bg-blue-35"
-              accessibilityRole="button"
-              accessibilityLabel="좋아요 제한 안내 확인"
-            >
-              <Text className="text-white text-body06">확인</Text>
-            </Pressable>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </View>
   );
 }
@@ -770,17 +732,6 @@ function resolveReviewProfileImageUrl(
   fallbackProfileImageUrl?: string | null
 ) {
   return profileImageUrl ?? fallbackProfileImageUrl ?? null;
-}
-
-function isCurrentUserReview(
-  review: PlaceReview,
-  currentUserUuid?: string,
-  fallbackNickname?: string
-) {
-  if (review.isMine) return true;
-  if (review.authorUuid && currentUserUuid) return review.authorUuid === currentUserUuid;
-  if (!currentUserUuid) return false;
-  return Boolean(fallbackNickname && review.nickname === fallbackNickname);
 }
 
 function formatReviewDate(value: string) {

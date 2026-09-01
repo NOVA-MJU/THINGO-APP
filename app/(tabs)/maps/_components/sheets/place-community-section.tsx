@@ -146,7 +146,6 @@ export default function PlaceCommunitySection({
     null
   );
   const [reportEtcText, setReportEtcText] = React.useState('');
-  const [selfLikeDialogOpen, setSelfLikeDialogOpen] = React.useState(false);
   const selectedSortLabel =
     REVIEW_SORT_OPTIONS.find((option) => option.value === reviewSort)?.label ??
     REVIEW_SORT_OPTIONS[0].label;
@@ -382,11 +381,6 @@ export default function PlaceCommunitySection({
                 onBlockReviewAuthor={() => openBlockReviewAuthorDialog(review)}
                 onOpenMedia={(mediaIndex) => onOpenMedia(review.id, mediaIndex, 'review')}
                 onToggleLike={async () => {
-                  if (isCurrentUserReview(review, user?.uuid, user?.nickname)) {
-                    setSelfLikeDialogOpen(true);
-                    return;
-                  }
-
                   try {
                     const nextReview = await togglePlaceReviewLike(review.id);
                     if (!nextReview) return;
@@ -482,32 +476,6 @@ export default function PlaceCommunitySection({
               </Button>
             </View>
           </View>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={selfLikeDialogOpen} onOpenChange={setSelfLikeDialogOpen}>
-        <DialogContent
-          className="w-[320px] max-w-[320px] gap-4 rounded-[12px] border-2 border-grey-02 bg-white p-[24px]"
-          showCloseButton={false}
-        >
-          <DialogHeader className="gap-[2px]">
-            <DialogTitle className="text-center text-black text-body02">
-              내 리뷰에는 좋아요를 누를 수 없어요
-            </DialogTitle>
-            <DialogDescription className="text-center text-grey-80 text-body06">
-              다른 사용자가 남긴 리뷰에만 좋아요를 누를 수 있습니다.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="h-[36px] flex-row">
-            <TouchableOpacity
-              onPress={() => setSelfLikeDialogOpen(false)}
-              className="h-[36px] flex-1 items-center justify-center rounded-[8px] bg-blue-35"
-              accessibilityRole="button"
-              accessibilityLabel="좋아요 제한 안내 확인"
-            >
-              <Text className="text-white text-body06">확인</Text>
-            </TouchableOpacity>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
