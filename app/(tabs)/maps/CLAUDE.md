@@ -44,18 +44,18 @@
 
 ## 바텀시트 동작 방식 (`app/(tabs)/maps/index.tsx`)
 
-`@gorhom/bottom-sheet`를 **base 시트 1개 + 스택 레이어 N개**로 구성한다. base는 category(기본 화면)/bus/검색 요약처럼 서로 배타적인 화면을 콘텐츠 교체 방식으로 보여주고, places 목록 → building/place 상세로 이어지는 드릴다운은 각 화면을 실제 별도의 `BottomSheet` 인스턴스(스택 레이어)로 쌓아 올린다. `BottomSheetModal`은 쓰지 않는다 — `@gorhom/portal`로 앱 루트에 렌더링되기 때문에 `(tabs)` 하단 네비게이션 바까지 덮어버린다 (포털을 안 쓰는 일반 `BottomSheet`는 탭 화면 콘텐츠 영역 안에 그대로 자식으로 렌더링되므로 이 문제가 없다).
+`@gorhom/bottom-sheet`를 **base 시트 1개 + 스택 레이어 N개**로 구성한다. base는 category(기본 화면) 하나만 보여주고, bus/places 목록 → building/place 상세로 이어지는 드릴다운은 각 화면을 실제 별도의 `BottomSheet` 인스턴스(스택 레이어)로 쌓아 올린다. `BottomSheetModal`은 쓰지 않는다 — `@gorhom/portal`로 앱 루트에 렌더링되기 때문에 `(tabs)` 하단 네비게이션 바까지 덮어버린다 (포털을 안 쓰는 일반 `BottomSheet`는 탭 화면 콘텐츠 영역 안에 그대로 자식으로 렌더링되므로 이 문제가 없다).
 
 ### base 시트 (`bottomSheetRef`)
 
-- `selectedSheetMode`: `'category' | 'bus'`만 담당. `selectedSearchResult`(컨텍스트)가 있으면 `renderBaseSheetContent`에서 모드보다 우선 표시됨
-- `selectedStation`: bus 모드에 필요한 식별자
+- 항상 `CategoryList`만 그린다 — 별도 모드 state 없이 `<CategoryList onChipPress={onQuickChipPress} />`를 고정 렌더링
+- `selectedSearchResult`(컨텍스트)는 base 콘텐츠에 관여하지 않는다 — 검색 결과 선택 시 곧바로 building/place 스택 레이어가 push되고 컨텍스트 값이 지워지므로, base가 검색 요약을 그릴 틈이 없다 (`_components/sheets/map-search-summary.tsx`는 이 이유로 만들어졌지만 실제로는 호출되지 않는, 보관용 코드다)
 - 항상 마운트돼 있고, 스택 레이어가 하나라도 떠 있으면 완전히 숨겨짐(`close()`)
 
 ### 스택 레이어 (`sheetStack` + `_components/sheet-stack-layer.tsx`)
 
-- `sheetStack: SheetScreen[]` — `{ kind: 'places' | 'building' | 'place', ...식별자, key, initialIndex }`. places → building/place 드릴다운만 이 스택을 탄다 (bus/검색은 base에서 처리, 서로 배타적이라 스택 진입 시 항상 `resetStack()`으로 비움)
-- `selectedCategoryCode`/`selectedBuildingId`/`selectedPlaceId`는 더 이상 독립 state가 아니라 `sheetStack`에서 해당 kind를 찾아 파생시킨 값이다(`useMemo`). 상세/목록 `useQuery`는 이 파생값을 그대로 쓰므로 기존과 동일하게 동작한다. **현재 UI 흐름상 스택에 동시에 존재하는 places/building/place는 각 kind당 최대 1개**라 `.find()`로 충분하다 — 같은 kind를 여러 겹 쌓는 흐름이 생기면 레이어별로 쿼리를 분리해야 한다.
+- `sheetStack: SheetScreen[]` — `{ kind: 'places' | 'building' | 'place' | 'bus', ...식별자, key, initialIndex }`. bus, places → building/place 드릴다운, 검색 결과 선택이 전부 이 스택을 탄다 — base는 category 하나뿐이라 서로 배타적인 화면 전환은 전부 스택 레이어 push/pop으로 처리한다
+- `selectedCategoryCode`/`selectedBuildingId`/`selectedPlaceId`/`selectedBusStation`은 독립 state가 아니라 `sheetStack`에서 해당 kind를 찾아 파생시킨 값이다(`useMemo`). 상세/목록 `useQuery`는 이 파생값을 그대로 쓰므로 기존과 동일하게 동작한다. **현재 UI 흐름상 스택에 동시에 존재하는 places/building/place/bus는 각 kind당 최대 1개**라 `.find()`로 충분하다 — 같은 kind를 여러 겹 쌓는 흐름이 생기면 레이어별로 쿼리를 분리해야 한다.
 - `pushSheet(screen, initialIndex?)`: 지금 맨 위에 있는 레이어(또는 base)를 **애니메이션 없이**(`close({ duration: 0 })`) 즉시 완전히 숨기고, 새 레이어를 스택에 추가한다. `snapToIndex(0)`이 아니라 `close()`를 쓰는 이유는 `snapToIndex(0)`은 snapPoints의 첫 값(`'10%'`)으로 이동할 뿐이라 완전히 안 가려지기 때문. 새 레이어는 `index` prop으로 마운트되며 `animateOnMount` 기본 동작으로 아래에서 슬라이드 올라온다. 언마운트 없이 숨기기만 하므로 **가려진 레이어의 스크롤 위치·페이지네이션(`useInfiniteQuery`)이 그대로 보존**된다.
 - `popSheet()`: 맨 위 레이어에 `.close({ duration: 0 })`를 호출해 애니메이션 없이 즉시 닫는다. `onClose` 콜백(`handleLayerClosed`)에서 실제로 스택 배열에서 제거하고, 그 아래 있던 레이어를 `push` 시점에 기록해둔 index로 즉시 복원한다.
 - **주의**: `close()`는 index가 -1에 도달하면 항상 `onClose`를 발생시키는데(`node_modules/@gorhom/bottom-sheet/src/components/bottomSheet/BottomSheet.tsx`의 `animateToPositionCompleted`), `pushSheet`가 아래 레이어를 가리려고 호출하는 `close()`도 똑같이 `onClose`를 발생시킨다. 이게 실제 pop과 구분 없이 `handleLayerClosed`를 타면 "덮여서 숨겨진 것"이 스택에서 제거돼버리므로, `suppressCloseRef`에 "덮여서 닫힌" 키를 표시해두고 `handleLayerClosed`가 그 키를 보면 무시하도록 한다.

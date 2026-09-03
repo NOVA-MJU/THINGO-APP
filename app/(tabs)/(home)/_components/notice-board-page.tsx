@@ -9,7 +9,6 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { ClipboardPen } from 'lucide-react-native';
 import * as React from 'react';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type BoardCategoryTab = 'info' | 'free';
 
@@ -141,7 +140,6 @@ function NoticeBoardScreen() {
   const activeCategory: BoardCategoryTab = boardCategory === 'free' ? 'free' : 'info';
   const currentPage = Number(page ?? '1');
 
-  const insets = useSafeAreaInsets();
   const scrollRef = React.useRef<ScrollView>(null);
   const [boards, setBoards] = React.useState<Board[]>([]);
   const [loading, setLoading] = React.useState(true);
