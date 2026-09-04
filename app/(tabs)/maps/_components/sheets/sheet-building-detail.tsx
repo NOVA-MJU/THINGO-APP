@@ -2,7 +2,7 @@ import { Text } from '@/components/ui/text';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
 import { Image, Pressable, ScrollView, TouchableOpacity, View } from 'react-native';
-import { ArrowDownIcon, ArrowRightIcon, XIcon } from '@/components/icons';
+import { ArrowRightIcon, XIcon } from '@/components/icons';
 import {
   BankIcon,
   BreakRoomIcon,
