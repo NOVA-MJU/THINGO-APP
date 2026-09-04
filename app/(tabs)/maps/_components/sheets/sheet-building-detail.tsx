@@ -1,7 +1,7 @@
 import { Text } from '@/components/ui/text';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
-import { Image, ScrollView, TouchableOpacity, View } from 'react-native';
+import { Image, Pressable, ScrollView, TouchableOpacity, View } from 'react-native';
 import { ArrowDownIcon, ArrowRightIcon, XIcon } from '@/components/icons';
 import {
   BankIcon,
@@ -168,11 +168,11 @@ export default function BuildingDetailSheet({
                 <Text className="text-grey-40 text-body05">{building.infoText}</Text>
               )}
             </View>
-            <TouchableOpacity className="flex-row items-center gap-1" hitSlop={4}>
+            <Pressable className="flex-row items-center gap-1" hitSlop={4}>
               <InfoIcon size={16} className="text-grey-20" />
-              <Text className="text-grey-40 text-caption02">주차요금 정보가 표시됩니다</Text>
-              <ArrowDownIcon size={16} className="text-grey-20" />
-            </TouchableOpacity>
+              <Text className="text-grey-40 text-caption02">주차 정보 없음</Text>
+              {/* <ArrowDownIcon size={16} className="text-grey-20" /> */}
+            </Pressable>
           </View>
 
           {/* 썸네일 */}

@@ -8,6 +8,8 @@ import {
 } from '@/api/maps';
 import { SearchIcon, ThingoLogoSmall } from '@/components/icons';
 import { NaverMap, NaverMapHandle, UserLocationData } from '@/components/naver-map';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Text } from '@/components/ui/text';
 import { BUS_STOPS, type BusStopStation } from '@/lib/maps/bus-stops';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
@@ -40,16 +42,25 @@ import CATEGORIES from './_constants/category-data';
 import { CurrentLocationIcon, MoreIcon, StarIcon } from '@/components/icons/map';
 import { useMapSearchSelection } from '@/context/map-search-selection';
 import { showAlert } from '@/lib/alert';
-import { CAMPUS_LATITUDE, CAMPUS_LONGITUDE } from '@/lib/maps/campus';
+import {
+  CAMPUS_LATITUDE,
+  CAMPUS_LONGITUDE,
+  CAMPUS_RADIUS_KM,
+  getDistanceFromCampusKm,
+} from '@/lib/maps/campus';
 import { getMapIconKey } from '@/lib/maps/icons';
+import { cn } from '@/lib/utils';
 
 const QUICK_CHIP_IDS = ['bus', 'daedong', 'printer', 'lounge', 'bank'];
 
-const QUICK_CHIPS = CATEGORIES.flatMap((c) =>
+// 헤더 고정 칩(QUICK_CHIPS) 계산과, category 시트에서 고른 임시 칩 조회에 공용으로 쓰는 전체 칩 목록
+const ALL_CHIPS = CATEGORIES.flatMap((c) =>
   c.chips.map((chip) => ({ ...chip, iconClassName: c.iconClassName }))
-)
-  .filter((chip) => QUICK_CHIP_IDS.includes(chip.id))
-  .sort((a, b) => QUICK_CHIP_IDS.indexOf(a.id) - QUICK_CHIP_IDS.indexOf(b.id));
+);
+
+const QUICK_CHIPS = ALL_CHIPS.filter((chip) => QUICK_CHIP_IDS.includes(chip.id)).sort(
+  (a, b) => QUICK_CHIP_IDS.indexOf(a.id) - QUICK_CHIP_IDS.indexOf(b.id)
+);
 
 const SNAP_POINTS = ['10%', '50%', '100%'];
 const MAP_CONTROL_SHADOW = {
@@ -96,6 +107,8 @@ export default function MapsScreen() {
   const [selectedSheetMode, setSelectedSheetMode] = React.useState<'category' | 'bus'>('category');
   const [selectedStation, setSelectedStation] = React.useState<BusStopStation | null>(null);
   const [userLocation, setUserLocation] = React.useState<UserLocationData | null>(null);
+  // 현위치가 캠퍼스 중심에서 CAMPUS_RADIUS_KM를 벗어난 경우 안내 다이얼로그 표시 여부
+  const [isOutOfCampusRange, setIsOutOfCampusRange] = React.useState(false);
   const mapRef = React.useRef<NaverMapHandle>(null);
   const bottomSheetRef = React.useRef<BottomSheet>(null);
   const locationSubscriptionRef = React.useRef<Location.LocationSubscription | null>(null);
@@ -188,6 +201,18 @@ export default function MapsScreen() {
         ?.placeId ?? null,
     [sheetStack]
   );
+
+  // category 시트에서 고른 칩이 헤더 고정 목록(QUICK_CHIPS)에 없으면, 그 칩을 헤더 맨 앞(bus보다도 앞)에
+  // 임시로 끼워 넣어 보여준다. 별도 state 없이 selectedCategoryCode에서 파생시키므로, 다른 칩을 선택해
+  // selectedCategoryCode가 바뀌는 순간 자동으로 사라진다(누적되지 않음).
+  const displayChips = React.useMemo(() => {
+    if (!selectedCategoryCode || QUICK_CHIP_IDS.includes(selectedCategoryCode)) return QUICK_CHIPS;
+
+    const extraChip = ALL_CHIPS.find((c) => c.id === selectedCategoryCode);
+    if (!extraChip) return QUICK_CHIPS;
+
+    return [extraChip, ...QUICK_CHIPS];
+  }, [selectedCategoryCode]);
 
   const selectedCamera = React.useMemo(
     () =>
@@ -562,6 +587,14 @@ export default function MapsScreen() {
           });
         });
 
+        if (
+          getDistanceFromCampusKm(position.coords.latitude, position.coords.longitude) >
+          CAMPUS_RADIUS_KM
+        ) {
+          setIsOutOfCampusRange(true);
+          return;
+        }
+
         setUserLocation({
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
@@ -584,13 +617,21 @@ export default function MapsScreen() {
       return;
     }
 
-    startWatchingUserLocation();
-    startWatchingUserHeading();
-
     try {
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
       });
+
+      if (
+        getDistanceFromCampusKm(location.coords.latitude, location.coords.longitude) >
+        CAMPUS_RADIUS_KM
+      ) {
+        setIsOutOfCampusRange(true);
+        return;
+      }
+
+      startWatchingUserLocation();
+      startWatchingUserHeading();
       mapRef.current?.animateCameraTo(location.coords.latitude, location.coords.longitude, 16);
     } catch {
       showAlert('위치 오류', '현재 위치를 가져올 수 없습니다.');
@@ -768,28 +809,37 @@ export default function MapsScreen() {
             contentContainerClassName="flex-row gap-1 py-2 px-4"
             className="flex-1"
           >
-            {QUICK_CHIPS.map((chip) => (
-              <View
-                key={chip.id}
-                className="rounded-full border border-white bg-white"
-                style={{
-                  shadowColor: '#17171B',
-                  shadowOffset: { width: 0, height: 1 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 4,
-                  elevation: 2,
-                }}
-              >
-                <TouchableOpacity
-                  onPress={() => onQuickChipPress(chip.id)}
-                  className="flex-row items-center gap-0.5 py-1.5 pe-2 ps-1.5"
-                  hitSlop={2}
+            {displayChips.map((chip) => {
+              // 버스 칩은 selectedSheetMode로, 나머지 칩은 selectedCategoryCode로 활성 여부 판단
+              const isActive =
+                chip.id === 'bus' ? selectedSheetMode === 'bus' : selectedCategoryCode === chip.id;
+
+              return (
+                <View
+                  key={chip.id}
+                  className={cn(
+                    'rounded-full border',
+                    isActive ? 'border-blue-10 bg-blue-02' : 'border-white bg-white'
+                  )}
+                  style={{
+                    shadowColor: '#17171B',
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 4,
+                    elevation: 2,
+                  }}
                 >
-                  <chip.Icon size={20} className={chip.iconClassName} />
-                  <Text className="text-black text-caption02">{chip.label}</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
+                  <TouchableOpacity
+                    onPress={() => onQuickChipPress(chip.id)}
+                    className="flex-row items-center gap-0.5 py-1.5 pe-2 ps-1.5"
+                    hitSlop={2}
+                  >
+                    <chip.Icon size={20} className={chip.iconClassName} />
+                    <Text className="text-black text-caption02">{chip.label}</Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
           </ScrollView>
 
           {/* 더보기 버튼 */}
@@ -854,6 +904,25 @@ export default function MapsScreen() {
           </SheetStackLayer>
         );
       })}
+
+      {/* 현위치가 캠퍼스 중심에서 CAMPUS_RADIUS_KM를 벗어난 경우 안내 */}
+      <Dialog open={isOutOfCampusRange} onOpenChange={setIsOutOfCampusRange}>
+        <DialogContent showCloseButton={false} className="min-w-80 p-5">
+          <View className="gap-4">
+            <View>
+              <DialogTitle className="text-center leading-normal text-grey-80 text-body04">
+                현위치 이용 안내
+              </DialogTitle>
+              <Text className="text-center text-grey-80 text-caption02">
+                학교 밖이라면 명지도 서비스 이용이 어려울 수 있어요!
+              </Text>
+            </View>
+            <Button className="h-9 py-0" onPress={() => setIsOutOfCampusRange(false)}>
+              <Text>확인</Text>
+            </Button>
+          </View>
+        </DialogContent>
+      </Dialog>
     </View>
   );
 }
