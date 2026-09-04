@@ -1,3 +1,4 @@
+/// <reference types="navermaps" />
 import * as React from 'react';
 import { getAssetByID } from '@react-native/assets-registry/registry';
 import {
@@ -92,6 +93,7 @@ interface Props {
   // assets/map-markers의 CATEGORY_MARKER_IMAGES 조회용 키
   placeMarkerIcon?: string;
   userLocation?: UserLocationData | null;
+  onInteraction?: () => void;
   onBusStopMarkerPress?: (id: string) => void;
   onBuildingMarkerPress?: (id: string) => void;
   onPlaceMarkerPress?: (id: string) => void;
@@ -111,6 +113,7 @@ type MapContentProps = {
   placeMarkers: PlaceMarkerData[];
   placeMarkerIcon?: string;
   userLocation?: UserLocationData | null;
+  onInteraction?: () => void;
   onBusStopMarkerPress: (id: string) => void;
   onBuildingMarkerPress: (id: string) => void;
   onPlaceMarkerPress: (id: string) => void;
@@ -161,6 +164,7 @@ const MapContent = React.forwardRef<NaverMapHandle, MapContentProps>(function Ma
     placeMarkers,
     placeMarkerIcon,
     userLocation,
+    onInteraction,
     onBusStopMarkerPress,
     onBuildingMarkerPress,
     onPlaceMarkerPress,
@@ -294,6 +298,12 @@ const MapContent = React.forwardRef<NaverMapHandle, MapContentProps>(function Ma
       defaultZoom={initialZoom}
       onInit={onInit}
       onIdle={recomputeCaptionVisibility}
+      onMousedown={onInteraction}
+      onTouchstart={onInteraction}
+      onDragstart={onInteraction}
+      onPinchstart={onInteraction}
+      onTap={onInteraction}
+      onZooming={onInteraction}
     >
       {busStopMarkers.map((marker) => (
         <NaverMarker
@@ -384,6 +394,7 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
     placeMarkers = [],
     placeMarkerIcon,
     userLocation,
+    onInteraction,
     onBusStopMarkerPress,
     onBuildingMarkerPress,
     onPlaceMarkerPress,
@@ -392,23 +403,30 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
 ) {
   return (
     <NavermapsProvider ncpKeyId={process.env.EXPO_PUBLIC_NAVER_MAP_CLIENT_ID ?? ''}>
-      <Container style={{ width: '100%', height: '100%' }}>
-        <MapContent
-          ref={ref}
-          initialLatitude={initialLatitude}
-          initialLongitude={initialLongitude}
-          initialZoom={initialZoom}
-          camera={camera}
-          busStopMarkers={busStopMarkers}
-          buildingMarkers={buildingMarkers}
-          placeMarkers={placeMarkers}
-          placeMarkerIcon={placeMarkerIcon}
-          userLocation={userLocation}
-          onBusStopMarkerPress={onBusStopMarkerPress ?? (() => {})}
-          onBuildingMarkerPress={onBuildingMarkerPress ?? (() => {})}
-          onPlaceMarkerPress={onPlaceMarkerPress ?? (() => {})}
-        />
-      </Container>
+      <div
+        style={{ width: '100%', height: '100%' }}
+        onPointerDownCapture={onInteraction}
+        onWheelCapture={onInteraction}
+      >
+        <Container style={{ width: '100%', height: '100%' }}>
+          <MapContent
+            ref={ref}
+            initialLatitude={initialLatitude}
+            initialLongitude={initialLongitude}
+            initialZoom={initialZoom}
+            camera={camera}
+            busStopMarkers={busStopMarkers}
+            buildingMarkers={buildingMarkers}
+            placeMarkers={placeMarkers}
+            placeMarkerIcon={placeMarkerIcon}
+            userLocation={userLocation}
+            onInteraction={onInteraction}
+            onBusStopMarkerPress={onBusStopMarkerPress ?? (() => {})}
+            onBuildingMarkerPress={onBuildingMarkerPress ?? (() => {})}
+            onPlaceMarkerPress={onPlaceMarkerPress ?? (() => {})}
+          />
+        </Container>
+      </div>
     </NavermapsProvider>
   );
 });
