@@ -396,7 +396,7 @@ export default function KeywordAlarmsScreen() {
           <DialogFooter className="h-9 flex-row gap-2">
             <Button
               variant="outline"
-              className="h-9 flex-1"
+              className="h-9 flex-1 py-0"
               onPress={() => {
                 if (!confirmKeyword) return;
                 createAlarm(confirmKeyword.keyword, confirmKeyword.categories, true);
@@ -406,7 +406,7 @@ export default function KeywordAlarmsScreen() {
               <Text>등록</Text>
             </Button>
             <Button
-              className="h-9 flex-1"
+              className="h-9 flex-1 py-0"
               onPress={() => setConfirmKeyword(null)}
               disabled={createMutation.isPending}
             >
