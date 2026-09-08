@@ -3,6 +3,7 @@ import { getMemberInfo, type MemberInfo } from '@/api/members';
 import { clearTokens, hasSessionFlag } from '@/api/token';
 import {
   registerCurrentDeviceForPush,
+  subscribeToPushTokenRefresh,
   unregisterCurrentDeviceForPush,
 } from '@/lib/push-notifications';
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
@@ -39,6 +40,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user) return;
 
     void registerCurrentDeviceForPush().catch(() => {});
+
+    return subscribeToPushTokenRefresh();
   }, [user]);
 
   const logout = useCallback(async () => {
