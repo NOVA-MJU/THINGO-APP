@@ -2,6 +2,7 @@ import '@/global.css';
 
 import { AuthProvider } from '@/context/auth-context';
 import { LoginRequiredModalProvider } from '@/context/login-required-modal-context';
+import { subscribeToNotificationTaps } from '@/lib/push-notifications';
 import { NAV_THEME } from '@/lib/theme';
 import { ThemeProvider } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -52,6 +53,12 @@ export default function RootLayout() {
     if (Platform.OS !== 'web' && isReady) {
       void SplashScreen.hideAsync();
     }
+  }, [isReady]);
+
+  React.useEffect(() => {
+    // 라우터가 마운트된 뒤에 등록해야 콜드 스타트 때 알림 탭으로 인한 이동이 씹히지 않음
+    if (!isReady) return;
+    return subscribeToNotificationTaps();
   }, [isReady]);
 
   if (!isReady) return null;

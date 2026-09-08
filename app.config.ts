@@ -3,7 +3,7 @@ import { ExpoConfig } from 'expo/config';
 const config: ExpoConfig = {
   name: 'Thingo',
   slug: 'thingo-app',
-  version: '1.0.0',
+  version: '1.0.1',
   locales: { ko: './locales/ko.json' },
   orientation: 'portrait',
   icon: './assets/images/icon.png',
@@ -18,6 +18,7 @@ const config: ExpoConfig = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'com.mju.thingo',
+    googleServicesFile: './GoogleService-Info.plist',
     infoPlist: {
       CFBundleDevelopmentRegion: 'ko',
       CFBundleLocalizations: ['ko'],
@@ -47,6 +48,15 @@ const config: ExpoConfig = {
   plugins: [
     'expo-router',
     'expo-notifications',
+    [
+      '@react-native-firebase/app',
+      {
+        // SPM(dynamic 링크 강제)을 켜면 네이버 지도 SDK(static XCFramework)가 링크 안 됨.
+        // CocoaPods 경로로 받아서 기존 static 링크 방식을 그대로 유지
+        ios: { disableSPM: true },
+      },
+    ],
+    '@react-native-firebase/messaging',
     'expo-font',
     'expo-secure-store',
     'expo-video',
@@ -71,6 +81,10 @@ const config: ExpoConfig = {
         android: {
           // 네이버 지도 SDK Maven 저장소
           extraMavenRepos: ['https://repository.map.naver.com/archive/maven'],
+        },
+        ios: {
+          // Firebase(Swift pod)는 static framework 형태로만 static 링크 가능 (SPM은 위에서 disableSPM으로 끔)
+          useFrameworks: 'static',
         },
       },
     ],
