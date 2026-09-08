@@ -7,7 +7,10 @@ import {
   type MapCategoryPin,
 } from '@/api/maps';
 import { SearchIcon, ThingoLogoSmall } from '@/components/icons';
+import MapQuickTooltipArrow from '@/assets/images/map-quick-tooltip-arrow.svg';
 import { NaverMap, NaverMapHandle, UserLocationData } from '@/components/naver-map';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Text } from '@/components/ui/text';
 import { BUS_STOPS, type BusStopStation } from '@/lib/maps/bus-stops';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
@@ -18,6 +21,7 @@ import Head from 'expo-router/head';
 import * as React from 'react';
 import {
   ActivityIndicator,
+  Animated,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
@@ -32,7 +36,6 @@ import BusInfoSheet from './_components/sheets/bus-info';
 import CategoryList from './_components/sheets/sheet-category';
 import DaedongPlaceListSheet from './_components/sheets/sheet-daedong-place-list';
 import PlaceDetailSheet from './_components/sheets/sheet-place-detail';
-import MapSearchSummary from './_components/sheets/map-search-summary';
 import PlaceListSheet from './_components/sheets/sheet-place-list';
 import SheetHandle from './_components/sheets/sheet-handle';
 import SheetStackLayer from './_components/sheet-stack-layer';
@@ -40,16 +43,28 @@ import CATEGORIES from './_constants/category-data';
 import { CurrentLocationIcon, MoreIcon, StarIcon } from '@/components/icons/map';
 import { useMapSearchSelection } from '@/context/map-search-selection';
 import { showAlert } from '@/lib/alert';
-import { CAMPUS_LATITUDE, CAMPUS_LONGITUDE } from '@/lib/maps/campus';
+import {
+  CAMPUS_LATITUDE,
+  CAMPUS_LONGITUDE,
+  CAMPUS_RADIUS_KM,
+  getDistanceFromCampusKm,
+} from '@/lib/maps/campus';
 import { getMapIconKey } from '@/lib/maps/icons';
+import { cn } from '@/lib/utils';
 
 const QUICK_CHIP_IDS = ['bus', 'daedong', 'printer', 'lounge', 'bank'];
+const QUICK_TOOLTIP_VISIBLE_MS = 4000;
+const QUICK_TOOLTIP_FADE_MS = 400;
+const QUICK_TOOLTIP_BACKGROUND = '#8BC7FF';
 
-const QUICK_CHIPS = CATEGORIES.flatMap((c) =>
+// 헤더 고정 칩(QUICK_CHIPS) 계산과, category 시트에서 고른 임시 칩 조회에 공용으로 쓰는 전체 칩 목록
+const ALL_CHIPS = CATEGORIES.flatMap((c) =>
   c.chips.map((chip) => ({ ...chip, iconClassName: c.iconClassName }))
-)
-  .filter((chip) => QUICK_CHIP_IDS.includes(chip.id))
-  .sort((a, b) => QUICK_CHIP_IDS.indexOf(a.id) - QUICK_CHIP_IDS.indexOf(b.id));
+);
+
+const QUICK_CHIPS = ALL_CHIPS.filter((chip) => QUICK_CHIP_IDS.includes(chip.id)).sort(
+  (a, b) => QUICK_CHIP_IDS.indexOf(a.id) - QUICK_CHIP_IDS.indexOf(b.id)
+);
 
 const SNAP_POINTS = ['10%', '50%', '100%'];
 const MAP_CONTROL_SHADOW = {
@@ -73,8 +88,74 @@ const PAGE_DESCRIPTION =
 type SheetScreenInit =
   | { kind: 'places'; categoryCode: string }
   | { kind: 'building'; buildingId: number }
-  | { kind: 'place'; placeId: number };
+  | { kind: 'place'; placeId: number }
+  | { kind: 'bus'; station: BusStopStation };
 type SheetScreen = SheetScreenInit & { key: string; initialIndex: number };
+
+function MapQuickTooltip({
+  children,
+  left,
+  width,
+  arrowLeft,
+}: {
+  children: React.ReactNode;
+  left: number;
+  width: number;
+  arrowLeft: number;
+}) {
+  return (
+    <View style={{ position: 'absolute', left, top: 0, width }}>
+      <MapQuickTooltipArrow
+        width={9.17361}
+        height={9.24537}
+        style={{ marginLeft: arrowLeft, transform: [{ rotate: '180deg' }] }}
+      />
+      <View
+        className="rounded px-2.5 py-1"
+        style={{
+          width,
+          minHeight: 38,
+          marginTop: -1,
+          backgroundColor: QUICK_TOOLTIP_BACKGROUND,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.12,
+          shadowRadius: 4,
+          elevation: 3,
+        }}
+      >
+        <Text
+          className="font-semibold text-blue-02"
+          numberOfLines={2}
+          style={{ fontSize: 10, lineHeight: 15 }}
+        >
+          {children}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function MapQuickTooltips({ opacity }: { opacity: Animated.Value }) {
+  return (
+    <Animated.View
+      needsOffscreenAlphaCompositing
+      pointerEvents="none"
+      renderToHardwareTextureAndroid
+      shouldRasterizeIOS
+      style={{ opacity, position: 'relative', height: 45, width: '100%' }}
+    >
+      <View style={{ position: 'relative', height: 45 }}>
+        <MapQuickTooltip left={20} width={146} arrowLeft={125}>
+          뭐 먹을지 고민이라면?{'\n'}명월 Pick 맛집을 확인해보세요!
+        </MapQuickTooltip>
+        <MapQuickTooltip left={185} width={134} arrowLeft={115}>
+          공강 때 도서관 말고{'\n'}편하게 쉴 곳을 찾으시나요?
+        </MapQuickTooltip>
+      </View>
+    </Animated.View>
+  );
+}
 
 export default function MapsScreen() {
   const router = useRouter();
@@ -93,9 +174,13 @@ export default function MapsScreen() {
   const { selectedSearchResult, clearSearchResult } = useMapSearchSelection();
   const insets = useSafeAreaInsets();
   const [sheetStack, setSheetStack] = React.useState<SheetScreen[]>([]);
-  const [selectedSheetMode, setSelectedSheetMode] = React.useState<'category' | 'bus'>('category');
-  const [selectedStation, setSelectedStation] = React.useState<BusStopStation | null>(null);
   const [userLocation, setUserLocation] = React.useState<UserLocationData | null>(null);
+  // 현위치가 캠퍼스 중심에서 CAMPUS_RADIUS_KM를 벗어난 경우 안내 다이얼로그 표시 여부
+  const [isOutOfCampusRange, setIsOutOfCampusRange] = React.useState(false);
+  const [showQuickTooltips, setShowQuickTooltips] = React.useState(true);
+  const quickTooltipOpacity = React.useRef(new Animated.Value(1)).current;
+  const quickTooltipDismissedRef = React.useRef(false);
+  const quickTooltipTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const mapRef = React.useRef<NaverMapHandle>(null);
   const bottomSheetRef = React.useRef<BottomSheet>(null);
   const locationSubscriptionRef = React.useRef<Location.LocationSubscription | null>(null);
@@ -123,6 +208,50 @@ export default function MapsScreen() {
   function updateLayerIndex(key: string, index: number) {
     layerIndexRef.current.set(key, index);
   }
+
+  const hideQuickTooltips = React.useCallback(
+    (animated = false) => {
+      if (quickTooltipDismissedRef.current) return;
+
+      quickTooltipDismissedRef.current = true;
+      if (quickTooltipTimerRef.current) {
+        clearTimeout(quickTooltipTimerRef.current);
+        quickTooltipTimerRef.current = null;
+      }
+      quickTooltipOpacity.stopAnimation();
+
+      if (!animated) {
+        quickTooltipOpacity.setValue(0);
+        setShowQuickTooltips(false);
+        return;
+      }
+
+      Animated.timing(quickTooltipOpacity, {
+        toValue: 0,
+        duration: QUICK_TOOLTIP_FADE_MS,
+        useNativeDriver: true,
+      }).start(() => {
+        setShowQuickTooltips(false);
+      });
+    },
+    [quickTooltipOpacity]
+  );
+
+  React.useEffect(() => {
+    if (!showQuickTooltips) return;
+
+    quickTooltipOpacity.setValue(1);
+    quickTooltipTimerRef.current = setTimeout(() => {
+      hideQuickTooltips(true);
+    }, QUICK_TOOLTIP_VISIBLE_MS);
+
+    return () => {
+      if (quickTooltipTimerRef.current) {
+        clearTimeout(quickTooltipTimerRef.current);
+        quickTooltipTimerRef.current = null;
+      }
+    };
+  }, [hideQuickTooltips, quickTooltipOpacity, showQuickTooltips]);
 
   // 새 레이어를 스택 맨 위에 push. 지금 맨 위에 있던 레이어(또는 base)는 애니메이션 없이 즉시 완전히 숨긴다(close)
   function pushSheet(screen: SheetScreenInit, initialIndex = 1) {
@@ -188,6 +317,24 @@ export default function MapsScreen() {
         ?.placeId ?? null,
     [sheetStack]
   );
+  const selectedBusStation = React.useMemo(
+    () =>
+      sheetStack.find((s): s is Extract<SheetScreen, { kind: 'bus' }> => s.kind === 'bus')
+        ?.station ?? null,
+    [sheetStack]
+  );
+
+  // category 시트에서 고른 칩이 헤더 고정 목록(QUICK_CHIPS)에 없으면, 그 칩을 헤더 맨 앞(bus보다도 앞)에
+  // 임시로 끼워 넣어 보여준다. 별도 state 없이 selectedCategoryCode에서 파생시키므로, 다른 칩을 선택해
+  // selectedCategoryCode가 바뀌는 순간 자동으로 사라진다(누적되지 않음).
+  const displayChips = React.useMemo(() => {
+    if (!selectedCategoryCode || QUICK_CHIP_IDS.includes(selectedCategoryCode)) return QUICK_CHIPS;
+
+    const extraChip = ALL_CHIPS.find((c) => c.id === selectedCategoryCode);
+    if (!extraChip) return QUICK_CHIPS;
+
+    return [extraChip, ...QUICK_CHIPS];
+  }, [selectedCategoryCode]);
 
   const selectedCamera = React.useMemo(
     () =>
@@ -371,7 +518,6 @@ export default function MapsScreen() {
     if (!Number.isNaN(numericPlaceId)) {
       clearSearchResult();
       resetStack();
-      setSelectedSheetMode('category');
       pushSheet({ kind: 'place', placeId: numericPlaceId }, expanded === 'true' ? 2 : 1);
       return;
     }
@@ -379,7 +525,6 @@ export default function MapsScreen() {
     if (!Number.isNaN(numericBuildingId)) {
       clearSearchResult();
       resetStack();
-      setSelectedSheetMode('category');
       pushSheet({ kind: 'building', buildingId: numericBuildingId });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -390,7 +535,6 @@ export default function MapsScreen() {
 
     const searchResult = selectedSearchResult;
     resetStack();
-    setSelectedSheetMode('category');
     mapRef.current?.animateCameraTo(searchResult.latitude, searchResult.longitude, 17);
 
     if (searchResult.type === 'BUILDING') {
@@ -404,6 +548,8 @@ export default function MapsScreen() {
 
   // 캠퍼스 건물 마커 클릭 → building 레이어를 base 위에 바로 push
   function onBuildingMarkerPress(id: string) {
+    hideQuickTooltips();
+
     const building = buildings.find((b) => String(b.id) === id);
     if (!building) return;
 
@@ -416,6 +562,8 @@ export default function MapsScreen() {
   // 칩 조회 결과 핀 선택 (건물 핀이면 건물 상세, 그 외는 장소 상세로 조회) - places 목록 위에 push
   // 마커 클릭과 리스트 항목 클릭에서 공통으로 사용
   function selectCategoryPin(pin: MapCategoryPin) {
+    hideQuickTooltips();
+
     clearSearchResult();
     mapRef.current?.animateCameraTo(pin.latitude, pin.longitude);
 
@@ -428,6 +576,8 @@ export default function MapsScreen() {
 
   // 검색 결과 및 칩 조회 결과 마커 클릭
   function onPlaceMarkerPress(id: string) {
+    hideQuickTooltips();
+
     if (
       selectedSearchResult &&
       id === `search:${selectedSearchResult.type}:${selectedSearchResult.id}`
@@ -447,47 +597,50 @@ export default function MapsScreen() {
     selectCategoryPin(pin);
   }
 
-  // 버스 정류장 마커 클릭
+  // 버스 정류장 마커 클릭 → bus 레이어를 base 위에 바로 push
   function onBusStopMarkerPress(id: string) {
+    hideQuickTooltips();
+
     const busStop = BUS_STOPS.find((s) => s.id === id);
     if (!busStop) return;
 
     clearSearchResult();
     resetStack();
-    setSelectedSheetMode('bus');
-    setSelectedStation(busStop.station);
     mapRef.current?.animateCameraTo(busStop.latitude, busStop.longitude);
-    bottomSheetRef.current?.snapToIndex(1);
+    pushSheet({ kind: 'bus', station: busStop.station });
   }
 
   // 검색 버튼 클릭
   function onSearchButtonPress() {
+    hideQuickTooltips();
+
     router.push('/maps/search');
   }
 
   // 즐겨찾기 버튼 클릭
   function onFavoritesButtonPress() {
+    hideQuickTooltips();
+
     router.push('/maps/favorites');
   }
 
   // 칩 클릭 동작 정의
   function onQuickChipPress(chipId: string) {
-    // 버스 정류장 칩 클릭
+    hideQuickTooltips();
+
+    // 버스 정류장 칩 클릭 → bus 레이어를 base 위에 바로 push
     if (chipId === 'bus') {
       clearSearchResult();
       resetStack();
-      setSelectedSheetMode('bus');
-      setSelectedStation('A');
       const stationA = BUS_STOPS.find((s) => s.station === 'A');
       if (stationA) mapRef.current?.animateCameraTo(stationA.latitude, stationA.longitude);
-      bottomSheetRef.current?.snapToIndex(1);
+      pushSheet({ kind: 'bus', station: 'A' });
       return;
     }
 
     // 그 외 칩 클릭 시 해당 카테고리의 장소/건물 목록 조회
     clearSearchResult();
     resetStack();
-    setSelectedSheetMode('category');
     pushSheet({ kind: 'places', categoryCode: chipId });
   }
 
@@ -545,6 +698,8 @@ export default function MapsScreen() {
 
   // 현위치 찾기 버튼 클릭
   async function onCurrentLocationPress() {
+    hideQuickTooltips();
+
     if (Platform.OS === 'web') {
       const geolocation = globalThis.navigator?.geolocation;
 
@@ -561,6 +716,14 @@ export default function MapsScreen() {
             maximumAge: 30000,
           });
         });
+
+        if (
+          getDistanceFromCampusKm(position.coords.latitude, position.coords.longitude) >
+          CAMPUS_RADIUS_KM
+        ) {
+          setIsOutOfCampusRange(true);
+          return;
+        }
 
         setUserLocation({
           latitude: position.coords.latitude,
@@ -584,13 +747,21 @@ export default function MapsScreen() {
       return;
     }
 
-    startWatchingUserLocation();
-    startWatchingUserHeading();
-
     try {
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
       });
+
+      if (
+        getDistanceFromCampusKm(location.coords.latitude, location.coords.longitude) >
+        CAMPUS_RADIUS_KM
+      ) {
+        setIsOutOfCampusRange(true);
+        return;
+      }
+
+      startWatchingUserLocation();
+      startWatchingUserHeading();
       mapRef.current?.animateCameraTo(location.coords.latitude, location.coords.longitude, 16);
     } catch {
       showAlert('위치 오류', '현재 위치를 가져올 수 없습니다.');
@@ -599,32 +770,11 @@ export default function MapsScreen() {
 
   // 더보기 버튼 클릭 (카테고리 시트 표시)
   function handleMoreCategories() {
+    hideQuickTooltips();
+
     clearSearchResult();
     resetStack();
-    setSelectedSheetMode('category');
     bottomSheetRef.current?.snapToIndex(1);
-  }
-
-  // base 시트(카테고리/버스/검색 요약) 우측 상단 닫기 버튼 클릭 → category로 복귀 후 10%로 접음
-  // (places/building/place는 스택 레이어라 각자 popSheet로 처리 — 여기서 다루지 않음)
-  function handleCloseSheet() {
-    clearSearchResult();
-    setSelectedSheetMode('category');
-    setSelectedStation(null);
-    bottomSheetRef.current?.snapToIndex(0);
-  }
-
-  // base 시트 렌더링 (category / bus / 검색 요약만 담당)
-  function renderBaseSheetContent() {
-    if (selectedSearchResult) {
-      return <MapSearchSummary item={selectedSearchResult} onClose={handleCloseSheet} />;
-    }
-
-    if (selectedSheetMode === 'bus' && selectedStation) {
-      return <BusInfoSheet station={selectedStation} onClose={handleCloseSheet} />;
-    }
-
-    return <CategoryList onChipPress={onQuickChipPress} />;
   }
 
   // 스택 레이어 하나의 콘텐츠 렌더링 (상세 데이터 로딩 중에는 스피너 표시)
@@ -661,6 +811,10 @@ export default function MapsScreen() {
       return <BuildingDetailSheet building={selectedBuildingDetail} onClose={popSheet} />;
     }
 
+    if (screen.kind === 'bus') {
+      return <BusInfoSheet station={screen.station} onClose={popSheet} />;
+    }
+
     if (!selectedPlaceDetail) {
       return (
         <View className="items-center py-8">
@@ -672,7 +826,13 @@ export default function MapsScreen() {
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <View
+      style={{ flex: 1 }}
+      onStartShouldSetResponderCapture={() => {
+        hideQuickTooltips();
+        return false;
+      }}
+    >
       {Platform.OS === 'web' && (
         <Head>
           <title>{PAGE_TITLE}</title>
@@ -688,12 +848,10 @@ export default function MapsScreen() {
         initialLongitude={CAMPUS_LONGITUDE}
         initialZoom={16}
         camera={selectedCamera}
-        // 버스 정류장 마커는 base 시트가 bus 모드일 때만 노출 (카테고리/검색 화면에서는 지도가 혼잡해지는 것을 방지)
-        busStopMarkers={selectedSheetMode === 'bus' ? BUS_STOPS : []}
+        // 버스 정류장 마커는 bus 레이어가 떠 있을 때만 노출 (카테고리/검색 화면에서는 지도가 혼잡해지는 것을 방지)
+        busStopMarkers={selectedBusStation ? BUS_STOPS : []}
         buildingMarkers={
-          selectedSearchResult || selectedCategoryCode || selectedSheetMode === 'bus'
-            ? []
-            : buildingMarkers
+          selectedSearchResult || selectedCategoryCode || selectedBusStation ? [] : buildingMarkers
         }
         placeMarkers={
           selectedSearchResult
@@ -710,6 +868,7 @@ export default function MapsScreen() {
               : focusedPlaceMarkerIcon
         }
         userLocation={userLocation}
+        onInteraction={hideQuickTooltips}
         onBusStopMarkerPress={onBusStopMarkerPress}
         onBuildingMarkerPress={onBuildingMarkerPress}
         onPlaceMarkerPress={onPlaceMarkerPress}
@@ -768,28 +927,37 @@ export default function MapsScreen() {
             contentContainerClassName="flex-row gap-1 py-2 px-4"
             className="flex-1"
           >
-            {QUICK_CHIPS.map((chip) => (
-              <View
-                key={chip.id}
-                className="rounded-full border border-white bg-white"
-                style={{
-                  shadowColor: '#17171B',
-                  shadowOffset: { width: 0, height: 1 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 4,
-                  elevation: 2,
-                }}
-              >
-                <TouchableOpacity
-                  onPress={() => onQuickChipPress(chip.id)}
-                  className="flex-row items-center gap-0.5 py-1.5 pe-2 ps-1.5"
-                  hitSlop={2}
+            {displayChips.map((chip) => {
+              // 버스 칩은 selectedBusStation으로, 나머지 칩은 selectedCategoryCode로 활성 여부 판단
+              const isActive =
+                chip.id === 'bus' ? selectedBusStation !== null : selectedCategoryCode === chip.id;
+
+              return (
+                <View
+                  key={chip.id}
+                  className={cn(
+                    'rounded-full border',
+                    isActive ? 'border-blue-10 bg-blue-02' : 'border-white bg-white'
+                  )}
+                  style={{
+                    shadowColor: '#17171B',
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 4,
+                    elevation: 2,
+                  }}
                 >
-                  <chip.Icon size={20} className={chip.iconClassName} />
-                  <Text className="text-black text-caption02">{chip.label}</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
+                  <TouchableOpacity
+                    onPress={() => onQuickChipPress(chip.id)}
+                    className="flex-row items-center gap-0.5 py-1.5 pe-2 ps-1.5"
+                    hitSlop={2}
+                  >
+                    <chip.Icon size={20} className={chip.iconClassName} />
+                    <Text className="text-black text-caption02">{chip.label}</Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
           </ScrollView>
 
           {/* 더보기 버튼 */}
@@ -809,6 +977,24 @@ export default function MapsScreen() {
       </View>
 
       {/* 지도 컨트롤 버튼 */}
+      {showQuickTooltips &&
+        sheetStack.length === 0 &&
+        !selectedSearchResult &&
+        Number.isNaN(numericPlaceId) &&
+        Number.isNaN(numericBuildingId) && (
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              top: insets.top + 125,
+              left: 0,
+              right: 0,
+            }}
+          >
+            <MapQuickTooltips opacity={quickTooltipOpacity} />
+          </View>
+        )}
+
       <View
         className="absolute right-4 flex-row items-center gap-2"
         style={{ bottom: insets.bottom + 64 }}
@@ -824,7 +1010,7 @@ export default function MapsScreen() {
         </Pressable>
       </View>
 
-      {/* 바텀시트 (base: category/bus/검색 요약) */}
+      {/* 바텀시트 (base: category만 담당) */}
       <BottomSheet
         ref={bottomSheetRef}
         index={0}
@@ -833,10 +1019,12 @@ export default function MapsScreen() {
         topInset={insets.top}
         onChange={(index) => updateLayerIndex(BASE_LAYER_KEY, index)}
       >
-        <BottomSheetScrollView>{renderBaseSheetContent()}</BottomSheetScrollView>
+        <BottomSheetScrollView>
+          <CategoryList onChipPress={onQuickChipPress} />
+        </BottomSheetScrollView>
       </BottomSheet>
 
-      {/* base 위에 쌓이는 스택 레이어 (places → building/place 드릴다운) */}
+      {/* base 위에 쌓이는 스택 레이어 (bus, places → building/place 드릴다운) */}
       {sheetStack.map((screen, i) => {
         const belowKey = i === 0 ? BASE_LAYER_KEY : sheetStack[i - 1].key;
         return (
@@ -854,6 +1042,25 @@ export default function MapsScreen() {
           </SheetStackLayer>
         );
       })}
+
+      {/* 현위치가 캠퍼스 중심에서 CAMPUS_RADIUS_KM를 벗어난 경우 안내 */}
+      <Dialog open={isOutOfCampusRange} onOpenChange={setIsOutOfCampusRange}>
+        <DialogContent showCloseButton={false} className="min-w-80 p-5">
+          <View className="gap-4">
+            <View>
+              <DialogTitle className="text-center leading-normal text-grey-80 text-body04">
+                현위치 이용 안내
+              </DialogTitle>
+              <Text className="text-center text-grey-80 text-caption02">
+                학교 밖이라면 명지도 서비스 이용이 어려울 수 있어요!
+              </Text>
+            </View>
+            <Button className="h-9 py-0" onPress={() => setIsOutOfCampusRange(false)}>
+              <Text>확인</Text>
+            </Button>
+          </View>
+        </DialogContent>
+      </Dialog>
     </View>
   );
 }

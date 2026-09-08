@@ -63,6 +63,7 @@ interface Props {
   // assets/map-markers의 CATEGORY_MARKER_IMAGES 조회용 키
   placeMarkerIcon?: string;
   userLocation?: UserLocationData | null;
+  onInteraction?: () => void;
   onBusStopMarkerPress?: (id: string) => void;
   onBuildingMarkerPress?: (id: string) => void;
   onPlaceMarkerPress?: (id: string) => void;
@@ -89,6 +90,7 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
     placeMarkers = [],
     placeMarkerIcon,
     userLocation,
+    onInteraction,
     onBusStopMarkerPress,
     onBuildingMarkerPress,
     onPlaceMarkerPress,
@@ -148,6 +150,13 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
       }}
       camera={camera}
       animationDuration={500}
+      onTouchStart={onInteraction}
+      onTapMap={onInteraction}
+      onCameraChanged={(params) => {
+        if (params.reason === 'Gesture' || params.reason === 'Control') {
+          onInteraction?.();
+        }
+      }}
       onInitialized={onInitialized}
       locationOverlay={{
         isVisible: !!userLocation,
