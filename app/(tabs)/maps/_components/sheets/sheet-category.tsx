@@ -1,15 +1,26 @@
+import { XIcon } from '@/components/icons';
 import { Text } from '@/components/ui/text';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
 import CATEGORIES from '../../_constants/category-data';
 
 interface CategoryListSheetProps {
   onChipPress?: (chipId: string) => void;
+  onClose?: () => void;
 }
 
-// 카테고리 칩 목록 표시 시트
-export default function CategoryListSheet({ onChipPress }: CategoryListSheetProps) {
+// 카테고리 칩 목록 표시 시트 (base 위에 스택 레이어로 뜨므로 다른 스택 시트들과 동일하게 닫기 버튼을 둔다)
+export default function CategoryListSheet({ onChipPress, onClose }: CategoryListSheetProps) {
   return (
     <ScrollView>
+      <View className="flex-row justify-end px-4">
+        <TouchableOpacity
+          hitSlop={4}
+          onPress={onClose}
+          className="h-7 w-7 items-center justify-center rounded-full bg-grey-02"
+        >
+          <XIcon size={14} className="text-grey-30" />
+        </TouchableOpacity>
+      </View>
       <View className="gap-2">
         {CATEGORIES.map((category) => (
           <View key={category.id} className="px-4 pb-2">

@@ -32,6 +32,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BuildingDetailSheet from './_components/sheets/sheet-building-detail';
+import BuildingListSheet from './_components/sheets/sheet-building-list';
 import BusInfoSheet from './_components/sheets/bus-info';
 import CategoryList from './_components/sheets/sheet-category';
 import DaedongPlaceListSheet from './_components/sheets/sheet-daedong-place-list';
@@ -75,21 +76,23 @@ const MAP_CONTROL_SHADOW = {
   elevation: 5,
 };
 
-// base(카테고리) 시트를 가리키는 키. 스택 레이어들과 동일한 index-복원 로직을 타도록 맞춰둔 값
+// base(학교 건물 목록) 시트를 가리키는 키. 스택 레이어들과 동일한 index-복원 로직을 타도록 맞춰둔 값
 const BASE_LAYER_KEY = '__base__';
 const PAGE_TITLE = '명지대 캠퍼스 명지도 | 띵고 Thingo';
 const PAGE_DESCRIPTION =
   '명지대 캠퍼스를 내 손 안에. 강의실 찾아 헤매는 건 끝, 건물과 층별 안내도를 명지도에서 찾아보세요!';
 
-// 카테고리 시트 위에 쌓이는 스택 레이어. 마운트 상태를 유지한 채 index 0으로 접혔다가 복귀하므로
+// base(건물 목록) 시트 위에 쌓이는 스택 레이어. 마운트 상태를 유지한 채 index 0으로 접혔다가 복귀하므로
 // (places 목록의) 스크롤 위치·페이지네이션이 자동으로 보존된다.
-// 주의: 현재 UI 흐름상 스택에 동시에 존재하는 places/building/place는 각각 최대 1개라 아래 useQuery들도
+// category(칩 전체보기)도 더보기 버튼을 누르면 이 스택에 push되는 레이어 중 하나다.
+// 주의: 현재 UI 흐름상 스택에 동시에 존재하는 places/building/place/category는 각각 최대 1개라 아래 useQuery들도
 // 하나씩만 두면 충분하다 — 나중에 같은 종류를 여러 겹 쌓는 흐름이 생기면 레이어별로 쿼리를 분리해야 한다.
 type SheetScreenInit =
   | { kind: 'places'; categoryCode: string }
   | { kind: 'building'; buildingId: number }
   | { kind: 'place'; placeId: number }
-  | { kind: 'bus'; station: BusStopStation };
+  | { kind: 'bus'; station: BusStopStation }
+  | { kind: 'category' };
 type SheetScreen = SheetScreenInit & { key: string; initialIndex: number };
 
 function MapQuickTooltip({
@@ -373,7 +376,7 @@ export default function MapsScreen() {
   );
 
   // 캠퍼스 건물 목록 조회
-  const { data: buildings = [] } = useQuery({
+  const { data: buildings = [], isPending: isBuildingsPending } = useQuery({
     queryKey: ['map-buildings', CAMPUS_LATITUDE, CAMPUS_LONGITUDE],
     queryFn: () => getBuildings(CAMPUS_LATITUDE, CAMPUS_LONGITUDE),
   });
@@ -768,17 +771,21 @@ export default function MapsScreen() {
     }
   }
 
-  // 더보기 버튼 클릭 (카테고리 시트 표시)
+  // 더보기 버튼 클릭 (카테고리 시트를 base 위에 스택 레이어로 표시)
   function handleMoreCategories() {
     hideQuickTooltips();
 
     clearSearchResult();
     resetStack();
-    bottomSheetRef.current?.snapToIndex(1);
+    pushSheet({ kind: 'category' });
   }
 
   // 스택 레이어 하나의 콘텐츠 렌더링 (상세 데이터 로딩 중에는 스피너 표시)
   function renderStackScreenContent(screen: SheetScreen) {
+    if (screen.kind === 'category') {
+      return <CategoryList onChipPress={onQuickChipPress} onClose={popSheet} />;
+    }
+
     if (screen.kind === 'places') {
       if (screen.categoryCode === 'daedong') {
         return (
@@ -1010,7 +1017,7 @@ export default function MapsScreen() {
         </Pressable>
       </View>
 
-      {/* 바텀시트 (base: category만 담당) */}
+      {/* 바텀시트 (base: 학교 건물 목록 담당. 카테고리 시트는 더보기 버튼으로 스택 레이어에 push됨) */}
       <BottomSheet
         ref={bottomSheetRef}
         index={0}
@@ -1020,7 +1027,11 @@ export default function MapsScreen() {
         onChange={(index) => updateLayerIndex(BASE_LAYER_KEY, index)}
       >
         <BottomSheetScrollView>
-          <CategoryList onChipPress={onQuickChipPress} />
+          <BuildingListSheet
+            buildings={buildings}
+            isLoading={isBuildingsPending}
+            onBuildingPress={(building) => onBuildingMarkerPress(String(building.id))}
+          />
         </BottomSheetScrollView>
       </BottomSheet>
 

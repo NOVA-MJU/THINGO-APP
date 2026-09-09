@@ -126,6 +126,7 @@ const FavoriteSaveSheet = React.forwardRef<FavoriteSaveSheetHandle>(
       onSuccess: (data) => {
         queryClient.setQueryData(['favorite-pin-groups', data.pinId], data);
         // 별 아이콘 상태(favorite)·그룹별 placeCount·그룹 상세 목록에 전부 영향을 주므로 같이 무효화
+        queryClient.invalidateQueries({ queryKey: ['map-buildings'] });
         queryClient.invalidateQueries({ queryKey: ['map-building-detail'] });
         queryClient.invalidateQueries({ queryKey: ['map-place-detail'] });
         queryClient.invalidateQueries({ queryKey: ['map-category-pins'] });

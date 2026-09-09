@@ -3,7 +3,7 @@ import { ExpoConfig } from 'expo/config';
 const config: ExpoConfig = {
   name: 'Thingo',
   slug: 'thingo-app',
-  version: '1.0.1',
+  version: '1.0.2',
   locales: { ko: './locales/ko.json' },
   orientation: 'portrait',
   icon: './assets/images/icon.png',
