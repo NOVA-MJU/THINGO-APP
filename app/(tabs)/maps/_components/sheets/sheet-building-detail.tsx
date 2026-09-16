@@ -2,7 +2,7 @@ import { Text } from '@/components/ui/text';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
 import { Image, Pressable, ScrollView, TouchableOpacity, View } from 'react-native';
-import { ArrowRightIcon, XIcon } from '@/components/icons';
+import { ArrowDownIcon, ArrowRightIcon, XIcon } from '@/components/icons';
 import {
   BankIcon,
   BreakRoomIcon,
@@ -43,6 +43,7 @@ import {
   TruckIcon,
 } from '@/components/icons/map';
 import type { MapBuildingDetail } from '@/api/maps';
+import { getFloorPlan } from '@/assets/map-floors';
 import { formatMapFloorLabel } from '@/lib/maps/format';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
@@ -98,6 +99,14 @@ function resolveMapIcon(iconKey: string | null): MapIconComponent {
   return MapIcon;
 }
 
+// 주차 요금 정보 - 서버가 건물별로 내려주지 않아 모든 건물에 동일하게 하드코딩
+const PARKING_FEE_INFO = [
+  '최초 30분 2,500원',
+  '추가 10분당 700원',
+  '일 최대 72,000원',
+  '학생인증 시 1일 3,000원 (주차 차단기에서 호출)',
+];
+
 // 명지대학교 캠퍼스 건물 전용 상세 보기 시트
 export default function BuildingDetailSheet({
   building,
@@ -110,6 +119,7 @@ export default function BuildingDetailSheet({
   const { user } = useAuth();
   const { showLoginRequiredModal } = useLoginRequiredModal();
   const [selectedCategoryCode, setSelectedCategoryCode] = React.useState<string | null>(null);
+  const [isParkingInfoOpen, setIsParkingInfoOpen] = React.useState(false);
   const favoriteSaveSheetRef = React.useRef<FavoriteSaveSheetHandle>(null);
 
   // 즐겨찾기 버튼 클릭 → 그룹 선택 바텀시트를 연다.
@@ -167,11 +177,24 @@ export default function BuildingDetailSheet({
                 <Text className="text-grey-40 text-body05">{building.infoText}</Text>
               )}
             </View>
-            <Pressable className="flex-row items-center gap-1" hitSlop={4}>
+            <Pressable
+              className="flex-row items-center gap-1"
+              hitSlop={4}
+              onPress={() => setIsParkingInfoOpen((prev) => !prev)}
+            >
               <InfoIcon size={16} className="text-grey-20" />
-              <Text className="text-grey-40 text-caption02">주차 정보 없음</Text>
-              {/* <ArrowDownIcon size={16} className="text-grey-20" /> */}
+              <Text className="text-grey-40 text-caption02">주차 요금 안내</Text>
+              <ArrowDownIcon size={16} className="text-grey-20" />
             </Pressable>
+            {isParkingInfoOpen && (
+              <View className="gap-0.5 pl-[22px]">
+                {PARKING_FEE_INFO.map((line) => (
+                  <Text key={line} className="text-grey-40 text-caption02">
+                    {line}
+                  </Text>
+                ))}
+              </View>
+            )}
           </View>
 
           {/* 썸네일 */}
@@ -249,12 +272,17 @@ export default function BuildingDetailSheet({
 
               if (places.length === 0) return null;
 
+              // 도면 에셋이 없는 층(assets/map-floors 참고)은 눌러도 "준비 중" 화면만 나오므로
+              // 버튼 자체를 비활성화하고 이동 가능함을 뜻하는 화살표도 숨긴다
+              const hasFloorPlan = Boolean(getFloorPlan(String(building.id), floor.floorLabel));
+
               return (
                 <TouchableOpacity
                   key={floor.floorId}
                   accessibilityRole="button"
                   accessibilityLabel={`${formatMapFloorLabel(floor.floorLabel)} 층별 안내도 보기`}
                   className="flex-row gap-2 rounded-xl bg-grey-02 px-4 py-5"
+                  disabled={!hasFloorPlan}
                   onPress={() => onFloorPress(floor.floorLabel)}
                 >
                   <Text className="text-blue-35 text-body04">
@@ -263,9 +291,11 @@ export default function BuildingDetailSheet({
                   <Text className="flex-1 text-black text-body05">
                     {places.map((place) => place.name).join(', ')}
                   </Text>
-                  <View className="self-center">
-                    <ArrowRightIcon size={20} className="text-grey-20" />
-                  </View>
+                  {hasFloorPlan && (
+                    <View className="self-center">
+                      <ArrowRightIcon size={20} className="text-grey-20" />
+                    </View>
+                  )}
                 </TouchableOpacity>
               );
             })}
