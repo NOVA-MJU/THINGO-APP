@@ -327,6 +327,12 @@ export default function MapsScreen() {
     [sheetStack]
   );
 
+  // 정류장(station A/B)과 버스 마커 id는 1:1 대응이라(BUS_STOPS), station에서 마커 id를 그대로 도출한다.
+  const selectedBusStopId = React.useMemo(
+    () => BUS_STOPS.find((s) => s.station === selectedBusStation)?.id,
+    [selectedBusStation]
+  );
+
   // category 시트에서 고른 칩이 헤더 고정 목록(QUICK_CHIPS)에 없으면, 그 칩을 헤더 맨 앞(bus보다도 앞)에
   // 임시로 끼워 넣어 보여준다. 별도 state 없이 selectedCategoryCode에서 파생시키므로, 다른 칩을 선택해
   // selectedCategoryCode가 바뀌는 순간 자동으로 사라진다(누적되지 않음).
@@ -454,6 +460,7 @@ export default function MapsScreen() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
+    isPending: isCategoryPinsLoading,
   } = useInfiniteQuery({
     queryKey: ['map-category-pins', selectedCategoryCode, CAMPUS_LATITUDE, CAMPUS_LONGITUDE],
     queryFn: ({ pageParam }) =>
@@ -551,30 +558,64 @@ export default function MapsScreen() {
 
   // 캠퍼스 건물 마커 클릭 → building 레이어를 base 위에 바로 push
   function onBuildingMarkerPress(id: string) {
-    hideQuickTooltips();
-
     const building = buildings.find((b) => String(b.id) === id);
     if (!building) return;
+    // 이미 선택돼있는 건물 핀을 또 클릭한 경우 - 아무 동작도 하지 않는다
+    if (selectedBuildingId === building.id) return;
 
+    hideQuickTooltips();
     clearSearchResult();
-    resetStack();
     mapRef.current?.animateCameraTo(building.latitude, building.longitude);
+
+    // 건물 상세가 이미 맨 위에 떠 있는 상태에서 다른 건물 핀을 클릭한 경우
+    // resetStack()으로 스택을 지우면 base가 close()된 상태 그대로 복귀 index 정보(restoreIndexRef)가
+    // 유실돼 나중에 스택을 닫을 때 base가 엉뚱한 위치로 스냅되는 버그가 있었다.
+    // selectCategoryPin과 동일하게 top을 새 내용으로 교체만 해서 base를 건드리지 않는다.
+    const top = sheetStack[sheetStack.length - 1] as SheetScreen | undefined;
+    if (top && top.kind === 'building') {
+      setSheetStack((prev) => [
+        ...prev.slice(0, -1),
+        { kind: 'building', buildingId: building.id, key: top.key, initialIndex: top.initialIndex },
+      ]);
+      return;
+    }
+
+    resetStack();
     pushSheet({ kind: 'building', buildingId: building.id });
   }
 
   // 칩 조회 결과 핀 선택 (건물 핀이면 건물 상세, 그 외는 장소 상세로 조회) - places 목록 위에 push
   // 마커 클릭과 리스트 항목 클릭에서 공통으로 사용
   function selectCategoryPin(pin: MapCategoryPin) {
-    hideQuickTooltips();
+    const nextScreen: SheetScreenInit =
+      pin.type === 'BUILDING'
+        ? { kind: 'building', buildingId: pin.id }
+        : { kind: 'place', placeId: pin.id };
 
+    const top = sheetStack[sheetStack.length - 1] as SheetScreen | undefined;
+    const isSameAsTop =
+      (top?.kind === 'building' &&
+        nextScreen.kind === 'building' &&
+        top.buildingId === nextScreen.buildingId) ||
+      (top?.kind === 'place' && nextScreen.kind === 'place' && top.placeId === nextScreen.placeId);
+    // 이미 선택돼있는 핀을 또 클릭한 경우 - 아무 동작도 하지 않는다
+    if (isSameAsTop) return;
+
+    hideQuickTooltips();
     clearSearchResult();
     mapRef.current?.animateCameraTo(pin.latitude, pin.longitude);
 
-    if (pin.type === 'BUILDING') {
-      pushSheet({ kind: 'building', buildingId: pin.id });
+    // 같은 종류의 상세 레이어가 이미 맨 위에 있으면 그 위에 또 쌓지 않고 내용만 교체한다
+    // (지도 위 다른 핀을 연속으로 클릭할 때 상세 시트가 계속 쌓이는 것을 방지)
+    if (top && top.kind === nextScreen.kind) {
+      setSheetStack((prev) => [
+        ...prev.slice(0, -1),
+        { ...nextScreen, key: top.key, initialIndex: top.initialIndex },
+      ]);
       return;
     }
-    pushSheet({ kind: 'place', placeId: pin.id });
+
+    pushSheet(nextScreen);
   }
 
   // 검색 결과 및 칩 조회 결과 마커 클릭
@@ -602,11 +643,12 @@ export default function MapsScreen() {
 
   // 버스 정류장 마커 클릭 → bus 레이어를 base 위에 바로 push
   function onBusStopMarkerPress(id: string) {
-    hideQuickTooltips();
-
     const busStop = BUS_STOPS.find((s) => s.id === id);
     if (!busStop) return;
+    // 이미 선택돼있는 정류장 핀을 또 클릭한 경우 - 아무 동작도 하지 않는다
+    if (selectedBusStopId === id) return;
 
+    hideQuickTooltips();
     clearSearchResult();
     resetStack();
     mapRef.current?.animateCameraTo(busStop.latitude, busStop.longitude);
@@ -793,6 +835,7 @@ export default function MapsScreen() {
             places={categoryPins}
             onPlacePress={selectCategoryPin}
             isFetchingNextPage={isFetchingNextPage}
+            isLoading={isCategoryPinsLoading}
             onClose={popSheet}
           />
         );
@@ -802,6 +845,7 @@ export default function MapsScreen() {
           places={categoryPins}
           onPlacePress={selectCategoryPin}
           isFetchingNextPage={isFetchingNextPage}
+          isLoading={isCategoryPinsLoading}
           onClose={popSheet}
         />
       );
@@ -875,6 +919,9 @@ export default function MapsScreen() {
               : focusedPlaceMarkerIcon
         }
         userLocation={userLocation}
+        selectedBusStopId={selectedBusStopId}
+        selectedBuildingId={selectedBuildingId !== null ? String(selectedBuildingId) : undefined}
+        selectedPlaceId={selectedPlaceId !== null ? String(selectedPlaceId) : undefined}
         onInteraction={hideQuickTooltips}
         onBusStopMarkerPress={onBusStopMarkerPress}
         onBuildingMarkerPress={onBuildingMarkerPress}

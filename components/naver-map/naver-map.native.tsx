@@ -4,18 +4,33 @@ import {
   NaverMapViewRef,
 } from '@mj-studio/react-native-naver-map';
 import {
+  BUILDING_MARKER_ACTIVE_IMAGES,
+  BUILDING_MARKER_EMPTY_ACTIVE_IMAGE,
   BUILDING_MARKER_EMPTY_IMAGE,
   BUILDING_MARKER_IMAGES,
+  CATEGORY_MARKER_ACTIVE_IMAGES,
   CATEGORY_MARKER_IMAGES,
 } from '@/assets/map-markers';
 import * as React from 'react';
 import { StyleSheet } from 'react-native';
+
+const MARKER_SIZE = 24;
 
 /**
  * 원형 PNG 마커라 좌표가 원 중앙에 오도록 앵커를 중앙으로 지정 (SDK 기본값 {0.5,1}은 핀 끝이
  * 좌표를 가리키는 방식이라, 그대로 두면 원이 좌표보다 위쪽에 떠 보인다).
  */
 const MARKER_ANCHOR = { x: 0.5, y: 0.5 };
+
+/**
+ * active(선택) 마커는 24x24 원형이 아니라 37x50 비율의 물방울(pin) 모양 PNG라
+ * 앵커/크기를 별도로 둔다. 뾰족한 끝이 이미지 맨 아래 가장자리에 있어 SDK 기본값과
+ * 동일한 하단 중앙(0.5, 1)이 좌표를 정확히 가리킨다.
+ */
+const ACTIVE_MARKER_ANCHOR = { x: 0.5, y: 1 };
+// 37:50 비율 근사치. 비활성 마커와 가로폭(24)을 맞춰 선택 시 폭이 급변하지 않도록 한다.
+const ACTIVE_MARKER_WIDTH = 24;
+const ACTIVE_MARKER_HEIGHT = 32;
 
 /**
  * 바텀시트가 항상 화면 하단을 가리고 있어, 카메라 이동 대상 좌표가 화면 정중앙(0.5) 대신
@@ -63,6 +78,10 @@ interface Props {
   // assets/map-markers의 CATEGORY_MARKER_IMAGES 조회용 키
   placeMarkerIcon?: string;
   userLocation?: UserLocationData | null;
+  // 각 마커 목록에서 활성(선택) 표시할 마커 id. 클릭한 핀만 active 이미지로 전환하는 데 쓴다.
+  selectedBusStopId?: string;
+  selectedBuildingId?: string;
+  selectedPlaceId?: string;
   onInteraction?: () => void;
   onBusStopMarkerPress?: (id: string) => void;
   onBuildingMarkerPress?: (id: string) => void;
@@ -90,6 +109,9 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
     placeMarkers = [],
     placeMarkerIcon,
     userLocation,
+    selectedBusStopId,
+    selectedBuildingId,
+    selectedPlaceId,
     onInteraction,
     onBusStopMarkerPress,
     onBuildingMarkerPress,
@@ -169,49 +191,68 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
         anchor: { x: 0.5, y: 0.493 },
       }}
     >
-      {busStopMarkers.map((marker) => (
-        <NaverMapMarkerOverlay
-          key={marker.id}
-          latitude={marker.latitude}
-          longitude={marker.longitude}
-          width={24}
-          height={24}
-          anchor={MARKER_ANCHOR}
-          image={CATEGORY_MARKER_IMAGES.BusIcon}
-          onTap={() => onBusStopMarkerPress?.(marker.id)}
-        />
-      ))}
-      {buildingMarkers.map((marker) => (
-        <NaverMapMarkerOverlay
-          key={marker.id}
-          latitude={marker.latitude}
-          longitude={marker.longitude}
-          width={24}
-          height={24}
-          anchor={MARKER_ANCHOR}
-          image={BUILDING_MARKER_IMAGES[marker.id] ?? BUILDING_MARKER_EMPTY_IMAGE}
-          onTap={() => onBuildingMarkerPress?.(marker.id)}
-        />
-      ))}
-      {placeMarkerIcon &&
-        placeMarkers.map((marker) => (
+      {busStopMarkers.map((marker) => {
+        const isActive = marker.id === selectedBusStopId;
+        return (
           <NaverMapMarkerOverlay
             key={marker.id}
             latitude={marker.latitude}
             longitude={marker.longitude}
-            width={24}
-            height={24}
-            anchor={MARKER_ANCHOR}
-            image={CATEGORY_MARKER_IMAGES[placeMarkerIcon]}
-            onTap={() => onPlaceMarkerPress?.(marker.id)}
-            caption={
-              marker.name
-                ? { text: marker.name, color: '#0B1215', haloColor: '#FFFFFF' }
-                : undefined
+            width={isActive ? ACTIVE_MARKER_WIDTH : MARKER_SIZE}
+            height={isActive ? ACTIVE_MARKER_HEIGHT : MARKER_SIZE}
+            anchor={isActive ? ACTIVE_MARKER_ANCHOR : MARKER_ANCHOR}
+            image={
+              isActive ? CATEGORY_MARKER_ACTIVE_IMAGES.BusIcon : CATEGORY_MARKER_IMAGES.BusIcon
             }
-            isHideCollidedCaptions
+            onTap={() => onBusStopMarkerPress?.(marker.id)}
           />
-        ))}
+        );
+      })}
+      {buildingMarkers.map((marker) => {
+        const isActive = marker.id === selectedBuildingId;
+        return (
+          <NaverMapMarkerOverlay
+            key={marker.id}
+            latitude={marker.latitude}
+            longitude={marker.longitude}
+            width={isActive ? ACTIVE_MARKER_WIDTH : MARKER_SIZE}
+            height={isActive ? ACTIVE_MARKER_HEIGHT : MARKER_SIZE}
+            anchor={isActive ? ACTIVE_MARKER_ANCHOR : MARKER_ANCHOR}
+            image={
+              isActive
+                ? (BUILDING_MARKER_ACTIVE_IMAGES[marker.id] ?? BUILDING_MARKER_EMPTY_ACTIVE_IMAGE)
+                : (BUILDING_MARKER_IMAGES[marker.id] ?? BUILDING_MARKER_EMPTY_IMAGE)
+            }
+            onTap={() => onBuildingMarkerPress?.(marker.id)}
+          />
+        );
+      })}
+      {placeMarkerIcon &&
+        placeMarkers.map((marker) => {
+          const isActive = marker.id === selectedPlaceId;
+          return (
+            <NaverMapMarkerOverlay
+              key={marker.id}
+              latitude={marker.latitude}
+              longitude={marker.longitude}
+              width={isActive ? ACTIVE_MARKER_WIDTH : MARKER_SIZE}
+              height={isActive ? ACTIVE_MARKER_HEIGHT : MARKER_SIZE}
+              anchor={isActive ? ACTIVE_MARKER_ANCHOR : MARKER_ANCHOR}
+              image={
+                isActive
+                  ? CATEGORY_MARKER_ACTIVE_IMAGES[placeMarkerIcon]
+                  : CATEGORY_MARKER_IMAGES[placeMarkerIcon]
+              }
+              onTap={() => onPlaceMarkerPress?.(marker.id)}
+              caption={
+                marker.name
+                  ? { text: marker.name, color: '#0B1215', haloColor: '#FFFFFF' }
+                  : undefined
+              }
+              isHideCollidedCaptions
+            />
+          );
+        })}
     </NaverMapView>
   );
 });
