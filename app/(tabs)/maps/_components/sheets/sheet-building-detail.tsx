@@ -112,8 +112,7 @@ export default function BuildingDetailSheet({
   const [selectedCategoryCode, setSelectedCategoryCode] = React.useState<string | null>(null);
   const favoriteSaveSheetRef = React.useRef<FavoriteSaveSheetHandle>(null);
 
-  // 즐겨찾기 버튼 클릭 → 기존 즉시 토글(useToggleMapFavorite) API 연결은 해제하고,
-  // 그룹 선택 바텀시트를 여는 방식으로 교체 (디자인/기능 미확정 — 지금은 뼈대만 연결)
+  // 즐겨찾기 버튼 클릭 → 그룹 선택 바텀시트를 연다.
   // 로그인 안 돼 있으면 시트를 열지 않고 로그인 필요 모달을 표시
   function onFavoritePress() {
     if (!user) {
