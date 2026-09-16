@@ -10,8 +10,11 @@ import {
   useNavermaps,
 } from 'react-naver-maps';
 import {
+  BUILDING_MARKER_ACTIVE_IMAGES,
+  BUILDING_MARKER_EMPTY_ACTIVE_IMAGE,
   BUILDING_MARKER_EMPTY_IMAGE,
   BUILDING_MARKER_IMAGES,
+  CATEGORY_MARKER_ACTIVE_IMAGES,
   CATEGORY_MARKER_IMAGES,
 } from '@/assets/map-markers';
 
@@ -28,6 +31,30 @@ const MARKER_ICON_SIZE = 24;
  * 착각해 72x72 이미지 중 좌상단 24x24만 잘라 쓰는 것처럼 보여서 흐릿/깨진 아이콘으로 나온다.
  */
 const MARKER_ICON_ASSET_SIZE = MARKER_ICON_SIZE * 3;
+
+/**
+ * active(선택) 마커는 24x24 원형이 아니라 37x50 비율의 물방울(pin) 모양 PNG라
+ * 표시/원본 크기를 별도로 둔다. 원본(1x) 픽셀 크기가 24x24와 다르므로 MARKER_ICON_ASSET_SIZE처럼
+ * 표시 크기에 배율만 곱해서 구할 수 없다 - 실제 PNG 픽셀 크기(37x50)에 배율(3)을 곱해야 한다.
+ */
+const ACTIVE_MARKER_ASSET_WIDTH = 37 * 3;
+const ACTIVE_MARKER_ASSET_HEIGHT = 50 * 3;
+// 비활성 마커와 가로폭(24)을 맞춰 선택 시 폭이 급변하지 않도록 한다. 37:50 비율 근사치.
+const ACTIVE_MARKER_ICON_WIDTH = 24;
+const ACTIVE_MARKER_ICON_HEIGHT = 32;
+
+/**
+ * 아이콘이 24px 안팎으로 작아 마우스로는 클릭 판정을 놓치기 쉽다. `shape`로 실제 아이콘보다
+ * 여유 있는 사각 영역을 클릭 가능 영역으로 지정한다 (좌표는 아이콘 좌상단(0,0) 기준 픽셀).
+ */
+const MARKER_HIT_SLOP = 10;
+
+function markerHitShape(width: number, height: number): naver.maps.MarkerShape {
+  return {
+    type: 'rect',
+    coords: [-MARKER_HIT_SLOP, -MARKER_HIT_SLOP, width + MARKER_HIT_SLOP, height + MARKER_HIT_SLOP],
+  };
+}
 
 // 파일 확장자 바로 앞에 @3x를 끼워 넣는다 (bus.png → bus@3x.png).
 function insertScaleSuffix(path: string): string {
@@ -93,6 +120,10 @@ interface Props {
   // assets/map-markers의 CATEGORY_MARKER_IMAGES 조회용 키
   placeMarkerIcon?: string;
   userLocation?: UserLocationData | null;
+  // 각 마커 목록에서 활성(선택) 표시할 마커 id. 클릭한 핀만 active 이미지로 전환하는 데 쓴다.
+  selectedBusStopId?: string;
+  selectedBuildingId?: string;
+  selectedPlaceId?: string;
   onInteraction?: () => void;
   onBusStopMarkerPress?: (id: string) => void;
   onBuildingMarkerPress?: (id: string) => void;
@@ -113,6 +144,9 @@ type MapContentProps = {
   placeMarkers: PlaceMarkerData[];
   placeMarkerIcon?: string;
   userLocation?: UserLocationData | null;
+  selectedBusStopId?: string;
+  selectedBuildingId?: string;
+  selectedPlaceId?: string;
   onInteraction?: () => void;
   onBusStopMarkerPress: (id: string) => void;
   onBuildingMarkerPress: (id: string) => void;
@@ -164,6 +198,9 @@ const MapContent = React.forwardRef<NaverMapHandle, MapContentProps>(function Ma
     placeMarkers,
     placeMarkerIcon,
     userLocation,
+    selectedBusStopId,
+    selectedBuildingId,
+    selectedPlaceId,
     onInteraction,
     onBusStopMarkerPress,
     onBuildingMarkerPress,
@@ -305,73 +342,144 @@ const MapContent = React.forwardRef<NaverMapHandle, MapContentProps>(function Ma
       onTap={onInteraction}
       onZooming={onInteraction}
     >
-      {busStopMarkers.map((marker) => (
-        <NaverMarker
-          key={marker.id}
-          position={new navermaps.LatLng(marker.latitude, marker.longitude)}
-          icon={{
-            url: resolveMarkerIconUri(CATEGORY_MARKER_IMAGES.BusIcon),
-            size: new navermaps.Size(MARKER_ICON_ASSET_SIZE, MARKER_ICON_ASSET_SIZE),
-            scaledSize: new navermaps.Size(MARKER_ICON_SIZE, MARKER_ICON_SIZE),
-            anchor: new navermaps.Point(MARKER_ICON_SIZE / 2, MARKER_ICON_SIZE / 2),
-          }}
-          onClick={() => onBusStopMarkerPress(marker.id)}
-        />
-      ))}
-      {buildingMarkers.map((marker) => (
-        <NaverMarker
-          key={marker.id}
-          position={new navermaps.LatLng(marker.latitude, marker.longitude)}
-          icon={{
-            url: resolveMarkerIconUri(
-              BUILDING_MARKER_IMAGES[marker.id] ?? BUILDING_MARKER_EMPTY_IMAGE
-            ),
-            size: new navermaps.Size(MARKER_ICON_ASSET_SIZE, MARKER_ICON_ASSET_SIZE),
-            scaledSize: new navermaps.Size(MARKER_ICON_SIZE, MARKER_ICON_SIZE),
-            anchor: new navermaps.Point(MARKER_ICON_SIZE / 2, MARKER_ICON_SIZE / 2),
-          }}
-          onClick={() => onBuildingMarkerPress(marker.id)}
-        />
-      ))}
-      {placeMarkerIcon &&
-        placeMarkers.map((marker) => (
-          <React.Fragment key={marker.id}>
-            <NaverMarker
-              position={new navermaps.LatLng(marker.latitude, marker.longitude)}
-              icon={{
-                url: resolveMarkerIconUri(CATEGORY_MARKER_IMAGES[placeMarkerIcon]),
-                size: new navermaps.Size(MARKER_ICON_ASSET_SIZE, MARKER_ICON_ASSET_SIZE),
-                scaledSize: new navermaps.Size(MARKER_ICON_SIZE, MARKER_ICON_SIZE),
-                anchor: new navermaps.Point(MARKER_ICON_SIZE / 2, MARKER_ICON_SIZE / 2),
-              }}
-              onClick={() => onPlaceMarkerPress(marker.id)}
-            />
-            {marker.name && visibleCaptionIds.has(marker.id) && (
-              <CustomOverlay
-                position={new navermaps.LatLng(marker.latitude, marker.longitude)}
-                anchor={new navermaps.Point(0, -CAPTION_GAP)}
-              >
-                <span
-                  style={{
-                    display: 'inline-block',
-                    transform: 'translateX(-50%)',
-                    whiteSpace: 'nowrap',
-                    fontSize: CAPTION_FONT_SIZE,
-                    fontWeight: CAPTION_FONT_WEIGHT,
-                    fontFamily: CAPTION_FONT_FAMILY,
-                    color: CAPTION_TEXT_COLOR,
-                    textShadow: [-1, 1]
-                      .flatMap((x) => [-1, 1].map((y) => `${x}px ${y}px 0 ${CAPTION_HALO_COLOR}`))
-                      .join(', '),
-                    pointerEvents: 'none',
-                  }}
-                >
-                  {marker.name}
-                </span>
-              </CustomOverlay>
+      {busStopMarkers.map((marker) => {
+        const isActive = marker.id === selectedBusStopId;
+        return (
+          <NaverMarker
+            key={marker.id}
+            position={new navermaps.LatLng(marker.latitude, marker.longitude)}
+            icon={
+              isActive
+                ? {
+                    url: resolveMarkerIconUri(CATEGORY_MARKER_ACTIVE_IMAGES.BusIcon),
+                    size: new navermaps.Size(ACTIVE_MARKER_ASSET_WIDTH, ACTIVE_MARKER_ASSET_HEIGHT),
+                    scaledSize: new navermaps.Size(
+                      ACTIVE_MARKER_ICON_WIDTH,
+                      ACTIVE_MARKER_ICON_HEIGHT
+                    ),
+                    anchor: new navermaps.Point(
+                      ACTIVE_MARKER_ICON_WIDTH / 2,
+                      ACTIVE_MARKER_ICON_HEIGHT
+                    ),
+                  }
+                : {
+                    url: resolveMarkerIconUri(CATEGORY_MARKER_IMAGES.BusIcon),
+                    size: new navermaps.Size(MARKER_ICON_ASSET_SIZE, MARKER_ICON_ASSET_SIZE),
+                    scaledSize: new navermaps.Size(MARKER_ICON_SIZE, MARKER_ICON_SIZE),
+                    anchor: new navermaps.Point(MARKER_ICON_SIZE / 2, MARKER_ICON_SIZE / 2),
+                  }
+            }
+            shape={markerHitShape(
+              isActive ? ACTIVE_MARKER_ICON_WIDTH : MARKER_ICON_SIZE,
+              isActive ? ACTIVE_MARKER_ICON_HEIGHT : MARKER_ICON_SIZE
             )}
-          </React.Fragment>
-        ))}
+            onClick={() => onBusStopMarkerPress(marker.id)}
+          />
+        );
+      })}
+      {buildingMarkers.map((marker) => {
+        const isActive = marker.id === selectedBuildingId;
+        return (
+          <NaverMarker
+            key={marker.id}
+            position={new navermaps.LatLng(marker.latitude, marker.longitude)}
+            icon={
+              isActive
+                ? {
+                    url: resolveMarkerIconUri(
+                      BUILDING_MARKER_ACTIVE_IMAGES[marker.id] ?? BUILDING_MARKER_EMPTY_ACTIVE_IMAGE
+                    ),
+                    size: new navermaps.Size(ACTIVE_MARKER_ASSET_WIDTH, ACTIVE_MARKER_ASSET_HEIGHT),
+                    scaledSize: new navermaps.Size(
+                      ACTIVE_MARKER_ICON_WIDTH,
+                      ACTIVE_MARKER_ICON_HEIGHT
+                    ),
+                    anchor: new navermaps.Point(
+                      ACTIVE_MARKER_ICON_WIDTH / 2,
+                      ACTIVE_MARKER_ICON_HEIGHT
+                    ),
+                  }
+                : {
+                    url: resolveMarkerIconUri(
+                      BUILDING_MARKER_IMAGES[marker.id] ?? BUILDING_MARKER_EMPTY_IMAGE
+                    ),
+                    size: new navermaps.Size(MARKER_ICON_ASSET_SIZE, MARKER_ICON_ASSET_SIZE),
+                    scaledSize: new navermaps.Size(MARKER_ICON_SIZE, MARKER_ICON_SIZE),
+                    anchor: new navermaps.Point(MARKER_ICON_SIZE / 2, MARKER_ICON_SIZE / 2),
+                  }
+            }
+            shape={markerHitShape(
+              isActive ? ACTIVE_MARKER_ICON_WIDTH : MARKER_ICON_SIZE,
+              isActive ? ACTIVE_MARKER_ICON_HEIGHT : MARKER_ICON_SIZE
+            )}
+            onClick={() => onBuildingMarkerPress(marker.id)}
+          />
+        );
+      })}
+      {placeMarkerIcon &&
+        placeMarkers.map((marker) => {
+          const isActive = marker.id === selectedPlaceId;
+          return (
+            <React.Fragment key={marker.id}>
+              <NaverMarker
+                position={new navermaps.LatLng(marker.latitude, marker.longitude)}
+                icon={
+                  isActive
+                    ? {
+                        url: resolveMarkerIconUri(CATEGORY_MARKER_ACTIVE_IMAGES[placeMarkerIcon]),
+                        size: new navermaps.Size(
+                          ACTIVE_MARKER_ASSET_WIDTH,
+                          ACTIVE_MARKER_ASSET_HEIGHT
+                        ),
+                        scaledSize: new navermaps.Size(
+                          ACTIVE_MARKER_ICON_WIDTH,
+                          ACTIVE_MARKER_ICON_HEIGHT
+                        ),
+                        anchor: new navermaps.Point(
+                          ACTIVE_MARKER_ICON_WIDTH / 2,
+                          ACTIVE_MARKER_ICON_HEIGHT
+                        ),
+                      }
+                    : {
+                        url: resolveMarkerIconUri(CATEGORY_MARKER_IMAGES[placeMarkerIcon]),
+                        size: new navermaps.Size(MARKER_ICON_ASSET_SIZE, MARKER_ICON_ASSET_SIZE),
+                        scaledSize: new navermaps.Size(MARKER_ICON_SIZE, MARKER_ICON_SIZE),
+                        anchor: new navermaps.Point(MARKER_ICON_SIZE / 2, MARKER_ICON_SIZE / 2),
+                      }
+                }
+                shape={markerHitShape(
+                  isActive ? ACTIVE_MARKER_ICON_WIDTH : MARKER_ICON_SIZE,
+                  isActive ? ACTIVE_MARKER_ICON_HEIGHT : MARKER_ICON_SIZE
+                )}
+                onClick={() => onPlaceMarkerPress(marker.id)}
+              />
+              {marker.name && visibleCaptionIds.has(marker.id) && (
+                <CustomOverlay
+                  position={new navermaps.LatLng(marker.latitude, marker.longitude)}
+                  anchor={new navermaps.Point(0, -CAPTION_GAP)}
+                >
+                  <span
+                    style={{
+                      display: 'inline-block',
+                      transform: 'translateX(-50%)',
+                      whiteSpace: 'nowrap',
+                      fontSize: CAPTION_FONT_SIZE,
+                      fontWeight: CAPTION_FONT_WEIGHT,
+                      fontFamily: CAPTION_FONT_FAMILY,
+                      color: CAPTION_TEXT_COLOR,
+                      textShadow: [-1, 1]
+                        .flatMap((x) => [-1, 1].map((y) => `${x}px ${y}px 0 ${CAPTION_HALO_COLOR}`))
+                        .join(', '),
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    {marker.name}
+                  </span>
+                </CustomOverlay>
+              )}
+            </React.Fragment>
+          );
+        })}
       {userLocation && (
         <NaverMarker
           position={new navermaps.LatLng(userLocation.latitude, userLocation.longitude)}
@@ -394,6 +502,9 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
     placeMarkers = [],
     placeMarkerIcon,
     userLocation,
+    selectedBusStopId,
+    selectedBuildingId,
+    selectedPlaceId,
     onInteraction,
     onBusStopMarkerPress,
     onBuildingMarkerPress,
@@ -420,6 +531,9 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
             placeMarkers={placeMarkers}
             placeMarkerIcon={placeMarkerIcon}
             userLocation={userLocation}
+            selectedBusStopId={selectedBusStopId}
+            selectedBuildingId={selectedBuildingId}
+            selectedPlaceId={selectedPlaceId}
             onInteraction={onInteraction}
             onBusStopMarkerPress={onBusStopMarkerPress ?? (() => {})}
             onBuildingMarkerPress={onBuildingMarkerPress ?? (() => {})}

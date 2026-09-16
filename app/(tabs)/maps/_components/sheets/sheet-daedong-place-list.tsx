@@ -1,6 +1,7 @@
 import { MapCategoryPin } from '@/api/maps';
 import { FavoriteIcon, MyeongwolIcon, RestaurantIcon } from '@/components/icons/map';
 import { XIcon } from '@/components/icons';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Text } from '@/components/ui/text';
 import { useAuth } from '@/context/auth-context';
 import { useLoginRequiredModal } from '@/context/login-required-modal-context';
@@ -12,6 +13,7 @@ interface DaedongPlaceListSheetProps {
   places: MapCategoryPin[];
   onPlacePress?: (place: MapCategoryPin) => void;
   isFetchingNextPage?: boolean;
+  isLoading?: boolean;
   onClose?: () => void;
 }
 
@@ -20,6 +22,7 @@ export default function DaedongPlaceListSheet({
   places,
   onPlacePress,
   isFetchingNextPage,
+  isLoading,
   onClose,
 }: DaedongPlaceListSheetProps) {
   const { user } = useAuth();
@@ -54,7 +57,24 @@ export default function DaedongPlaceListSheet({
           <View className="h-1 bg-grey-02" />
         </View>
 
-        {places.length === 0 ? (
+        {isLoading ? (
+          Array.from({ length: 6 }).map((_, index) => (
+            <Fragment key={index}>
+              {index > 0 && <View className="m-4 h-[1.5px] bg-grey-02" />}
+              <View className="px-4">
+                <View className="flex-row items-center gap-3.5">
+                  <Skeleton className="h-11 w-11 rounded" />
+                  <View className="flex-1 gap-1.5">
+                    <Skeleton className="h-4 w-2/5" />
+                    <Skeleton className="h-3.5 w-1/4" />
+                  </View>
+                  <Skeleton className="h-7 w-7 rounded-full" />
+                </View>
+                <Skeleton className="mt-2.5 h-3.5 w-1/3" />
+              </View>
+            </Fragment>
+          ))
+        ) : places.length === 0 ? (
           <View className="items-center px-4 py-10">
             <Text className="text-grey-40 text-body04">표시할 장소가 없습니다.</Text>
           </View>
