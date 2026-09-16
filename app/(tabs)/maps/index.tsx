@@ -32,6 +32,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BuildingDetailSheet from './_components/sheets/sheet-building-detail';
+import BuildingListSheet from './_components/sheets/sheet-building-list';
 import BusInfoSheet from './_components/sheets/bus-info';
 import CategoryList from './_components/sheets/sheet-category';
 import DaedongPlaceListSheet from './_components/sheets/sheet-daedong-place-list';
@@ -75,21 +76,23 @@ const MAP_CONTROL_SHADOW = {
   elevation: 5,
 };
 
-// base(카테고리) 시트를 가리키는 키. 스택 레이어들과 동일한 index-복원 로직을 타도록 맞춰둔 값
+// base(학교 건물 목록) 시트를 가리키는 키. 스택 레이어들과 동일한 index-복원 로직을 타도록 맞춰둔 값
 const BASE_LAYER_KEY = '__base__';
 const PAGE_TITLE = '명지대 캠퍼스 명지도 | 띵고 Thingo';
 const PAGE_DESCRIPTION =
   '명지대 캠퍼스를 내 손 안에. 강의실 찾아 헤매는 건 끝, 건물과 층별 안내도를 명지도에서 찾아보세요!';
 
-// 카테고리 시트 위에 쌓이는 스택 레이어. 마운트 상태를 유지한 채 index 0으로 접혔다가 복귀하므로
+// base(건물 목록) 시트 위에 쌓이는 스택 레이어. 마운트 상태를 유지한 채 index 0으로 접혔다가 복귀하므로
 // (places 목록의) 스크롤 위치·페이지네이션이 자동으로 보존된다.
-// 주의: 현재 UI 흐름상 스택에 동시에 존재하는 places/building/place는 각각 최대 1개라 아래 useQuery들도
+// category(칩 전체보기)도 더보기 버튼을 누르면 이 스택에 push되는 레이어 중 하나다.
+// 주의: 현재 UI 흐름상 스택에 동시에 존재하는 places/building/place/category는 각각 최대 1개라 아래 useQuery들도
 // 하나씩만 두면 충분하다 — 나중에 같은 종류를 여러 겹 쌓는 흐름이 생기면 레이어별로 쿼리를 분리해야 한다.
 type SheetScreenInit =
   | { kind: 'places'; categoryCode: string }
   | { kind: 'building'; buildingId: number }
   | { kind: 'place'; placeId: number }
-  | { kind: 'bus'; station: BusStopStation };
+  | { kind: 'bus'; station: BusStopStation }
+  | { kind: 'category' };
 type SheetScreen = SheetScreenInit & { key: string; initialIndex: number };
 
 function MapQuickTooltip({
@@ -324,6 +327,12 @@ export default function MapsScreen() {
     [sheetStack]
   );
 
+  // 정류장(station A/B)과 버스 마커 id는 1:1 대응이라(BUS_STOPS), station에서 마커 id를 그대로 도출한다.
+  const selectedBusStopId = React.useMemo(
+    () => BUS_STOPS.find((s) => s.station === selectedBusStation)?.id,
+    [selectedBusStation]
+  );
+
   // category 시트에서 고른 칩이 헤더 고정 목록(QUICK_CHIPS)에 없으면, 그 칩을 헤더 맨 앞(bus보다도 앞)에
   // 임시로 끼워 넣어 보여준다. 별도 state 없이 selectedCategoryCode에서 파생시키므로, 다른 칩을 선택해
   // selectedCategoryCode가 바뀌는 순간 자동으로 사라진다(누적되지 않음).
@@ -373,7 +382,7 @@ export default function MapsScreen() {
   );
 
   // 캠퍼스 건물 목록 조회
-  const { data: buildings = [] } = useQuery({
+  const { data: buildings = [], isPending: isBuildingsPending } = useQuery({
     queryKey: ['map-buildings', CAMPUS_LATITUDE, CAMPUS_LONGITUDE],
     queryFn: () => getBuildings(CAMPUS_LATITUDE, CAMPUS_LONGITUDE),
   });
@@ -451,6 +460,7 @@ export default function MapsScreen() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
+    isPending: isCategoryPinsLoading,
   } = useInfiniteQuery({
     queryKey: ['map-category-pins', selectedCategoryCode, CAMPUS_LATITUDE, CAMPUS_LONGITUDE],
     queryFn: ({ pageParam }) =>
@@ -548,30 +558,64 @@ export default function MapsScreen() {
 
   // 캠퍼스 건물 마커 클릭 → building 레이어를 base 위에 바로 push
   function onBuildingMarkerPress(id: string) {
-    hideQuickTooltips();
-
     const building = buildings.find((b) => String(b.id) === id);
     if (!building) return;
+    // 이미 선택돼있는 건물 핀을 또 클릭한 경우 - 아무 동작도 하지 않는다
+    if (selectedBuildingId === building.id) return;
 
+    hideQuickTooltips();
     clearSearchResult();
-    resetStack();
     mapRef.current?.animateCameraTo(building.latitude, building.longitude);
+
+    // 건물 상세가 이미 맨 위에 떠 있는 상태에서 다른 건물 핀을 클릭한 경우
+    // resetStack()으로 스택을 지우면 base가 close()된 상태 그대로 복귀 index 정보(restoreIndexRef)가
+    // 유실돼 나중에 스택을 닫을 때 base가 엉뚱한 위치로 스냅되는 버그가 있었다.
+    // selectCategoryPin과 동일하게 top을 새 내용으로 교체만 해서 base를 건드리지 않는다.
+    const top = sheetStack[sheetStack.length - 1] as SheetScreen | undefined;
+    if (top && top.kind === 'building') {
+      setSheetStack((prev) => [
+        ...prev.slice(0, -1),
+        { kind: 'building', buildingId: building.id, key: top.key, initialIndex: top.initialIndex },
+      ]);
+      return;
+    }
+
+    resetStack();
     pushSheet({ kind: 'building', buildingId: building.id });
   }
 
   // 칩 조회 결과 핀 선택 (건물 핀이면 건물 상세, 그 외는 장소 상세로 조회) - places 목록 위에 push
   // 마커 클릭과 리스트 항목 클릭에서 공통으로 사용
   function selectCategoryPin(pin: MapCategoryPin) {
-    hideQuickTooltips();
+    const nextScreen: SheetScreenInit =
+      pin.type === 'BUILDING'
+        ? { kind: 'building', buildingId: pin.id }
+        : { kind: 'place', placeId: pin.id };
 
+    const top = sheetStack[sheetStack.length - 1] as SheetScreen | undefined;
+    const isSameAsTop =
+      (top?.kind === 'building' &&
+        nextScreen.kind === 'building' &&
+        top.buildingId === nextScreen.buildingId) ||
+      (top?.kind === 'place' && nextScreen.kind === 'place' && top.placeId === nextScreen.placeId);
+    // 이미 선택돼있는 핀을 또 클릭한 경우 - 아무 동작도 하지 않는다
+    if (isSameAsTop) return;
+
+    hideQuickTooltips();
     clearSearchResult();
     mapRef.current?.animateCameraTo(pin.latitude, pin.longitude);
 
-    if (pin.type === 'BUILDING') {
-      pushSheet({ kind: 'building', buildingId: pin.id });
+    // 같은 종류의 상세 레이어가 이미 맨 위에 있으면 그 위에 또 쌓지 않고 내용만 교체한다
+    // (지도 위 다른 핀을 연속으로 클릭할 때 상세 시트가 계속 쌓이는 것을 방지)
+    if (top && top.kind === nextScreen.kind) {
+      setSheetStack((prev) => [
+        ...prev.slice(0, -1),
+        { ...nextScreen, key: top.key, initialIndex: top.initialIndex },
+      ]);
       return;
     }
-    pushSheet({ kind: 'place', placeId: pin.id });
+
+    pushSheet(nextScreen);
   }
 
   // 검색 결과 및 칩 조회 결과 마커 클릭
@@ -599,11 +643,12 @@ export default function MapsScreen() {
 
   // 버스 정류장 마커 클릭 → bus 레이어를 base 위에 바로 push
   function onBusStopMarkerPress(id: string) {
-    hideQuickTooltips();
-
     const busStop = BUS_STOPS.find((s) => s.id === id);
     if (!busStop) return;
+    // 이미 선택돼있는 정류장 핀을 또 클릭한 경우 - 아무 동작도 하지 않는다
+    if (selectedBusStopId === id) return;
 
+    hideQuickTooltips();
     clearSearchResult();
     resetStack();
     mapRef.current?.animateCameraTo(busStop.latitude, busStop.longitude);
@@ -768,17 +813,21 @@ export default function MapsScreen() {
     }
   }
 
-  // 더보기 버튼 클릭 (카테고리 시트 표시)
+  // 더보기 버튼 클릭 (카테고리 시트를 base 위에 스택 레이어로 표시)
   function handleMoreCategories() {
     hideQuickTooltips();
 
     clearSearchResult();
     resetStack();
-    bottomSheetRef.current?.snapToIndex(1);
+    pushSheet({ kind: 'category' });
   }
 
   // 스택 레이어 하나의 콘텐츠 렌더링 (상세 데이터 로딩 중에는 스피너 표시)
   function renderStackScreenContent(screen: SheetScreen) {
+    if (screen.kind === 'category') {
+      return <CategoryList onChipPress={onQuickChipPress} onClose={popSheet} />;
+    }
+
     if (screen.kind === 'places') {
       if (screen.categoryCode === 'daedong') {
         return (
@@ -786,6 +835,7 @@ export default function MapsScreen() {
             places={categoryPins}
             onPlacePress={selectCategoryPin}
             isFetchingNextPage={isFetchingNextPage}
+            isLoading={isCategoryPinsLoading}
             onClose={popSheet}
           />
         );
@@ -795,6 +845,7 @@ export default function MapsScreen() {
           places={categoryPins}
           onPlacePress={selectCategoryPin}
           isFetchingNextPage={isFetchingNextPage}
+          isLoading={isCategoryPinsLoading}
           onClose={popSheet}
         />
       );
@@ -868,6 +919,9 @@ export default function MapsScreen() {
               : focusedPlaceMarkerIcon
         }
         userLocation={userLocation}
+        selectedBusStopId={selectedBusStopId}
+        selectedBuildingId={selectedBuildingId !== null ? String(selectedBuildingId) : undefined}
+        selectedPlaceId={selectedPlaceId !== null ? String(selectedPlaceId) : undefined}
         onInteraction={hideQuickTooltips}
         onBusStopMarkerPress={onBusStopMarkerPress}
         onBuildingMarkerPress={onBuildingMarkerPress}
@@ -1010,7 +1064,7 @@ export default function MapsScreen() {
         </Pressable>
       </View>
 
-      {/* 바텀시트 (base: category만 담당) */}
+      {/* 바텀시트 (base: 학교 건물 목록 담당. 카테고리 시트는 더보기 버튼으로 스택 레이어에 push됨) */}
       <BottomSheet
         ref={bottomSheetRef}
         index={0}
@@ -1020,7 +1074,11 @@ export default function MapsScreen() {
         onChange={(index) => updateLayerIndex(BASE_LAYER_KEY, index)}
       >
         <BottomSheetScrollView>
-          <CategoryList onChipPress={onQuickChipPress} />
+          <BuildingListSheet
+            buildings={buildings}
+            isLoading={isBuildingsPending}
+            onBuildingPress={(building) => onBuildingMarkerPress(String(building.id))}
+          />
         </BottomSheetScrollView>
       </BottomSheet>
 

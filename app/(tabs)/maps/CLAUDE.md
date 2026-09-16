@@ -44,23 +44,25 @@
 
 ## 바텀시트 동작 방식 (`app/(tabs)/maps/index.tsx`)
 
-`@gorhom/bottom-sheet`를 **base 시트 1개 + 스택 레이어 N개**로 구성한다. base는 category(기본 화면) 하나만 보여주고, bus/places 목록 → building/place 상세로 이어지는 드릴다운은 각 화면을 실제 별도의 `BottomSheet` 인스턴스(스택 레이어)로 쌓아 올린다. `BottomSheetModal`은 쓰지 않는다 — `@gorhom/portal`로 앱 루트에 렌더링되기 때문에 `(tabs)` 하단 네비게이션 바까지 덮어버린다 (포털을 안 쓰는 일반 `BottomSheet`는 탭 화면 콘텐츠 영역 안에 그대로 자식으로 렌더링되므로 이 문제가 없다).
+`@gorhom/bottom-sheet`를 **base 시트 1개 + 스택 레이어 N개**로 구성한다. base는 학교 건물 목록(`BuildingListSheet`) 하나만 보여주고, category(칩 전체보기)를 포함해 bus/places 목록 → building/place 상세로 이어지는 드릴다운은 각 화면을 실제 별도의 `BottomSheet` 인스턴스(스택 레이어)로 쌓아 올린다. `BottomSheetModal`은 쓰지 않는다 — `@gorhom/portal`로 앱 루트에 렌더링되기 때문에 `(tabs)` 하단 네비게이션 바까지 덮어버린다 (포털을 안 쓰는 일반 `BottomSheet`는 탭 화면 콘텐츠 영역 안에 그대로 자식으로 렌더링되므로 이 문제가 없다).
 
 ### base 시트 (`bottomSheetRef`)
 
-- 항상 `CategoryList`만 그린다 — 별도 모드 state 없이 `<CategoryList onChipPress={onQuickChipPress} />`를 고정 렌더링
+- 항상 `BuildingListSheet`만 그린다 — 별도 모드 state 없이 `<BuildingListSheet buildings={buildings} onBuildingPress={...} />`를 고정 렌더링. `buildings`는 지도 건물 마커(1~9번 숫자 마커 포함)와 동일한 `useQuery(['map-buildings', ...])` 결과를 그대로 쓴다 — base가 떠 있는 동안엔 `selectedCategoryCode`/`selectedBusStation`/`selectedSearchResult`가 전부 비어 있으므로 지도 위 건물 번호 마커도 그대로 유지된다.
+- `sheet-building-list.tsx`는 `sheet-place-list.tsx`를 그대로 복사해 `MapCategoryPin` 대신 `MapBuilding`을 받도록 필드명만 바꾼 컴포넌트다 — 목록 아이템 UI(아이콘/즐겨찾기/거리/이미지)가 places 목록과 완전히 동일하다.
+- 카테고리(칩 전체보기) 화면은 더 이상 base가 아니다 — 상단 "더보기" 버튼(`handleMoreCategories`)을 누르면 `resetStack()` 후 `pushSheet({ kind: 'category' })`로 base 위에 스택 레이어로 push된다. `CategoryListSheet`도 다른 스택 시트들과 동일하게 `onClose={popSheet}` 닫기(X) 버튼을 가진다.
 - `selectedSearchResult`(컨텍스트)는 base 콘텐츠에 관여하지 않는다 — 검색 결과 선택 시 곧바로 building/place 스택 레이어가 push되고 컨텍스트 값이 지워지므로, base가 검색 요약을 그릴 틈이 없다 (`_components/sheets/map-search-summary.tsx`는 이 이유로 만들어졌지만 실제로는 호출되지 않는, 보관용 코드다)
 - 항상 마운트돼 있고, 스택 레이어가 하나라도 떠 있으면 완전히 숨겨짐(`close()`)
 
 ### 스택 레이어 (`sheetStack` + `_components/sheet-stack-layer.tsx`)
 
-- `sheetStack: SheetScreen[]` — `{ kind: 'places' | 'building' | 'place' | 'bus', ...식별자, key, initialIndex }`. bus, places → building/place 드릴다운, 검색 결과 선택이 전부 이 스택을 탄다 — base는 category 하나뿐이라 서로 배타적인 화면 전환은 전부 스택 레이어 push/pop으로 처리한다
-- `selectedCategoryCode`/`selectedBuildingId`/`selectedPlaceId`/`selectedBusStation`은 독립 state가 아니라 `sheetStack`에서 해당 kind를 찾아 파생시킨 값이다(`useMemo`). 상세/목록 `useQuery`는 이 파생값을 그대로 쓰므로 기존과 동일하게 동작한다. **현재 UI 흐름상 스택에 동시에 존재하는 places/building/place/bus는 각 kind당 최대 1개**라 `.find()`로 충분하다 — 같은 kind를 여러 겹 쌓는 흐름이 생기면 레이어별로 쿼리를 분리해야 한다.
+- `sheetStack: SheetScreen[]` — `{ kind: 'places' | 'building' | 'place' | 'bus' | 'category', ...식별자, key, initialIndex }`. bus, places → building/place 드릴다운, 검색 결과 선택, category(더보기) 전부 이 스택을 탄다 — base는 건물 목록 하나뿐이라 서로 배타적인 화면 전환은 전부 스택 레이어 push/pop으로 처리한다
+- `selectedCategoryCode`/`selectedBuildingId`/`selectedPlaceId`/`selectedBusStation`은 독립 state가 아니라 `sheetStack`에서 해당 kind를 찾아 파생시킨 값이다(`useMemo`). 상세/목록 `useQuery`는 이 파생값을 그대로 쓰므로 기존과 동일하게 동작한다. **현재 UI 흐름상 스택에 동시에 존재하는 places/building/place/bus/category는 각 kind당 최대 1개**라 `.find()`로 충분하다 — 같은 kind를 여러 겹 쌓는 흐름이 생기면 레이어별로 쿼리를 분리해야 한다.
 - `pushSheet(screen, initialIndex?)`: 지금 맨 위에 있는 레이어(또는 base)를 **애니메이션 없이**(`close({ duration: 0 })`) 즉시 완전히 숨기고, 새 레이어를 스택에 추가한다. `snapToIndex(0)`이 아니라 `close()`를 쓰는 이유는 `snapToIndex(0)`은 snapPoints의 첫 값(`'10%'`)으로 이동할 뿐이라 완전히 안 가려지기 때문. 새 레이어는 `index` prop으로 마운트되며 `animateOnMount` 기본 동작으로 아래에서 슬라이드 올라온다. 언마운트 없이 숨기기만 하므로 **가려진 레이어의 스크롤 위치·페이지네이션(`useInfiniteQuery`)이 그대로 보존**된다.
 - `popSheet()`: 맨 위 레이어에 `.close({ duration: 0 })`를 호출해 애니메이션 없이 즉시 닫는다. `onClose` 콜백(`handleLayerClosed`)에서 실제로 스택 배열에서 제거하고, 그 아래 있던 레이어를 `push` 시점에 기록해둔 index로 즉시 복원한다.
 - **주의**: `close()`는 index가 -1에 도달하면 항상 `onClose`를 발생시키는데(`node_modules/@gorhom/bottom-sheet/src/components/bottomSheet/BottomSheet.tsx`의 `animateToPositionCompleted`), `pushSheet`가 아래 레이어를 가리려고 호출하는 `close()`도 똑같이 `onClose`를 발생시킨다. 이게 실제 pop과 구분 없이 `handleLayerClosed`를 타면 "덮여서 숨겨진 것"이 스택에서 제거돼버리므로, `suppressCloseRef`에 "덮여서 닫힌" 키를 표시해두고 `handleLayerClosed`가 그 키를 보면 무시하도록 한다.
 - `resetStack()`: 스택을 통째로 즉시 언마운트(애니메이션 없음, `close()`도 호출하지 않으므로 `onClose`/`suppressCloseRef`와 무관). bus/칩 재선택처럼 완전히 다른 컨텍스트로 전환할 때 사용.
-- `BuildingDetailSheet`/`PlaceDetailSheet`/`PlaceListSheet`/`DaedongPlaceListSheet`의 닫기(X) 버튼은 전부 `onClose={popSheet}`로 연결돼 있다 — "한 단계 뒤로"와 "닫기"가 스택 모델에서는 같은 동작이라 별도 back 버튼이 필요 없다 (places 목록에서 들어온 상세는 popSheet 시 목록으로, 지도에서 바로 들어온 상세는 popSheet 시 category로 돌아감 — 스택 깊이가 자동으로 그 차이를 반영함).
+- `BuildingDetailSheet`/`PlaceDetailSheet`/`PlaceListSheet`/`DaedongPlaceListSheet`/`CategoryListSheet`의 닫기(X) 버튼은 전부 `onClose={popSheet}`로 연결돼 있다 — "한 단계 뒤로"와 "닫기"가 스택 모델에서는 같은 동작이라 별도 back 버튼이 필요 없다 (places 목록에서 들어온 상세는 popSheet 시 목록으로, 지도에서 바로 들어온 상세는 popSheet 시 base(건물 목록)로 돌아감 — 스택 깊이가 자동으로 그 차이를 반영함).
 - `selectCategoryPin`(장소/건물 마커 클릭·목록 항목 클릭 공용)은 항상 `pushSheet`만 호출한다 — 이미 상세가 열려 있는 상태에서 다른 핀을 클릭하면 그 위에 새 레이어가 또 쌓인다(뒤로가기 시 이전에 보던 핀으로 돌아감).
 
 ### 딥링크 진입

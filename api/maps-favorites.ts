@@ -187,7 +187,7 @@ export async function saveFavoritePinGroups({
 }
 
 // 그룹 상세에서 장소 카드의 별 아이콘을 눌러 이 그룹에서만 제거(멱등 — 원래 없어도 200).
-// toggleMapFavorite(POST /map/favorites)와 달리 전역 즐겨찾기가 아니라 "이 그룹 멤버십만" 지운다 —
+// saveFavoritePinGroups(그룹 선택 바텀시트 저장)와 달리 전역 즐겨찾기가 아니라 "이 그룹 멤버십만" 지운다 —
 // 같은 핀이 다른 그룹에 담겨 있으면 그쪽엔 영향 없음. 다시 담는 API는 없어서, 별을 다시 누르면
 // 화면([favoriteId]/index.tsx)에서 로컬로만 별 표시를 되돌린다(서버엔 재등록 요청을 보내지 않음).
 export async function removeFavoriteGroupPlace(groupId: number, pinId: number): Promise<void> {
@@ -214,15 +214,6 @@ export async function updateFavoriteGroup({
 // 남의 그룹이면 403(FAVORITE_GROUP_FORBIDDEN), 없는 그룹이면 404(FAVORITE_GROUP_NOT_FOUND)
 export async function deleteFavoriteGroup(groupId: number): Promise<void> {
   await client.delete<ApiResponse<null>>(`/map/favorites/groups/${groupId}`);
-}
-
-// 건물/장소 즐겨찾기 토글 (등록 시 true, 해제 시 false 반환)
-export async function toggleMapFavorite(pinId: number): Promise<boolean> {
-  const { data } = await client.post<ApiResponse<boolean>>('/map/favorites', null, {
-    params: { pinId },
-  });
-
-  return data.data;
 }
 
 // 즐겨찾기 그룹 생성 (바텀시트에서 이름/색상 입력 후 저장)
