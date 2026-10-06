@@ -32,8 +32,10 @@ export default function NotificationItem({ item, onPress }: NotificationItemProp
           </Text>
         </View>
 
-        {/* 등록 키워드 표시 */}
-        <Text className="text-grey-40 text-caption02">{`#${item.keyword}`}</Text>
+        {/* 등록 키워드 표시 (키워드가 없는 알림은 표시하지 않음) */}
+        {item.keyword ? (
+          <Text className="text-grey-40 text-caption02">{`#${item.keyword}`}</Text>
+        ) : null}
       </View>
 
       {/* 알림 제목 */}

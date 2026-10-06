@@ -160,6 +160,11 @@ function MapQuickTooltips({ opacity }: { opacity: Animated.Value }) {
   );
 }
 
+// 거리 기준 좌표를 소수 3자리로 맞춘다 (약 100m 단위, 쿼리 키 안정화용)
+function roundCoordinate(value: number) {
+  return Math.round(value * 1000) / 1000;
+}
+
 export default function MapsScreen() {
   const router = useRouter();
   const { exactMatch, expanded, placeId, buildingId } = useLocalSearchParams<{
@@ -381,26 +386,32 @@ export default function MapsScreen() {
     [selectedSearchResult]
   );
 
-  // 캠퍼스 건물 목록 조회
+  // 거리 기준점은 기기 현위치다. 현위치를 모르면 좌표를 보내지 않고, 서버가 거리 없이(null) 응답하므로
+  // 화면은 distanceMeters가 null인 곳의 거리 표시를 숨긴다.
+  // 좌표는 소수 3자리(약 100m)로 맞춰서, 걸을 때마다 쿼리 키가 바뀌어 다시 불러와지는 것을 줄인다
+  const originLatitude = userLocation ? roundCoordinate(userLocation.latitude) : undefined;
+  const originLongitude = userLocation ? roundCoordinate(userLocation.longitude) : undefined;
+
+  // 건물 목록 조회
   const { data: buildings = [], isPending: isBuildingsPending } = useQuery({
-    queryKey: ['map-buildings', CAMPUS_LATITUDE, CAMPUS_LONGITUDE],
-    queryFn: () => getBuildings(CAMPUS_LATITUDE, CAMPUS_LONGITUDE),
+    queryKey: ['map-buildings', originLatitude, originLongitude],
+    queryFn: () => getBuildings(originLatitude, originLongitude),
   });
 
-  // 캠퍼스 건물 상세 조회
+  // 건물 상세 조회
   // placeholderData(keepPreviousData)를 쓰지 않는다: 스택 레이어는 building이 바뀌면 새로 push되는데,
   // 이전 건물의 데이터를 placeholder로 유지하면 renderStackScreenContent의 로딩 스피너 분기가
   // 건너뛰어져서 새 레이어에 이전 건물 정보가 잠깐 그대로 보이는 버그가 생긴다.
   const { data: selectedBuildingDetail } = useQuery({
-    queryKey: ['map-building-detail', selectedBuildingId],
-    queryFn: () => getBuildingDetail(selectedBuildingId!, CAMPUS_LATITUDE, CAMPUS_LONGITUDE),
+    queryKey: ['map-building-detail', selectedBuildingId, originLatitude, originLongitude],
+    queryFn: () => getBuildingDetail(selectedBuildingId!, originLatitude, originLongitude),
     enabled: selectedBuildingId !== null,
   });
 
   // 장소(비건물) 상세 조회 (건물 상세와 동일한 이유로 placeholderData 미사용)
   const { data: selectedPlaceDetail } = useQuery({
-    queryKey: ['map-place-detail', selectedPlaceId],
-    queryFn: () => getPlaceDetail(selectedPlaceId!, CAMPUS_LATITUDE, CAMPUS_LONGITUDE),
+    queryKey: ['map-place-detail', selectedPlaceId, originLatitude, originLongitude],
+    queryFn: () => getPlaceDetail(selectedPlaceId!, originLatitude, originLongitude),
     enabled: selectedPlaceId !== null,
   });
 
@@ -462,9 +473,9 @@ export default function MapsScreen() {
     isFetchingNextPage,
     isPending: isCategoryPinsLoading,
   } = useInfiniteQuery({
-    queryKey: ['map-category-pins', selectedCategoryCode, CAMPUS_LATITUDE, CAMPUS_LONGITUDE],
+    queryKey: ['map-category-pins', selectedCategoryCode, originLatitude, originLongitude],
     queryFn: ({ pageParam }) =>
-      getCategoryPins(selectedCategoryCode!, CAMPUS_LATITUDE, CAMPUS_LONGITUDE, pageParam),
+      getCategoryPins(selectedCategoryCode!, originLatitude, originLongitude, pageParam),
     initialPageParam: 0,
     getNextPageParam: (lastPage, allPages) =>
       lastPage.length < MAP_CATEGORY_PINS_PAGE_SIZE ? undefined : allPages.length,

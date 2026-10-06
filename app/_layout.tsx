@@ -58,8 +58,8 @@ export default function RootLayout() {
   React.useEffect(() => {
     // 라우터가 마운트된 뒤에 등록해야 콜드 스타트 때 알림 탭으로 인한 이동이 씹히지 않음
     if (!isReady) return;
-    return subscribeToNotificationTaps();
-  }, [isReady]);
+    return subscribeToNotificationTaps(queryClient);
+  }, [isReady, queryClient]);
 
   if (!isReady) return null;
 

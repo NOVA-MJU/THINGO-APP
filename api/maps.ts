@@ -4,9 +4,12 @@ import { client } from './client';
 export type MapEntityType = 'BUILDING' | 'PLACE';
 export type MapPlaceType = 'BUILDING' | 'FACILITY' | 'EXTERNAL_LOCATION';
 
+// FLOOR_MAP은 강의실 코드 검색으로만 내려온다. 요청 파라미터의 type 필터에는 쓰지 않으므로 응답 타입에만 합친다
+export type MapSearchItemType = MapEntityType | 'FLOOR_MAP';
+
 export type MapSearchItem = {
   id: number;
-  type: MapEntityType;
+  type: MapSearchItemType;
   name: string;
   categoryCode: string;
   iconKey: string;
@@ -18,6 +21,9 @@ export type MapSearchItem = {
   distanceMeters: number | null;
   latitude: number;
   longitude: number;
+  indoorCode: string | null;
+  // 서버가 내려주는 실내지도 이동 경로 (예: /maps/floor?buildingId=1&floorLabel=F3&placeId=647&target=S1353)
+  link: string | null;
 };
 
 export type MapBuilding = {
@@ -192,7 +198,7 @@ export async function getMapSearchSuggestions({
 }
 
 // 캠퍼스 건물 목록 조회
-export async function getBuildings(lat: number, lng: number): Promise<MapBuilding[]> {
+export async function getBuildings(lat?: number, lng?: number): Promise<MapBuilding[]> {
   const { data } = await client.get<ApiResponse<MapBuilding[]>>('/map/buildings', {
     params: { lat, lng },
   });

@@ -15,7 +15,7 @@ export type NotificationType = 'NOTICE' | 'MJU_CALENDAR' | 'COMMUNITY' | 'WEEKLY
 export type NotificationItem = {
   id: number;
   matchedKeyword: string;
-  keyword: string;
+  keyword: string | null;
   type: NotificationType;
   categoryCode: string;
   category: string;

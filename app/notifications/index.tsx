@@ -8,10 +8,11 @@ import { AppHeader } from '@/components/app-header';
 import { Text } from '@/components/ui/text';
 import { useAuth } from '@/context/auth-context';
 import { showAlert } from '@/lib/alert';
+import { openLinkOrNavigate } from '@/lib/open-link';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Redirect, useRouter } from 'expo-router';
 import * as React from 'react';
-import { FlatList, Linking, Platform, RefreshControl, TouchableOpacity, View } from 'react-native';
+import { FlatList, Platform, RefreshControl, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import NotificationItem from './_components/notification-item';
 import { FilterIcon, NotificationIcon, PlusIcon } from '@/components/icons';
@@ -80,7 +81,7 @@ export default function NotificationsScreen() {
     if (!item.link) return;
 
     try {
-      await Linking.openURL(item.link);
+      await openLinkOrNavigate(item.link);
     } catch {
       showAlert('알림', '연결된 페이지를 열 수 없습니다.');
     }

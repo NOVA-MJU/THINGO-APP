@@ -39,10 +39,10 @@ function getPanBounds(currentScale: number, viewportW: number, viewportH: number
 export default function MapFloorScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { buildingId, floorLabel, highlightPlaceId } = useLocalSearchParams<{
+  const { buildingId, floorLabel, placeId } = useLocalSearchParams<{
     buildingId?: string;
     floorLabel?: string;
-    highlightPlaceId?: string;
+    placeId?: string;
   }>();
 
   // 헤더에 표시할 건물명 조회.
@@ -141,10 +141,16 @@ export default function MapFloorScreen() {
     router.back();
   }
 
-  // 닫기: 이 화면은 항상 지도 화면(건물 상세 시트)에서 push로만 진입하므로(외부 딥링크 진입 없음),
-  // router.navigate('/maps')로 새 스택을 열지 않고 back()으로 기존 지도 화면으로 되돌아간다
+  // 닫기: 건물 상세 시트나 검색 화면에서 push로 들어오므로, 스택에 남아 있는 이전 화면으로 back()으로 되돌아간다
   function onClosePress() {
     router.back();
+  }
+
+  // 장소 시트를 지도에서 열기: 스택에 있는 지도 화면까지 되돌아가면서 placeId로 장소 시트/핀을 띄운다
+  // (navigate로 새 지도 화면을 쌓으면 스택이 중복되므로 dismissTo를 쓴다 — favorites 화면과 동일한 방식)
+  function onShowOnMapPress() {
+    if (!placeId) return;
+    router.dismissTo({ pathname: '/maps', params: { placeId } });
   }
 
   return (
@@ -190,7 +196,7 @@ export default function MapFloorScreen() {
             <Text className="text-grey-40 text-body04">준비 중인 도면이에요</Text>
             <Text className="text-grey-20 text-caption02">
               buildingId: {buildingId ?? '-'} / floorLabel: {floorLabel ?? '-'}
-              {highlightPlaceId ? ` / highlightPlaceId: ${highlightPlaceId}` : ''}
+              {placeId ? ` / placeId: ${placeId}` : ''}
             </Text>
           </View>
         )}
@@ -204,6 +210,18 @@ export default function MapFloorScreen() {
           onSelectFloor={onSelectFloor}
         />
       </View>
+
+      {placeId ? (
+        <View style={{ position: 'absolute', right: 16, bottom: insets.bottom + 16 }}>
+          <TouchableOpacity
+            accessibilityRole="button"
+            onPress={onShowOnMapPress}
+            className="rounded-full bg-white px-4 py-2.5 shadow-sm"
+          >
+            <Text className="text-black text-body04">지도에서 보기</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
     </View>
   );
 }

@@ -115,13 +115,15 @@ export default function PlaceDetailSheet({
                 <Text className="text-grey-40 text-body04">
                   {place.operatingStatus || '운영 정보 없음'}
                 </Text>
-                <View className="px-1.5">
-                  <View className="h-[3px] w-[3px] rounded-full bg-grey-30" />
-                </View>
                 {place.distanceMeters != null ? (
-                  <Text className="text-grey-30 text-body05">
-                    {formatMapDistance(place.distanceMeters)}
-                  </Text>
+                  <>
+                    <View className="px-1.5">
+                      <View className="h-[3px] w-[3px] rounded-full bg-grey-30" />
+                    </View>
+                    <Text className="text-grey-30 text-body05">
+                      {formatMapDistance(place.distanceMeters)}
+                    </Text>
+                  </>
                 ) : null}
               </View>
 
