@@ -198,7 +198,7 @@ export async function getMapSearchSuggestions({
 }
 
 // 캠퍼스 건물 목록 조회
-export async function getBuildings(lat: number, lng: number): Promise<MapBuilding[]> {
+export async function getBuildings(lat?: number, lng?: number): Promise<MapBuilding[]> {
   const { data } = await client.get<ApiResponse<MapBuilding[]>>('/map/buildings', {
     params: { lat, lng },
   });

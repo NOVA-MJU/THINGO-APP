@@ -220,15 +220,15 @@ export default function MapsFavoriteDetailScreen() {
                 </TouchableOpacity>
               </View>
 
-              {(item.operatingStatus || item.distanceMeters !== null) && (
+              {(item.operatingStatus || item.distanceMeters != null) && (
                 <View className="flex-row items-center gap-1.5">
                   {item.operatingStatus && (
                     <Text className="text-blue-35 text-caption01">{item.operatingStatus}</Text>
                   )}
-                  {item.operatingStatus && item.distanceMeters !== null && (
+                  {item.operatingStatus && item.distanceMeters != null && (
                     <View className="h-[3px] w-[3px] rounded-full bg-grey-30" />
                   )}
-                  {item.distanceMeters !== null && (
+                  {item.distanceMeters != null && (
                     <Text className="text-grey-30 text-caption02">{item.distanceMeters}m</Text>
                   )}
                 </View>
