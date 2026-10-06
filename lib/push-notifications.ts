@@ -1,4 +1,11 @@
-import { deleteDeviceToken, registerDeviceToken } from '@/api/notifications';
+import {
+  deleteDeviceToken,
+  getNotifications,
+  markNotificationAsRead,
+  registerDeviceToken,
+} from '@/api/notifications';
+import { openLinkOrNavigate } from '@/lib/open-link';
+import type { QueryClient } from '@tanstack/react-query';
 import {
   getMessaging,
   getToken as getFcmToken,
@@ -93,20 +100,50 @@ export function subscribeToPushTokenRefresh(): () => void {
   return () => {};
 }
 
-// 알림을 탭해서 앱을 열었을 때 알림함으로 이동시킴.
+// 서버가 알림 ID를 보내지 않으므로 링크가 같은 미읽음 알림을 목록에서 찾아 읽음 처리함.
+// 목록은 최신 페이지만 보므로 오래된 알림은 찾지 못할 수 있음. 읽음 처리 실패가 링크 이동을 막지 않도록 에러는 무시함
+async function markNotificationsReadByLink(link: string, queryClient: QueryClient) {
+  try {
+    const page = await getNotifications();
+    const targets = page.content.filter((item) => !item.read && item.link === link);
+    if (targets.length === 0) return;
+
+    await Promise.all(targets.map((item) => markNotificationAsRead(item.id)));
+    await queryClient.invalidateQueries({ queryKey: ['notifications'] });
+  } catch {}
+}
+
+// 페이로드의 link 값으로 열기 방식을 나눔: 외부 URL은 브라우저 모달만 띄우고(알림 목록을 거치지 않음),
+// 내부 경로는 해당 화면으로 이동, link가 없으면 알림 목록을 보여줌
+function openNotificationResponse(
+  response: Notifications.NotificationResponse,
+  queryClient: QueryClient
+) {
+  const link = response.notification.request.content.data?.link;
+
+  if (typeof link !== 'string' || !link) {
+    router.push('/notifications');
+    return;
+  }
+
+  void markNotificationsReadByLink(link, queryClient);
+  void openLinkOrNavigate(link).catch(() => {});
+}
+
+// 알림을 탭해서 앱을 열었을 때 알림 링크로 이동시킴.
 // 실행 중이던 앱을 백그라운드에서 탭한 경우엔 리스너가, 완전히 종료된 상태에서
 // 탭해 앱이 새로 실행된 경우엔 리스너가 못 잡으므로 getLastNotificationResponseAsync로 별도 처리함
-export function subscribeToNotificationTaps(): () => void {
+export function subscribeToNotificationTaps(queryClient: QueryClient): () => void {
   if (Platform.OS !== 'android' && Platform.OS !== 'ios') return () => {};
 
   void Notifications.getLastNotificationResponseAsync().then((response) => {
     if (!response) return;
-    router.push('/notifications');
+    openNotificationResponse(response, queryClient);
     void Notifications.clearLastNotificationResponseAsync();
   });
 
-  const subscription = Notifications.addNotificationResponseReceivedListener(() => {
-    router.push('/notifications');
+  const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+    openNotificationResponse(response, queryClient);
   });
 
   return () => subscription.remove();
