@@ -1,10 +1,13 @@
 import {
+  getBuildings,
   getMapSearchResults,
   getMapSearchSuggestions,
   MAP_SEARCH_PAGE_SIZE,
+  type MapBuilding,
   type MapSearchItem,
   type MapSearchSuggestion,
 } from '@/api/maps';
+import { getFloorPlan } from '@/assets/map-floors';
 import { ArrowLeftIcon, SearchIcon, XIcon } from '@/components/icons';
 import { Text } from '@/components/ui/text';
 import { formatMapDistance, getOperatingStatusClassName } from '@/lib/maps/format';
@@ -13,7 +16,7 @@ import { cn } from '@/lib/utils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import * as Location from 'expo-location';
-import { useRouter } from 'expo-router';
+import { type Href, useRouter } from 'expo-router';
 import * as React from 'react';
 import {
   ActivityIndicator,
@@ -27,6 +30,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMapSearchSelection } from '@/context/map-search-selection';
+import { CAMPUS_LATITUDE, CAMPUS_LONGITUDE } from '@/lib/maps/campus';
 
 const MAX_RECENT_SEARCH_COUNT = 10;
 const RECENT_SEARCHES_KEY = 'map_recent_searches';
@@ -48,6 +52,19 @@ function useDebouncedValue<T>(value: T, delay: number) {
   return debouncedValue;
 }
 
+// 강의실 검색 결과를 실내지도 경로로 바꾼다. location은 "건물명 층" 형식(예: "종합관 F4")이라
+// 건물명으로 buildingId를 찾고, 층 라벨은 도면이 있는 층인지 확인하는 데 쓴다. 매칭이 안 되면 null
+function buildIndoorLink(item: MapSearchItem, buildings: MapBuilding[]): Href | null {
+  const match = item.location?.match(/^(.+?)\s+([BF]\d+)$/);
+  if (!match) return null;
+
+  const [, buildingName, floorLabel] = match;
+  const building = buildings.find((b) => b.name === buildingName);
+  if (!building || !getFloorPlan(String(building.id), floorLabel)) return null;
+
+  return `/maps/floor?buildingId=${building.id}&floorLabel=${floorLabel}` as Href;
+}
+
 export default function MapsSearchScreen() {
   const inset = useSafeAreaInsets();
   const router = useRouter();
@@ -62,6 +79,12 @@ export default function MapsSearchScreen() {
   const trimmedQuery = query.trim();
   const debouncedQuery = useDebouncedValue(trimmedQuery, AUTOCOMPLETE_DEBOUNCE_MS);
   const isEditing = !!trimmedQuery && trimmedQuery !== submittedKeyword;
+
+  // 강의실 결과의 buildingId를 찾기 위한 건물 목록. 지도 화면과 같은 쿼리 키라 캐시를 공유한다
+  const { data: buildings = [] } = useQuery({
+    queryKey: ['map-buildings', CAMPUS_LATITUDE, CAMPUS_LONGITUDE],
+    queryFn: () => getBuildings(CAMPUS_LATITUDE, CAMPUS_LONGITUDE),
+  });
 
   // 검색어 자동완성 요청
   const suggestionsQuery = useQuery({
@@ -172,6 +195,22 @@ export default function MapsSearchScreen() {
 
   // 검색 결과 클릭 시 선택한 장소를 지도 화면으로 전달하고 검색창 닫기
   function onSearchResultPress(item: MapSearchItem) {
+    // 서버가 link를 내려주는 실내지도 결과는 그대로 이동하고, 강의실 장소는 location("건물명 층")으로 경로를 만든다
+    // (강의실 장소 응답에는 link가 null로 온다)
+    const indoorLink =
+      item.type === 'FLOOR_MAP' && item.link
+        ? (item.link as Href)
+        : item.categoryCode === 'classroom'
+          ? buildIndoorLink(item, buildings)
+          : null;
+
+    if (indoorLink) {
+      // push로 쌓아서 실내지도의 뒤로가기가 검색 화면으로 돌아오게 한다.
+      // replace는 이 화면이 속한 (tabs) 스택 항목을 대신 덮어써서, 뒤로 갈 화면이 없어지는 문제가 생긴다
+      router.push(indoorLink);
+      return;
+    }
+
     selectSearchResult(item);
     router.back();
   }
