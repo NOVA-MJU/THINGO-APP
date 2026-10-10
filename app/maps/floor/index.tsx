@@ -1,19 +1,36 @@
 import { getBuildingDetail } from '@/api/maps';
-import { getFloorPlan, getFloorPlanLabels } from '@/assets/map-floors';
-import { ArrowLeftIcon, XThinIcon } from '@/components/icons';
+import {
+  findFloorPlanTargetTexts,
+  getFloorPlan,
+  getFloorPlanLabels,
+  getFloorPlanLayout,
+} from '@/assets/map-floors';
+import { CATEGORY_MARKER_ACTIVE_IMAGES } from '@/assets/map-markers';
+import { ArrowLeftIcon, MinusIcon, PlusIcon, XThinIcon } from '@/components/icons';
 import { Text } from '@/components/ui/text';
 import { CAMPUS_LATITUDE, CAMPUS_LONGITUDE } from '@/lib/maps/campus';
+import { formatFloorPlanLabel } from '@/lib/maps/format';
 import { useQuery } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
-import { LayoutChangeEvent, TouchableOpacity, View } from 'react-native';
+import { Image, LayoutChangeEvent, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Text as SvgText, TSpan } from 'react-native-svg';
 import FloorSelector from './_components/floor-selector';
 
 const MIN_SCALE = 1;
 const MAX_SCALE = 4;
+// +/- 버튼 한 번에 바뀌는 배율
+const ZOOM_STEP = 1.5;
+// 대상 핀은 명지도 지도의 선택(active) 마커와 같은 PNG·크기를 쓴다 (components/naver-map의 ACTIVE_MARKER_WIDTH/HEIGHT)
+const TARGET_PIN_WIDTH = 24;
+const TARGET_PIN_HEIGHT = 32;
+// 도면의 대상 이름을 다시 그릴 강조색(blue-35)과 굵기. 굵은 글꼴은 글자 폭이 달라져 원본 회색 글자가 삐져나오므로
+// 같은 글꼴·폭 그대로 같은 색 외곽선을 얇게 둘러 굵어 보이게 한다
+const TARGET_TEXT_COLOR = '#2587ff';
+const TARGET_TEXT_STROKE_RATIO = 0.06;
 
 // 도면 가장자리에서 더 끌어낼 수 있는 여유 폭(px). 도면이 세로로 길쭉해 좌우가 남고,
 // 좌측 하단 층 선택 UI에 가려지는 부분도 있어서 배율 1에서도 좌우로 밀어볼 수 있게 한다.
@@ -39,10 +56,14 @@ function getPanBounds(currentScale: number, viewportW: number, viewportH: number
 export default function MapFloorScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { buildingId, floorLabel, placeId } = useLocalSearchParams<{
+  const { buildingId, floorLabel, placeId, target, markerIcon } = useLocalSearchParams<{
     buildingId?: string;
     floorLabel?: string;
     placeId?: string;
+    // 강조할 도면 텍스트 (서버 링크가 호실 코드, 없으면 장소명을 넣어준다)
+    target?: string;
+    // 핀 이미지 키 (CATEGORY_MARKER_ACTIVE_IMAGES 키, 검색 화면이 장소 카테고리로 붙여준다)
+    markerIcon?: string;
   }>();
 
   // 헤더에 표시할 건물명 조회.
@@ -75,6 +96,34 @@ export default function MapFloorScreen() {
   const viewportHeight = useSharedValue(0);
   const [viewportSize, setViewportSize] = React.useState({ width: 0, height: 0 });
 
+  const floorLayout = getFloorPlanLayout(buildingId ?? '', selectedFloorLabel ?? '');
+  const pinImage =
+    CATEGORY_MARKER_ACTIVE_IMAGES[markerIcon ?? ''] ?? CATEGORY_MARKER_ACTIVE_IMAGES.PinIcon;
+
+  // 대상은 링크로 들어온 층에서만 표시한다 (다른 층으로 바꾸면 같은 이름이 있어도 다른 장소)
+  const targetTexts = React.useMemo(() => {
+    if (!buildingId || !target || selectedFloorLabel !== floorLabel) return [];
+    return findFloorPlanTargetTexts(buildingId, floorLabel, target);
+  }, [buildingId, floorLabel, selectedFloorLabel, target]);
+
+  // 첫 번째 대상의 핀 위치 (확대 전 뷰포트 좌표). 도면 좌표(viewBox)를 SVG 기본 preserveAspectRatio(xMidYMid meet)와
+  // 같은 방식으로 뷰포트에 맞춘다. 층 전체가 보여야 건물 안 위치를 바로 알 수 있어 자동 확대는 하지 않는다
+  const targetMarker = React.useMemo(() => {
+    const [firstText] = targetTexts;
+    if (!firstText || !floorLayout || viewportSize.width === 0) return null;
+
+    const fit = Math.min(
+      viewportSize.width / floorLayout.width,
+      viewportSize.height / floorLayout.height
+    );
+    const offsetX = (viewportSize.width - floorLayout.width * fit) / 2;
+    const offsetY = (viewportSize.height - floorLayout.height * fit) / 2;
+    return {
+      x: offsetX + firstText.center[0] * fit,
+      top: offsetY + firstText.top * fit,
+    };
+  }, [floorLayout, targetTexts, viewportSize]);
+
   function onViewportLayout({ nativeEvent }: LayoutChangeEvent) {
     const { width, height } = nativeEvent.layout;
     viewportWidth.value = width;
@@ -89,6 +138,22 @@ export default function MapFloorScreen() {
     savedScale.value = MIN_SCALE;
     savedTranslateX.value = 0;
     savedTranslateY.value = 0;
+  }
+
+  // +/- 버튼: 화면 가운데를 기준으로 확대·축소한다. 가운데에 보이던 지점이 그대로 가운데 남으려면
+  // 이동량도 배율 비율만큼 같이 늘려야 한다 (핀치 제스처와 같은 최소·최대 배율과 이동 범위를 따른다)
+  function zoomBy(factor: number) {
+    const nextScale = clampValue(savedScale.value * factor, MIN_SCALE, MAX_SCALE);
+    const ratio = nextScale / savedScale.value;
+    const { maxX, maxY } = getPanBounds(nextScale, viewportWidth.value, viewportHeight.value);
+    const nextX = clampValue(savedTranslateX.value * ratio, -maxX, maxX);
+    const nextY = clampValue(savedTranslateY.value * ratio, -maxY, maxY);
+    scale.value = withTiming(nextScale);
+    translateX.value = withTiming(nextX);
+    translateY.value = withTiming(nextY);
+    savedScale.value = nextScale;
+    savedTranslateX.value = nextX;
+    savedTranslateY.value = nextY;
   }
 
   const pinch = Gesture.Pinch()
@@ -130,6 +195,33 @@ export default function MapFloorScreen() {
     ],
   }));
 
+  // 핀은 확대해도 지도 마커처럼 크기가 그대로여야 해서 도면(확대 레이어) 밖 최상단에 두고 위치만 따라가게 한다.
+  // 확대 레이어의 점 p는 화면에서 c + t + (p - c) * scale 에 그려진다 (c: 뷰포트 중심, t: 이동량)
+  const pinStyle = useAnimatedStyle(() => {
+    if (!targetMarker) return { opacity: 0 };
+    const centerX = viewportWidth.value / 2;
+    const centerY = viewportHeight.value / 2;
+    return {
+      opacity: 1,
+      transform: [
+        {
+          translateX:
+            centerX +
+            translateX.value +
+            (targetMarker.x - centerX) * scale.value -
+            TARGET_PIN_WIDTH / 2,
+        },
+        {
+          translateY:
+            centerY +
+            translateY.value +
+            (targetMarker.top - centerY) * scale.value -
+            TARGET_PIN_HEIGHT,
+        },
+      ],
+    };
+  }, [targetMarker]);
+
   // 층을 바꾸면 확대/이동 상태 초기화 (이전 층에서 확대해둔 채로 열리면 어색함)
   function onSelectFloor(nextFloorLabel: string) {
     setSelectedFloorLabel(nextFloorLabel);
@@ -167,7 +259,12 @@ export default function MapFloorScreen() {
           <ArrowLeftIcon size={24} className="text-grey-20" />
         </TouchableOpacity>
         <Text className="flex-1 text-center text-black text-body02" numberOfLines={1}>
-          {building?.name ?? '층별 안내도'}
+          {/* 검색으로 바로 들어와도 어느 건물 몇 층인지 알 수 있도록 층을 같이 보여준다 */}
+          {building
+            ? [building.name, selectedFloorLabel && formatFloorPlanLabel(selectedFloorLabel)]
+                .filter(Boolean)
+                .join(' ')
+            : '층별 안내도'}
         </Text>
         <TouchableOpacity
           accessibilityRole="button"
@@ -189,6 +286,35 @@ export default function MapFloorScreen() {
               {viewportSize.width > 0 && (
                 <FloorPlan width={viewportSize.width} height={viewportSize.height} />
               )}
+              {/* 도면에 이미 있는 대상 이름을 같은 자리·글꼴·크기·회전으로 강조색으로 덮어 그린다.
+                  도면과 같은 viewBox·크기라 맞춤(fit) 계산 없이 원본 글자와 정확히 겹친다 */}
+              {floorLayout && viewportSize.width > 0 && targetTexts.length > 0 && (
+                <Svg
+                  width={viewportSize.width}
+                  height={viewportSize.height}
+                  viewBox={`0 0 ${floorLayout.width} ${floorLayout.height}`}
+                  style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}
+                >
+                  {targetTexts.map((text, index) => (
+                    <SvgText
+                      key={index}
+                      transform={text.transform}
+                      fontFamily="Pretendard"
+                      fontSize={text.fontSize}
+                      fontWeight={text.fontWeight}
+                      fill={TARGET_TEXT_COLOR}
+                      stroke={TARGET_TEXT_COLOR}
+                      strokeWidth={text.fontSize * TARGET_TEXT_STROKE_RATIO}
+                    >
+                      {text.lines.map(([x, y, content], lineIndex) => (
+                        <TSpan key={lineIndex} x={x} y={y}>
+                          {content}
+                        </TSpan>
+                      ))}
+                    </SvgText>
+                  ))}
+                </Svg>
+              )}
             </Animated.View>
           </GestureDetector>
         ) : (
@@ -200,7 +326,56 @@ export default function MapFloorScreen() {
             </Text>
           </View>
         )}
+        {targetMarker ? (
+          <Animated.View
+            style={[{ position: 'absolute', left: 0, top: 0, pointerEvents: 'none' }, pinStyle]}
+          >
+            <Image
+              source={pinImage}
+              style={{ width: TARGET_PIN_WIDTH, height: TARGET_PIN_HEIGHT }}
+              accessibilityIgnoresInvertColors
+            />
+          </Animated.View>
+        ) : null}
       </View>
+
+      {/* 우측 확대/축소 버튼 - 핀치 확대를 모르는 사용자도 도면을 키워 볼 수 있게 한다.
+          층 선택 UI와 같은 모양(흰 바탕 둥근 기둥, 같은 그림자)으로 맞추고, '지도에서 보기' 버튼 위에 둔다 */}
+      {FloorPlan ? (
+        <View
+          className="w-12 rounded-full bg-white"
+          style={{
+            position: 'absolute',
+            right: 16,
+            bottom: insets.bottom + 76,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.18,
+            shadowRadius: 8,
+            elevation: 5,
+          }}
+        >
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="도면 확대"
+            onPress={() => zoomBy(ZOOM_STEP)}
+            className="h-10 items-center justify-center"
+            hitSlop={4}
+          >
+            <PlusIcon size={16} className="text-grey-60" />
+          </TouchableOpacity>
+          <View className="mx-3 h-px bg-grey-10" />
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="도면 축소"
+            onPress={() => zoomBy(1 / ZOOM_STEP)}
+            className="h-10 items-center justify-center"
+            hitSlop={4}
+          >
+            <MinusIcon size={16} className="text-grey-60" />
+          </TouchableOpacity>
+        </View>
+      ) : null}
 
       {/* 좌측 하단 층 선택 UI */}
       <View style={{ position: 'absolute', left: 16, bottom: insets.bottom + 16 }}>

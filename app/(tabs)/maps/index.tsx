@@ -439,12 +439,12 @@ export default function MapsScreen() {
     );
   }, [selectedBuildingDetail, selectedBuildingId, numericBuildingId]);
 
-  // placeId 딥링크 전용 핀. 건물은 buildingMarkers가 항상(검색/카테고리 미선택 시) 전체 목록으로
-  // 그려지고 있어 이미 핀이 보이지만, 장소는 카테고리를 선택해야만 categoryMarkers가 채워지므로
-  // 딥링크로 들어온 경우엔 별도로 핀 하나를 그려줘야 한다.
+  // 카테고리 밖에서 연 장소(딥링크, 검색 결과·자동완성 선택)의 핀. 건물은 buildingMarkers가 항상(검색/카테고리 미선택 시)
+  // 전체 목록으로 그려지고 있어 이미 핀이 보이지만, 장소는 카테고리를 선택해야만 categoryMarkers가 채워지므로
+  // 별도로 핀 하나를 그려줘야 한다. 검색 선택은 selectedSearchResult가 시트를 연 직후 지워지므로 상세 데이터 기준으로 그린다
   const focusedPlaceMarkers = React.useMemo(
     () =>
-      selectedPlaceDetail && selectedPlaceId === numericPlaceId
+      selectedPlaceDetail && selectedPlaceDetail.id === selectedPlaceId
         ? [
             {
               id: String(selectedPlaceDetail.id),
@@ -454,7 +454,7 @@ export default function MapsScreen() {
             },
           ]
         : [],
-    [selectedPlaceDetail, selectedPlaceId, numericPlaceId]
+    [selectedPlaceDetail, selectedPlaceId]
   );
 
   const focusedPlaceMarkerIcon = React.useMemo(
@@ -912,8 +912,14 @@ export default function MapsScreen() {
         camera={selectedCamera}
         // 버스 정류장 마커는 bus 레이어가 떠 있을 때만 노출 (카테고리/검색 화면에서는 지도가 혼잡해지는 것을 방지)
         busStopMarkers={selectedBusStation ? BUS_STOPS : []}
+        // 장소 핀이 떠 있으면(검색·딥링크로 연 장소) 건물 번호 핀을 숨겨 찾은 위치만 눈에 띄게 한다
         buildingMarkers={
-          selectedSearchResult || selectedCategoryCode || selectedBusStation ? [] : buildingMarkers
+          selectedSearchResult ||
+          selectedCategoryCode ||
+          selectedBusStation ||
+          focusedPlaceMarkers.length > 0
+            ? []
+            : buildingMarkers
         }
         placeMarkers={
           selectedSearchResult
