@@ -94,12 +94,6 @@ type SearchResponse = {
   commentCount?: number | null;
 };
 
-type SearchPageResponse = {
-  content: SearchResponse[];
-  totalElements: number;
-  totalPages: number;
-};
-
 type SearchDetailType =
   | 'NOTICE'
   | 'MJU_CALENDAR'
@@ -170,88 +164,94 @@ function emptySearchResults(): SearchResults {
   };
 }
 
-async function searchDetail(keyword: string, type: SearchDetailType): Promise<SearchResponse[]> {
-  const { data } = await client.get<ApiResponse<SearchPageResponse>>('/search/detail', {
+// 유형별 상위 결과를 요청 한 번으로 받는다. 유형마다 따로 요청하면(8개) 모바일의 서버당 동시 연결 제한으로
+// 줄을 서서 느려지고, 서버의 인기 검색어도 한 번 검색에 8번 집계된다
+async function searchOverview(keyword: string): Promise<SearchResponse[]> {
+  const { data } = await client.get<ApiResponse<SearchResponse[]>>('/search/overview', {
     params: {
       keyword,
-      type,
-      page: 0,
-      size: SEARCH_PAGE_SIZE,
-      order: 'relevance',
+      types: SEARCH_DETAIL_TYPES.join(','),
+      perType: SEARCH_PAGE_SIZE,
     },
   });
 
-  return data.data.content;
+  return data.data;
+}
+
+// 서버는 유형 이름순으로 주므로, 화면에 묶어 보여주는 순서(SEARCH_DETAIL_TYPES)로 되돌린다.
+// 같은 유형 안의 relevance 순서는 안정 정렬로 유지된다
+function typeOrder(type?: string | null) {
+  return SEARCH_DETAIL_TYPES.indexOf((type ?? '').toUpperCase() as SearchDetailType);
 }
 
 export async function searchAll(keyword: string): Promise<SearchResults> {
   const trimmedKeyword = keyword.trim();
   if (!trimmedKeyword) return emptySearchResults();
 
-  const searchResponses = await Promise.all(
-    SEARCH_DETAIL_TYPES.map((type) => searchDetail(trimmedKeyword, type))
-  );
+  const searchResponses = await searchOverview(trimmedKeyword);
 
   const results = emptySearchResults();
 
-  searchResponses.flat().forEach((item) => {
-    const title = stripHighlight(item.highlightedTitle);
-    const preview = stripHighlight(item.highlightedContent);
-    const date = item.date ?? '';
+  [...searchResponses]
+    .sort((a, b) => typeOrder(a.type) - typeOrder(b.type))
+    .forEach((item) => {
+      const title = stripHighlight(item.highlightedTitle);
+      const preview = stripHighlight(item.highlightedContent);
+      const date = item.date ?? '';
 
-    switch (normalizeSearchResultType(item.type)) {
-      case 'notice':
-      case 'department_notice':
-      case 'student_council_notice':
-        results.notices.push({
-          id: item.id,
-          category: item.category ?? '',
-          title,
-          date,
-          url: item.link ?? '',
-        });
-        break;
-      case 'community':
-        results.communities.push({
-          id: stripTypePrefix(item.id),
-          title,
-          preview,
-          likes: item.likeCount ?? 0,
-          comments: item.commentCount ?? 0,
-          date,
-        });
-        break;
-      case 'news':
-        results.newspapers.push({
-          id: item.id,
-          title,
-          preview,
-          author: item.authorName ?? '',
-          date,
-          url: item.link ?? '',
-          imageUrl: item.imageUrl ?? '',
-        });
-        break;
-      case 'broadcast':
-        results.broadcasts.push({
-          id: item.id,
-          title,
-          preview,
-          date,
-          url: item.link ?? '',
-          imageUrl: item.imageUrl ?? '',
-        });
-        break;
-      case 'mju_calendar':
-      case 'department_schedule':
-        results.calendars.push({
-          id: stripTypePrefix(item.id),
-          title,
-          date,
-        });
-        break;
-    }
-  });
+      switch (normalizeSearchResultType(item.type)) {
+        case 'notice':
+        case 'department_notice':
+        case 'student_council_notice':
+          results.notices.push({
+            id: item.id,
+            category: item.category ?? '',
+            title,
+            date,
+            url: item.link ?? '',
+          });
+          break;
+        case 'community':
+          results.communities.push({
+            id: stripTypePrefix(item.id),
+            title,
+            preview,
+            likes: item.likeCount ?? 0,
+            comments: item.commentCount ?? 0,
+            date,
+          });
+          break;
+        case 'news':
+          results.newspapers.push({
+            id: item.id,
+            title,
+            preview,
+            author: item.authorName ?? '',
+            date,
+            url: item.link ?? '',
+            imageUrl: item.imageUrl ?? '',
+          });
+          break;
+        case 'broadcast':
+          results.broadcasts.push({
+            id: item.id,
+            title,
+            preview,
+            date,
+            url: item.link ?? '',
+            imageUrl: item.imageUrl ?? '',
+          });
+          break;
+        case 'mju_calendar':
+        case 'department_schedule':
+          results.calendars.push({
+            id: stripTypePrefix(item.id),
+            title,
+            date,
+          });
+          break;
+      }
+    });
 
   return results;
 }
