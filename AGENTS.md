@@ -118,3 +118,53 @@ components/icons/
 
 - 아이콘만 있고 텍스트 라벨이 없는 `TouchableOpacity`/`Pressable`에는 `accessibilityRole="button"`과 `accessibilityLabel`을 반드시 추가할 것 (자식에 읽어줄 텍스트가 없어 스크린리더가 안내를 못 함)
 - 자식에 `<Text>`가 있는 버튼은 RN이 해당 텍스트를 접근성 이름으로 자동 인식하므로 `accessibilityLabel`을 따로 넣지 않음 (중복 관리 부담만 생김)
+
+## architecture
+
+- 프레임워크 관례를 우선한다. 화면과 컴포넌트는 함수 컴포넌트와 훅으로 작성하고 class 컴포넌트는 쓰지 않는다
+- 객체지향 원칙은 class가 아니라 모듈 단위로 적용한다. 파일 하나가 책임 하나를 갖고 외부에는 export한 함수와 타입만 노출한다
+
+### 계층과 의존 방향
+
+- 의존은 app 화면 -> 화면 전용 \_hooks 또는 hooks -> api, lib 방향으로만 한다. api와 lib는 app, components를 import하지 않는다
+- api 파일은 서버 연결 어댑터다. 서버 응답 타입은 파일 안에만 두고 normalize 함수로 앱 모델로 바꿔 반환한다. 기준 api/posts.ts normalizeBoard
+- 화면은 서버 응답 필드명을 몰라야 한다. 필드 별칭 처리와 null 보정은 normalize에서 끝낸다
+- lib에는 플랫폼 차이를 감싸는 어댑터(alert, open-link, push-notifications)와 React를 모르는 순수 함수(format, validation)만 둔다
+- 서버 호출 함수는 api에 둔다. lib/maps/bus-arrivals.ts처럼 lib에서 client를 직접 쓰는 파일은 새로 만들지 않는다
+- context는 로그인, 전역 모달처럼 앱 전체가 공유하는 상태에만 쓴다. 화면 하나에서만 쓰는 상태를 context로 올리지 않는다
+- context는 Provider 밖에서 호출하면 throw하는 useXxx 훅과 함께 export한다. 기준 context/auth-context.tsx
+
+### 플랫폼 분리
+
+- 동작이 플랫폼마다 다르면 .native.tsx와 .web.tsx로 파일을 나누고 타입은 .d.ts 하나로 맞춘다. 기준 components/post-content
+- 스타일만 다르면 Platform.select로 처리하고 cva variants 안에 넣는다. 기준 components/ui/button.tsx
+- 화면 파일 하나에 Platform.OS 분기가 3곳을 넘으면 lib 어댑터나 플랫폼 파일로 옮긴다
+- ios와 android를 구분하는 분기에는 왜 다르게 처리하는지 한 줄 주석을 단다 (키보드 이벤트, safe area 등)
+
+### 분기 줄이기
+
+- 값에 따라 결과만 달라지는 분기는 if나 switch 대신 Record, Map 매핑 객체와 ?? 기본값으로 쓴다. 기준 lib/maps/icons.ts, lib/open-link.ts
+- 조건에 따라 바뀌는 className은 cva variants로 표현한다
+- 함수 첫머리의 조기 반환은 권장한다. 2단계 이상 중첩 if와 else if 체인은 피한다
+- 같은 조건 검사가 여러 함수에 반복되면 그 조건을 기준으로 컴포넌트나 함수를 나눈다
+
+### 서버 상태와 예외
+
+- 서버 데이터 조회와 변경은 useQuery, useMutation으로 한다. 로딩 여부를 useState와 try finally로 직접 관리하지 않는다. 기준 maps/favorites/\_components/group-edit-sheet.tsx
+- 실패 알림은 useMutation onError에서 showAlert(제목, getApiErrorMessage(error, 기본문구))로 통일한다
+- queryKey는 도메인 kebab-case 문자열로 시작한다 (favorite-groups, map-place-detail). 같은 key를 두 파일 이상에서 쓰면 해당 api 파일에 key를 만드는 함수를 두고 가져다 쓴다
+- 빈 catch는 쓰지 않는다. 의도적으로 무시할 때는 무시해도 되는 이유를 주석으로 남긴다. 기준 maps/search/index.tsx 위치 조회 실패 처리
+
+### 상태와 변수
+
+- 모듈 최상단 let은 어댑터 내부 캐시나 큐처럼 앱 실행 동안 하나만 있어야 하는 값에만 쓰고 이유 주석을 단다. 기준 api/client.ts isRefreshing
+- 다른 state로 계산할 수 있는 값은 state로 만들지 않고 렌더 중 계산하거나 useMemo로 파생시킨다. 기준 maps/index.tsx의 sheetStack 파생값
+- 컴포넌트 하나의 useState가 8개를 넘으면 기능 단위로 컴포넌트나 훅을 분리할 신호로 본다
+
+### 재사용과 분리 기준
+
+- 분리 기준은 줄 수가 아니라 독립적으로 동작하는 기능인가다. 자기 데이터 조회, mutation, 상태를 스스로 갖는 단위로 자른다. 기준 group-edit-sheet.tsx
+- 라우트 하나에서만 쓰는 것은 그 라우트 아래 \_components, \_constants, \_hooks에 둔다
+- 서로 다른 기능 두 곳 이상에서 같은 의미로 쓰일 때만 components, hooks, lib로 올린다. 한 곳에서만 쓰는 추상화는 만들지 않는다
+- 지금 모양은 같아도 앞으로 따로 바뀔 가능성이 크면 복사를 허용하고 원본 파일명을 주석에 남긴다. 기준 sheet-building-list.tsx
+- 파일이 300줄을 넘으면 위 기준으로 떼어낼 기능이 있는지 검토한다

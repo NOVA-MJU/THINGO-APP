@@ -33,4 +33,5 @@ export { default as MoreVerticalIcon } from './more-vertical';
 export { default as NotificationIcon } from './notification';
 export { default as SettingsIcon } from './settings';
 export { default as PlusIcon } from './plus';
+export { default as MinusIcon } from './minus';
 export { default as FilterIcon } from './filter';
