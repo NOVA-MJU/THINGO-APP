@@ -279,8 +279,10 @@ export async function getAiSummary(query: string): Promise<AiSummary | null> {
   const trimmedQuery = query.trim();
   if (!trimmedQuery) return null;
 
+  // 요약은 Gemini 호출(최소 deadline 10초)을 거치므로 기본 10초 타임아웃이면 느린 응답이 실패로 잘린다
   const { data } = await client.get<AiSummaryResponse>('/ai/summary', {
     params: { query: trimmedQuery },
+    timeout: 25000,
   });
 
   return {

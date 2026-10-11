@@ -16,7 +16,6 @@ import {
   getSearchAutocomplete,
   getTopSearchKeywords,
   searchAll,
-  type AiSummary,
   type SearchResults,
 } from '@/api/search';
 import { openLink } from '@/lib/open-link';
@@ -99,9 +98,7 @@ export default function SearchScreen() {
   const [recentSearches, setRecentSearches] = React.useState<string[]>([]);
   const [popularSearches, setPopularSearches] = React.useState<string[]>([]);
   const [results, setResults] = React.useState<SearchResults>(EMPTY_RESULTS);
-  const [aiSummary, setAiSummary] = React.useState<AiSummary | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
-  const [isAiSummaryLoading, setIsAiSummaryLoading] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const isRecentSearchesLoaded = React.useRef(false);
 
@@ -116,6 +113,16 @@ export default function SearchScreen() {
     enabled: !!debouncedQuery && debouncedQuery === trimmedQuery && shouldShowAutocomplete,
     staleTime: 30_000,
   });
+  // AI 서버가 같은 검색어 요약을 30분 캐시하므로 앱도 그동안은 다시 요청하지 않는다.
+  // Gemini가 일시적으로 실패하는 경우가 있어 한 번은 자동으로 다시 시도한다
+  const aiSummaryQuery = useQuery({
+    queryKey: ['ai-summary', submittedQuery],
+    queryFn: () => getAiSummary(submittedQuery),
+    enabled: !!submittedQuery,
+    staleTime: 30 * 60 * 1000,
+    retry: 1,
+  });
+  const aiSummary = aiSummaryQuery.data;
 
   const suggestedSearchKeywords = SUGGESTED_SEARCHES_BY_MONTH[new Date().getMonth() + 1] ?? [];
   const hasResults =
@@ -156,15 +163,12 @@ export default function SearchScreen() {
 
     if (!submittedQuery) {
       setResults(EMPTY_RESULTS);
-      setAiSummary(null);
       setIsLoading(false);
-      setIsAiSummaryLoading(false);
       setErrorMessage(null);
       return;
     }
 
     setIsLoading(true);
-    setIsAiSummaryLoading(true);
     setErrorMessage(null);
 
     searchAll(submittedQuery)
@@ -178,17 +182,6 @@ export default function SearchScreen() {
       })
       .finally(() => {
         if (isActive) setIsLoading(false);
-      });
-
-    getAiSummary(submittedQuery)
-      .then((nextSummary) => {
-        if (isActive) setAiSummary(nextSummary);
-      })
-      .catch(() => {
-        if (isActive) setAiSummary(null);
-      })
-      .finally(() => {
-        if (isActive) setIsAiSummaryLoading(false);
       });
 
     return () => {
@@ -499,8 +492,11 @@ export default function SearchScreen() {
                       <Text className="text-black text-body02">
                         <Text className="text-mju-primary">AI</Text> 요약 검색 결과
                       </Text>
-                      {isAiSummaryLoading ? (
+                      {aiSummaryQuery.isPending ? (
                         <View className="gap-2">
+                          <Text className="text-grey-40 text-caption02">
+                            관련 글을 읽고 요약하고 있어요
+                          </Text>
                           <Skeleton className="h-3.5 w-full" />
                           <Skeleton className="h-3.5 w-5/6" />
                           <Skeleton className="h-3.5 w-4/6" />
@@ -529,7 +525,20 @@ export default function SearchScreen() {
                             ))}
                           </View>
                         </>
-                      ) : null}
+                      ) : (
+                        <View className="flex-row items-center justify-between">
+                          <Text className="text-grey-40 text-body05">
+                            {aiSummaryQuery.isError
+                              ? 'AI 요약을 불러오지 못했어요.'
+                              : '요약할 만한 글을 찾지 못했어요.'}
+                          </Text>
+                          {aiSummaryQuery.isError && (
+                            <TouchableOpacity onPress={() => aiSummaryQuery.refetch()}>
+                              <Text className="text-mju-primary text-body05">다시 시도</Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      )}
                     </View>
                     <View className="h-2 w-full bg-grey-02" />
                   </>
