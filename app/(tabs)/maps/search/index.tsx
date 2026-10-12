@@ -10,6 +10,7 @@ import { ArrowLeftIcon, SearchIcon, XIcon } from '@/components/icons';
 import { Text } from '@/components/ui/text';
 import { formatMapDistance, getOperatingStatusClassName } from '@/lib/maps/format';
 import { getMapIcon, getMapIconClassName, getMapIconKey } from '@/lib/maps/icons';
+import { contentFadeIn, listItemEnter } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
@@ -26,6 +27,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMapSearchSelection } from '@/context/map-search-selection';
 
@@ -86,6 +88,8 @@ export default function MapsSearchScreen() {
     queryFn: () => getMapSearchSuggestions({ keyword: debouncedQuery }),
     enabled: !!debouncedQuery && debouncedQuery === trimmedQuery && isEditing,
     staleTime: 30_000,
+    // 타이핑할 때마다 목록이 스피너로 바뀌며 깜빡이지 않도록, 새 제안이 올 때까지 직전 제안을 유지한다
+    placeholderData: (previous) => previous,
   });
 
   // 검색 요청
@@ -103,6 +107,9 @@ export default function MapsSearchScreen() {
     getNextPageParam: (lastPage, pages) =>
       lastPage.length < MAP_SEARCH_PAGE_SIZE ? undefined : pages.length,
     enabled: !!submittedKeyword,
+    // 검색 직후 현재 위치가 늦게 잡히면 key가 바뀌어 다시 요청한다. 그동안 같은 검색어의 결과를 그대로 보여준다
+    placeholderData: (previous, previousQuery) =>
+      previousQuery?.queryKey[1] === submittedKeyword ? previous : undefined,
   });
 
   // 페이지별로 나뉜 결과를 하나의 리스트로 평탄화
@@ -265,40 +272,47 @@ export default function MapsSearchScreen() {
         </View>
       </View>
 
+      {/* 최근 검색어, 자동완성, 결과 목록이 바뀔 때 툭 바뀌지 않도록 화면마다 페이드인한다 */}
       {!trimmedQuery ? (
-        <RecentSearches
-          recentSearches={recentSearches}
-          onClear={() => setRecentSearches([])}
-          onPress={runSearch}
-          onDelete={(keyword) =>
-            setRecentSearches((prev) => prev.filter((recent) => recent !== keyword))
-          }
-        />
-      ) : isEditing ? (
-        <SuggestionList
-          query={trimmedQuery}
-          suggestions={suggestionsQuery.data ?? []}
-          isPending={debouncedQuery !== trimmedQuery || suggestionsQuery.isPending}
-          isError={suggestionsQuery.isError}
-          onPress={onSuggestionPress}
-        />
-      ) : (
-        <SearchResultList
-          query={submittedKeyword}
-          results={searchResults}
-          bottomPadding={inset.bottom}
-          isPending={searchQuery.isPending}
-          isError={searchQuery.isError}
-          isFetchingNextPage={searchQuery.isFetchingNextPage}
-          hasNextPage={searchQuery.hasNextPage}
-          onEndReached={() => {
-            if (searchQuery.hasNextPage && !searchQuery.isFetchingNextPage) {
-              void searchQuery.fetchNextPage();
+        <Animated.View key="recent" entering={contentFadeIn} className="flex-1">
+          <RecentSearches
+            recentSearches={recentSearches}
+            onClear={() => setRecentSearches([])}
+            onPress={runSearch}
+            onDelete={(keyword) =>
+              setRecentSearches((prev) => prev.filter((recent) => recent !== keyword))
             }
-          }}
-          onRetry={() => void searchQuery.refetch()}
-          onPress={onSearchResultPress}
-        />
+          />
+        </Animated.View>
+      ) : isEditing ? (
+        <Animated.View key="suggestions" entering={contentFadeIn} className="flex-1">
+          <SuggestionList
+            query={trimmedQuery}
+            suggestions={suggestionsQuery.data ?? []}
+            isPending={!suggestionsQuery.data}
+            isError={suggestionsQuery.isError}
+            onPress={onSuggestionPress}
+          />
+        </Animated.View>
+      ) : (
+        <Animated.View key="results" entering={contentFadeIn} className="flex-1">
+          <SearchResultList
+            query={submittedKeyword}
+            results={searchResults}
+            bottomPadding={inset.bottom}
+            isPending={searchQuery.isPending}
+            isError={searchQuery.isError}
+            isFetchingNextPage={searchQuery.isFetchingNextPage}
+            hasNextPage={searchQuery.hasNextPage}
+            onEndReached={() => {
+              if (searchQuery.hasNextPage && !searchQuery.isFetchingNextPage) {
+                void searchQuery.fetchNextPage();
+              }
+            }}
+            onRetry={() => void searchQuery.refetch()}
+            onPress={onSearchResultPress}
+          />
+        </Animated.View>
       )}
     </View>
   );
@@ -392,11 +406,13 @@ function SuggestionList({
       keyExtractor={(item) => `${item.type}:${item.id}`}
       // 자동완성은 결과 목록과 구분되도록 이름만 가볍게 보여준다 (누르면 바로 해당 장소로 이동)
       renderItem={({ item }) => (
-        <TouchableOpacity onPress={() => onPress(item)} activeOpacity={0.7}>
-          <Text className="px-4 py-3 text-black text-body04" numberOfLines={1}>
-            {item.name}
-          </Text>
-        </TouchableOpacity>
+        <Animated.View entering={contentFadeIn}>
+          <TouchableOpacity onPress={() => onPress(item)} activeOpacity={0.7}>
+            <Text className="px-4 py-3 text-black text-body04" numberOfLines={1}>
+              {item.name}
+            </Text>
+          </TouchableOpacity>
+        </Animated.View>
       )}
     />
   );
@@ -456,7 +472,11 @@ function SearchResultList({
       contentContainerStyle={{ paddingTop: 8, paddingBottom: bottomPadding + 16 }}
       onEndReached={hasNextPage ? onEndReached : undefined}
       onEndReachedThreshold={0.4}
-      renderItem={({ item }) => <SearchResultItem item={item} onPress={() => onPress(item)} />}
+      renderItem={({ item, index }) => (
+        <Animated.View entering={listItemEnter(index)}>
+          <SearchResultItem item={item} onPress={() => onPress(item)} />
+        </Animated.View>
+      )}
       ListFooterComponent={
         isFetchingNextPage ? (
           <View className="items-center py-4">
