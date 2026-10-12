@@ -84,6 +84,8 @@ pnpm expo run:android
 - 화면 진입 자체를 막아야 할 때(예: `app/notifications/index.tsx`): `isInitializing`이 끝난 뒤 `!user`면 `<Redirect href="/login" />`로 가드
 - 버튼 클릭 등 액션 단위로 로그인 여부만 체크해 분기할 때는 `context/login-required-modal-context.tsx`의 `useLoginRequiredModal()` → `showLoginRequiredModal()` 사용 (파라미터 없음, 모달의 "로그인" 버튼을 누르면 내부적으로 `/login`으로 이동까지 처리됨). 커스텀 안내 문구·디자인이 필요하면 `components/ui/dialog.tsx`의 `Dialog`로 직접 구현
 - 푸시 알림 토큰 등록/해제는 `AuthProvider`가 자동 처리 (`user`가 세팅되면 `registerCurrentDeviceForPush()`, `logout()` 호출 시 `unregisterCurrentDeviceForPush()`) — 화면에서 별도로 호출할 필요 없음
+- 앱은 로그인하지 않아도 키워드 알림·알림 내역을 쓸 수 있다. 서버가 발급한 기기 ID(`api/device-id.ts`)를 모든 요청에 `X-Device-Id`로 보내고, 서버는 로그인하지 않은 요청을 이 기기 기준으로 처리한다. 웹은 푸시를 받을 수 없어 로그인해야 한다
+- 알림 기능 접근 여부는 `user` 대신 `hooks/useAlarmAccess.ts`의 `canUseAlarms`로 판단한다. 로그인하면 `AuthProvider`가 이 기기의 알림을 계정으로 합친다(`mergeDeviceAlarms`)
 
 ## lib utilities
 

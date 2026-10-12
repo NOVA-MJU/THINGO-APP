@@ -34,7 +34,11 @@ async function saveDeviceToken(token: string): Promise<void> {
   await SecureStore.setItemAsync(DEVICE_TOKEN_KEY, token);
 }
 
-export async function registerCurrentDeviceForPush(): Promise<string | null> {
+// requestPermission이 false면 이미 허용된 경우에만 등록한다.
+// 비로그인 사용자에게 앱을 켜자마자 권한을 묻지 않고, 알림을 처음 설정할 때 묻기 위함
+export async function registerCurrentDeviceForPush({
+  requestPermission = true,
+}: { requestPermission?: boolean } = {}): Promise<string | null> {
   if (Platform.OS !== 'android' && Platform.OS !== 'ios') return null;
 
   if (Platform.OS === 'android') {
@@ -46,7 +50,7 @@ export async function registerCurrentDeviceForPush(): Promise<string | null> {
 
   let permission = await Notifications.getPermissionsAsync();
 
-  if (permission.status !== 'granted') {
+  if (permission.status !== 'granted' && requestPermission) {
     permission = await Notifications.requestPermissionsAsync();
   }
 

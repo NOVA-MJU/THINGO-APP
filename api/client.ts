@@ -1,5 +1,6 @@
 import axios, { AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
 import { Platform } from 'react-native';
+import { getDeviceId } from './device-id';
 import { clearTokens, getAccessToken, getRefreshToken, setAccessToken } from './token';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL!;
@@ -45,6 +46,9 @@ client.interceptors.request.use(async (config) => {
     const token = await getAccessToken();
     if (token) config.headers.Authorization = `Bearer ${token}`;
   }
+  // 로그인하지 않아도 이 기기로 알림을 설정할 수 있도록, 서버가 기기를 알아볼 ID를 함께 보낸다 (웹은 null)
+  const deviceId = await getDeviceId();
+  if (deviceId) config.headers['X-Device-Id'] = deviceId;
   return config;
 });
 

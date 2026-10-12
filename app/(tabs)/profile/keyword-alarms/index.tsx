@@ -12,7 +12,8 @@ import { AppHeader } from '@/components/app-header';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
-import { useAuth } from '@/context/auth-context';
+import { useAlarmAccess } from '@/hooks/useAlarmAccess';
+import { registerCurrentDeviceForPush } from '@/lib/push-notifications';
 import { useLoginRequiredModal } from '@/context/login-required-modal-context';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { showAlert } from '@/lib/alert';
@@ -57,7 +58,7 @@ type ConfirmKeyword = {
 export default function KeywordAlarmsScreen() {
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { canUseAlarms, isGuest } = useAlarmAccess();
   const { showLoginRequiredModal } = useLoginRequiredModal();
   const [keyword, setKeyword] = React.useState('');
   const [categories, setCategories] = React.useState<AlarmCategory[]>([]);
@@ -97,6 +98,8 @@ export default function KeywordAlarmsScreen() {
       setKeyword('');
       setCategories([]);
       setConfirmKeyword(null);
+      // 로그인하지 않은 기기는 앱을 켤 때 알림 권한을 묻지 않으므로, 처음 키워드를 등록한 이 시점에 묻는다
+      if (isGuest) void registerCurrentDeviceForPush().catch(() => {});
       await queryClient.invalidateQueries({ queryKey: KEYWORD_ALARMS_QUERY_KEY });
     },
     onError: (error) => {
@@ -163,7 +166,7 @@ export default function KeywordAlarmsScreen() {
   });
 
   function validateBeforeCreate(nextKeyword: string, nextCategories: AlarmCategory[]) {
-    if (!user) {
+    if (!canUseAlarms) {
       showLoginRequiredModal();
       return false;
     }
