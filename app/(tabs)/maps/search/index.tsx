@@ -1,9 +1,7 @@
 import {
-  getBuildings,
   getMapSearchResults,
   getMapSearchSuggestions,
   MAP_SEARCH_PAGE_SIZE,
-  type MapBuilding,
   type MapSearchItem,
   type MapSearchSuggestion,
 } from '@/api/maps';
@@ -11,7 +9,7 @@ import { getFloorPlan } from '@/assets/map-floors';
 import { ArrowLeftIcon, SearchIcon, XIcon } from '@/components/icons';
 import { Text } from '@/components/ui/text';
 import { formatMapDistance, getOperatingStatusClassName } from '@/lib/maps/format';
-import { getMapIcon, getMapIconClassName } from '@/lib/maps/icons';
+import { getMapIcon, getMapIconClassName, getMapIconKey } from '@/lib/maps/icons';
 import { cn } from '@/lib/utils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
@@ -30,7 +28,6 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMapSearchSelection } from '@/context/map-search-selection';
-import { CAMPUS_LATITUDE, CAMPUS_LONGITUDE } from '@/lib/maps/campus';
 
 const MAX_RECENT_SEARCH_COUNT = 10;
 const RECENT_SEARCHES_KEY = 'map_recent_searches';
@@ -52,17 +49,20 @@ function useDebouncedValue<T>(value: T, delay: number) {
   return debouncedValue;
 }
 
-// 강의실 검색 결과를 실내지도 경로로 바꾼다. location은 "건물명 층" 형식(예: "종합관 F4")이라
-// 건물명으로 buildingId를 찾고, 층 라벨은 도면이 있는 층인지 확인하는 데 쓴다. 매칭이 안 되면 null
-function buildIndoorLink(item: MapSearchItem, buildings: MapBuilding[]): Href | null {
-  const match = item.location?.match(/^(.+?)\s+([BF]\d+)$/);
-  if (!match) return null;
+// 서버가 FLOOR_MAP으로 내려준 교내 장소(강의실, 건물 안 시설)의 층별 안내도 경로.
+// 앱에 그 건물·층 도면이 아직 없으면 "준비 중" 화면 대신 지도 핀으로 보여주도록 null을 돌려준다.
+// 도면 위 핀이 지도와 같은 카테고리 마커를 쓰도록 markerIcon을 붙인다
+function getFloorPlanHref(
+  item: Pick<MapSearchItem, 'type' | 'link' | 'iconKey' | 'categoryCode'>
+): Href | null {
+  if (item.type !== 'FLOOR_MAP' || !item.link) return null;
 
-  const [, buildingName, floorLabel] = match;
-  const building = buildings.find((b) => b.name === buildingName);
-  if (!building || !getFloorPlan(String(building.id), floorLabel)) return null;
+  const params = new URLSearchParams(item.link.split('?')[1]);
+  const floorPlan = getFloorPlan(params.get('buildingId') ?? '', params.get('floorLabel') ?? '');
+  if (floorPlan === undefined) return null;
 
-  return `/maps/floor?buildingId=${building.id}&floorLabel=${floorLabel}` as Href;
+  const markerIcon = getMapIconKey(item.iconKey, item.categoryCode);
+  return `${item.link}&markerIcon=${encodeURIComponent(markerIcon)}` as Href;
 }
 
 export default function MapsSearchScreen() {
@@ -79,12 +79,6 @@ export default function MapsSearchScreen() {
   const trimmedQuery = query.trim();
   const debouncedQuery = useDebouncedValue(trimmedQuery, AUTOCOMPLETE_DEBOUNCE_MS);
   const isEditing = !!trimmedQuery && trimmedQuery !== submittedKeyword;
-
-  // 강의실 결과의 buildingId를 찾기 위한 건물 목록. 지도 화면과 같은 쿼리 키라 캐시를 공유한다
-  const { data: buildings = [] } = useQuery({
-    queryKey: ['map-buildings', CAMPUS_LATITUDE, CAMPUS_LONGITUDE],
-    queryFn: () => getBuildings(CAMPUS_LATITUDE, CAMPUS_LONGITUDE),
-  });
 
   // 검색어 자동완성 요청
   const suggestionsQuery = useQuery({
@@ -193,27 +187,52 @@ export default function MapsSearchScreen() {
     inputRef.current?.focus();
   }
 
-  // 검색 결과 클릭 시 선택한 장소를 지도 화면으로 전달하고 검색창 닫기
+  // 검색 결과 클릭: 도면이 있는 교내 장소는 층별 안내도로, 그 외(건물·외부 장소·도면 없는 층)는 지도 핀으로 보여준다
   function onSearchResultPress(item: MapSearchItem) {
-    // 서버가 link를 내려주는 실내지도 결과는 그대로 이동하고, 강의실 장소는 location("건물명 층")으로 경로를 만든다
-    // (강의실 장소 응답에는 link가 null로 온다)
-    const indoorLink =
-      item.type === 'FLOOR_MAP' && item.link
-        ? (item.link as Href)
-        : item.categoryCode === 'classroom'
-          ? buildIndoorLink(item, buildings)
-          : null;
+    const floorPlanHref = getFloorPlanHref(item);
 
-    if (indoorLink) {
+    if (floorPlanHref) {
       // push로 쌓아서 실내지도의 뒤로가기가 검색 화면으로 돌아오게 한다.
       // replace는 이 화면이 속한 (tabs) 스택 항목을 대신 덮어써서, 뒤로 갈 화면이 없어지는 문제가 생긴다
-      router.push(indoorLink);
+      router.push(floorPlanHref);
       return;
     }
 
     selectSearchResult(item);
     router.back();
   }
+
+  // 자동완성 항목 클릭: 결과 목록을 거치지 않고 바로 층별 안내도나 지도로 이동한다.
+  // 자동완성 응답에는 좌표가 없어 지도는 placeId/buildingId 딥링크로 연다 (지도가 상세를 받아 핀·카메라를 맞춘다)
+  function onSuggestionPress(suggestion: MapSearchSuggestion) {
+    addRecentSearch(suggestion.name);
+    Keyboard.dismiss();
+
+    const floorPlanHref = getFloorPlanHref(suggestion);
+    if (floorPlanHref) {
+      router.push(floorPlanHref);
+      return;
+    }
+
+    const params =
+      suggestion.type === 'BUILDING'
+        ? { buildingId: String(suggestion.id) }
+        : { placeId: String(suggestion.id) };
+    router.dismissTo({ pathname: '/maps', params });
+  }
+
+  // 결과가 하나뿐이면 목록을 보여줄 필요 없이 바로 그 장소로 이동한다.
+  // 층별 안내도에서 뒤로 돌아왔을 때 다시 이동하지 않도록 검색어마다 한 번만 처리한다
+  const autoOpenedKeywordRef = React.useRef('');
+  React.useEffect(() => {
+    const pages = searchQuery.data?.pages;
+    if (!pages || autoOpenedKeywordRef.current === submittedKeyword) return;
+
+    autoOpenedKeywordRef.current = submittedKeyword;
+    if (pages.length === 1 && pages[0].length === 1) onSearchResultPress(pages[0][0]);
+    // 결과가 새로 도착했을 때만 판단한다 (검색어·핸들러 변경으로는 다시 실행하지 않음)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery.data]);
 
   return (
     <View style={{ flex: 1, paddingTop: inset.top }} className="bg-white">
@@ -261,7 +280,7 @@ export default function MapsSearchScreen() {
           suggestions={suggestionsQuery.data ?? []}
           isPending={debouncedQuery !== trimmedQuery || suggestionsQuery.isPending}
           isError={suggestionsQuery.isError}
-          onPress={(suggestion) => runSearch(suggestion.name)}
+          onPress={onSuggestionPress}
         />
       ) : (
         <SearchResultList
@@ -371,24 +390,14 @@ function SuggestionList({
       data={suggestions}
       keyboardShouldPersistTaps="handled"
       keyExtractor={(item) => `${item.type}:${item.id}`}
-      renderItem={({ item }) => {
-        const Icon = getMapIcon(item.iconKey, item.categoryCode);
-        return (
-          <TouchableOpacity onPress={() => onPress(item)} activeOpacity={0.7}>
-            <View className="flex-row items-center gap-3 px-4 py-3">
-              <View className="rounded-lg bg-blue-05 p-2">
-                <Icon size={20} className={getMapIconClassName(item.categoryCode)} />
-              </View>
-              <Text className="min-w-0 flex-1 text-black text-body04" numberOfLines={1}>
-                {item.name}
-              </Text>
-              <Text className="text-grey-40 text-caption02">
-                {item.type === 'BUILDING' ? '건물' : '장소'}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        );
-      }}
+      // 자동완성은 결과 목록과 구분되도록 이름만 가볍게 보여준다 (누르면 바로 해당 장소로 이동)
+      renderItem={({ item }) => (
+        <TouchableOpacity onPress={() => onPress(item)} activeOpacity={0.7}>
+          <Text className="px-4 py-3 text-black text-body04" numberOfLines={1}>
+            {item.name}
+          </Text>
+        </TouchableOpacity>
+      )}
     />
   );
 }

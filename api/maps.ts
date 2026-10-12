@@ -4,7 +4,7 @@ import { client } from './client';
 export type MapEntityType = 'BUILDING' | 'PLACE';
 export type MapPlaceType = 'BUILDING' | 'FACILITY' | 'EXTERNAL_LOCATION';
 
-// FLOOR_MAP은 강의실 코드 검색으로만 내려온다. 요청 파라미터의 type 필터에는 쓰지 않으므로 응답 타입에만 합친다
+// FLOOR_MAP은 건물과 층이 있는 교내 장소(강의실, 건물 안 카페 등)에 내려온다. 요청 파라미터의 type 필터에는 쓰지 않으므로 응답 타입에만 합친다
 export type MapSearchItemType = MapEntityType | 'FLOOR_MAP';
 
 export type MapSearchItem = {
@@ -121,7 +121,7 @@ export type MapCategoryPin = {
 
 export type MapSearchSuggestion = Pick<
   MapSearchItem,
-  'id' | 'name' | 'type' | 'categoryCode' | 'iconKey'
+  'id' | 'name' | 'type' | 'categoryCode' | 'iconKey' | 'link'
 >;
 
 export type MapSearchParams = {
@@ -160,8 +160,9 @@ export async function getMapSearchResults({
   const trimmedKeyword = keyword.trim();
   if (!trimmedKeyword) return [];
 
+  // floorMap=true여야 서버가 교내 장소를 FLOOR_MAP + 층별 안내도 link로 내려준다 (기본값 false는 하위 호환용으로 PLACE로 낮춤)
   const { data } = await client.get<ApiResponse<MapSearchItem[]>>('/map/search', {
-    params: { keyword: trimmedKeyword, type, lat, lng, page, size },
+    params: { keyword: trimmedKeyword, type, lat, lng, page, size, floorMap: true },
   });
 
   return data.data;
@@ -190,8 +191,9 @@ export async function getMapSearchSuggestions({
   const trimmedKeyword = keyword.trim();
   if (!trimmedKeyword) return [];
 
+  // 자동완성 항목에서도 결과 목록을 거치지 않고 층별 안내도로 바로 가도록 검색과 같이 floorMap=true로 요청한다
   const { data } = await client.get<ApiResponse<MapSearchSuggestion[]>>('/map/search/suggest', {
-    params: { keyword: trimmedKeyword, type, limit },
+    params: { keyword: trimmedKeyword, type, limit, floorMap: true },
   });
 
   return data.data;

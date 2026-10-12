@@ -1,5 +1,6 @@
 import type React from 'react';
 import type { SvgProps } from 'react-native-svg';
+import floorPlanTargets from './targets.json';
 
 import Building1B1 from './building-1/B1.svg';
 import Building1F1 from './building-1/F1.svg';
@@ -112,9 +113,31 @@ export const MAP_FLOOR_PLANS: Record<string, Record<string, React.FC<SvgProps>>>
   },
 };
 
-// 모든 도면이 393x698 캔버스로 export돼 있다. 뷰포트 스케일 계산에 쓴다.
-export const MAP_FLOOR_PLAN_WIDTH = 393;
-export const MAP_FLOOR_PLAN_HEIGHT = 698;
+// 도면 SVG의 텍스트 라벨 하나. 원본 <text>와 같은 자리·크기·회전으로 다시 그릴 수 있도록 속성을 그대로 담는다 (좌표는 viewBox 기준)
+export type FloorPlanText = {
+  center: [number, number];
+  // 글자 영역 위쪽 끝 y (핀 끝을 맞추는 위치)
+  top: number;
+  transform?: string;
+  fontSize: number;
+  fontWeight?: string;
+  // 줄(tspan)별 [x, y, 글자]
+  lines: [number, number, string][];
+};
+
+type FloorPlanLayout = {
+  width: number;
+  height: number;
+  // 공백 제거·소문자로 정규화한 라벨 -> 그 이름의 라벨들 (같은 이름이 여러 곳에 있을 수 있음)
+  targets: Record<string, FloorPlanText[]>;
+};
+
+// 도면별 viewBox 크기와 텍스트 라벨. 대부분 393x698이지만 MCC관 일부 층처럼 크기가 다른 도면이 있어 층별로 둔다.
+// SVG를 바꾸면 `node scripts/generate-floor-plan-targets.mjs`로 다시 생성해야 한다
+const FLOOR_PLAN_LAYOUTS = floorPlanTargets as unknown as Record<
+  string,
+  Record<string, FloorPlanLayout>
+>;
 
 // 해당 건물에 도면이 준비된 층 라벨 목록 (없으면 빈 배열)
 export function getFloorPlanLabels(buildingId: string): string[] {
@@ -123,4 +146,18 @@ export function getFloorPlanLabels(buildingId: string): string[] {
 
 export function getFloorPlan(buildingId: string, floorLabel: string) {
   return MAP_FLOOR_PLANS[buildingId]?.[floorLabel];
+}
+
+export function getFloorPlanLayout(buildingId: string, floorLabel: string) {
+  return FLOOR_PLAN_LAYOUTS[buildingId]?.[floorLabel];
+}
+
+// 검색 링크의 target(호실 코드 또는 장소명)이 도면에 적힌 위치. 띄어쓰기·대소문자가 달라도 찾도록 정규화해서 비교한다
+export function findFloorPlanTargetTexts(
+  buildingId: string,
+  floorLabel: string,
+  target: string
+): FloorPlanText[] {
+  const key = target.replace(/\s+/g, '').toLowerCase();
+  return getFloorPlanLayout(buildingId, floorLabel)?.targets[key] ?? [];
 }
