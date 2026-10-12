@@ -2,7 +2,7 @@ import { NotificationIcon, SearchIcon, ThingoLogoSmall } from '@/components/icon
 import Sidebar from '@/components/sidebar';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Text } from '@/components/ui/text';
-import { useAuth } from '@/context/auth-context';
+import { useAlarmAccess } from '@/hooks/useAlarmAccess';
 import { Link, router, useLocalSearchParams } from 'expo-router';
 import Head from 'expo-router/head';
 import * as React from 'react';
@@ -36,7 +36,7 @@ export default function Screen() {
   const targetTab = Array.isArray(tab) ? tab[0] : tab;
 
   const insets = useSafeAreaInsets();
-  const { user } = useAuth();
+  const { canUseAlarms } = useAlarmAccess();
   const scrollRef = React.useRef<ScrollView>(null);
   const [currentTab, setCurrentTab] = React.useState(TABS[0]);
   const [sidebarVisible, setSidebarVisible] = React.useState(false);
@@ -45,7 +45,7 @@ export default function Screen() {
 
   // 헤더 알림 버튼 클릭
   const handleNotificationPress = () => {
-    if (!user) {
+    if (!canUseAlarms) {
       setNotificationDialogVisible(true);
     } else {
       router.push('/notifications');
