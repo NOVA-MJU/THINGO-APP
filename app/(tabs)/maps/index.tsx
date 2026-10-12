@@ -350,18 +350,6 @@ export default function MapsScreen() {
     return [extraChip, ...QUICK_CHIPS];
   }, [selectedCategoryCode]);
 
-  const selectedCamera = React.useMemo(
-    () =>
-      selectedSearchResult
-        ? {
-            latitude: selectedSearchResult.latitude,
-            longitude: selectedSearchResult.longitude,
-            zoom: 17,
-          }
-        : undefined,
-    [selectedSearchResult]
-  );
-
   // 검색 결과 마커 (place marker 스타일 재사용)
   const searchResultMarkers = React.useMemo(
     () =>
@@ -556,6 +544,8 @@ export default function MapsScreen() {
 
     const searchResult = selectedSearchResult;
     resetStack();
+    // 카메라는 여기서 한 번만 옮긴다. camera prop으로도 같은 위치를 주면 시트 높이 보정(pivot)이 다른 이동이
+    // 동시에 걸리고, 곧바로 검색 결과를 지우며 camera가 풀려 이동이 끊기면서 지도가 덜 그려진 채 보인다
     mapRef.current?.animateCameraTo(searchResult.latitude, searchResult.longitude, 17);
 
     if (searchResult.type === 'BUILDING') {
@@ -909,7 +899,6 @@ export default function MapsScreen() {
         initialLatitude={CAMPUS_LATITUDE}
         initialLongitude={CAMPUS_LONGITUDE}
         initialZoom={16}
-        camera={selectedCamera}
         // 버스 정류장 마커는 bus 레이어가 떠 있을 때만 노출 (카테고리/검색 화면에서는 지도가 혼잡해지는 것을 방지)
         busStopMarkers={selectedBusStation ? BUS_STOPS : []}
         // 장소 핀이 떠 있으면(검색·딥링크로 연 장소) 건물 번호 핀을 숨겨 찾은 위치만 눈에 띄게 한다

@@ -18,6 +18,7 @@ import {
   searchAll,
   type SearchResults,
 } from '@/api/search';
+import { contentFadeIn } from '@/lib/motion';
 import { openLink } from '@/lib/open-link';
 import { parseUTCDate } from '@/lib/utils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -35,6 +36,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const TABS = ['ALL', '게시판', '공지사항', '학사일정', '명대신문', '명대뉴스'];
@@ -112,6 +114,8 @@ export default function SearchScreen() {
     queryFn: () => getSearchAutocomplete(debouncedQuery),
     enabled: !!debouncedQuery && debouncedQuery === trimmedQuery && shouldShowAutocomplete,
     staleTime: 30_000,
+    // 타이핑할 때마다 목록이 스피너로 바뀌며 깜빡이지 않도록, 새 제안이 올 때까지 직전 제안을 유지한다
+    placeholderData: (previous) => previous,
   });
   // AI 서버가 같은 검색어 요약을 30분 캐시하므로 앱도 그동안은 다시 요청하지 않는다.
   // Gemini가 일시적으로 실패하는 경우가 있어 한 번은 자동으로 다시 시도한다
@@ -312,7 +316,7 @@ export default function SearchScreen() {
           <AutocompleteList
             query={trimmedQuery}
             suggestions={autocompleteQuery.data ?? []}
-            isPending={debouncedQuery !== trimmedQuery || autocompleteQuery.isPending}
+            isPending={!autocompleteQuery.data}
             isError={autocompleteQuery.isError}
             onPress={submitSearch}
           />
@@ -320,7 +324,7 @@ export default function SearchScreen() {
 
         {/* 검색어 미입력 */}
         {shouldShowEmptyState && (
-          <View>
+          <Animated.View entering={contentFadeIn}>
             {/* 최근 검색어 */}
             <View className="mt-8 gap-2.5">
               <View className="flex-row items-end justify-between px-4">
@@ -393,7 +397,7 @@ export default function SearchScreen() {
                 )}
               />
             </View>
-          </View>
+          </Animated.View>
         )}
 
         {/* 검색 결과 */}
@@ -408,7 +412,7 @@ export default function SearchScreen() {
             )}
 
             {isLoading && (
-              <View>
+              <Animated.View entering={contentFadeIn}>
                 <View className="gap-3.5 px-4 py-5">
                   <Skeleton className="h-4 w-32" />
                   <View className="gap-2">
@@ -470,7 +474,7 @@ export default function SearchScreen() {
                     ))}
                   </View>
                 </View>
-              </View>
+              </Animated.View>
             )}
 
             {!isLoading && !!errorMessage && (
@@ -484,7 +488,8 @@ export default function SearchScreen() {
             )}
 
             {!isLoading && !errorMessage && hasResults && (
-              <>
+              // 탭을 바꿀 때도 결과가 자연스럽게 바뀌도록 탭마다 새로 페이드인한다
+              <Animated.View key={currentTab} entering={contentFadeIn}>
                 {/* ai 요약 검색 결과 */}
                 {currentTab === 'ALL' && (
                   <>
@@ -507,7 +512,7 @@ export default function SearchScreen() {
                           </View>
                         </View>
                       ) : aiSummary ? (
-                        <>
+                        <Animated.View entering={contentFadeIn} className="gap-3.5">
                           <Text className="text-grey-80 text-body05">{aiSummary.summary}</Text>
                           <View>
                             {aiSummary.sources.map((source, index) => (
@@ -524,7 +529,7 @@ export default function SearchScreen() {
                               </View>
                             ))}
                           </View>
-                        </>
+                        </Animated.View>
                       ) : (
                         <View className="flex-row items-center justify-between">
                           <Text className="text-grey-40 text-body05">
@@ -711,7 +716,7 @@ export default function SearchScreen() {
                     </View>
                   </View>
                 )}
-              </>
+              </Animated.View>
             )}
           </View>
         )}
@@ -756,18 +761,16 @@ function AutocompleteList({
   return (
     <View className="pt-2">
       {suggestions.map((suggestion, index) => (
-        <TouchableOpacity
-          key={`${suggestion}:${index}`}
-          activeOpacity={0.7}
-          onPress={() => onPress(suggestion)}
-        >
-          <View className="flex-row items-center gap-3 border-b border-grey-02 px-4 py-3">
-            <SearchIcon size={20} className="text-grey-30" />
-            <Text className="min-w-0 flex-1 text-black text-body04" numberOfLines={1}>
-              {suggestion}
-            </Text>
-          </View>
-        </TouchableOpacity>
+        <Animated.View key={`${suggestion}:${index}`} entering={contentFadeIn}>
+          <TouchableOpacity activeOpacity={0.7} onPress={() => onPress(suggestion)}>
+            <View className="flex-row items-center gap-3 border-b border-grey-02 px-4 py-3">
+              <SearchIcon size={20} className="text-grey-30" />
+              <Text className="min-w-0 flex-1 text-black text-body04" numberOfLines={1}>
+                {suggestion}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </Animated.View>
       ))}
     </View>
   );
