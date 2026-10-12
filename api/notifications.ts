@@ -100,6 +100,20 @@ export async function deleteKeywordAlarm(id: number): Promise<void> {
   await client.delete(`/keyword-alarms/${id}`);
 }
 
+export type DeviceAlarmMergeResult = {
+  mergedCount: number;
+  duplicateCount: number;
+  skippedCount: number;
+};
+
+// 로그인 전에 이 기기에서 설정한 키워드 알림과 받은 알림 내역을 계정으로 옮긴다 (같은 키워드는 하나로 합쳐짐)
+export async function mergeDeviceAlarms(): Promise<DeviceAlarmMergeResult> {
+  const { data } = await client.post<ApiResponse<DeviceAlarmMergeResult>>(
+    '/keyword-alarms/merge-device'
+  );
+  return data.data;
+}
+
 export async function registerDeviceToken(
   fcmToken: string,
   platform: DevicePlatform

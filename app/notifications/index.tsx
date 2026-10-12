@@ -7,6 +7,7 @@ import {
 import { AppHeader } from '@/components/app-header';
 import { Text } from '@/components/ui/text';
 import { useAuth } from '@/context/auth-context';
+import { useAlarmAccess } from '@/hooks/useAlarmAccess';
 import { showAlert } from '@/lib/alert';
 import { openLinkOrNavigate } from '@/lib/open-link';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -24,14 +25,15 @@ export default function NotificationsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { user, isInitializing } = useAuth();
+  const { user } = useAuth();
+  const { canUseAlarms, isInitializing } = useAlarmAccess();
 
   const notificationsQuery = useInfiniteQuery({
     queryKey: NOTIFICATIONS_QUERY_KEY,
     queryFn: ({ pageParam }) => getNotifications(pageParam),
     initialPageParam: 0,
     getNextPageParam: (lastPage) => (lastPage.last ? undefined : lastPage.page + 1),
-    enabled: !!user,
+    enabled: canUseAlarms && !isInitializing,
     staleTime: 0,
     refetchOnMount: 'always',
     refetchOnWindowFocus: true,
@@ -87,8 +89,8 @@ export default function NotificationsScreen() {
     }
   }
 
-  // 로그인 안된 경우
-  if (!isInitializing && !user) return <Redirect href="/login" />;
+  // 웹에서 로그인 안된 경우 (앱은 로그인하지 않아도 이 기기로 받은 알림을 보여준다)
+  if (!isInitializing && !canUseAlarms) return <Redirect href="/login" />;
 
   return (
     <View className="flex-1 bg-white">
