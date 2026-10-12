@@ -28,6 +28,12 @@ async function loadOrCreateDeviceId(): Promise<string> {
   return data.data.deviceId;
 }
 
+// 서버가 모르는 기기 ID(DEVICE_ID_INVALID)를 받으면 지워서, 다음 요청 때 새 ID를 발급받게 한다
+export async function resetDeviceId(): Promise<void> {
+  deviceIdPromise = null;
+  if (isNative) await SecureStore.deleteItemAsync(DEVICE_ID_KEY);
+}
+
 // 이 기기의 ID. 처음 쓰는 기기면 서버에 등록해 받아온다. 실패하면 null을 돌려주고 다음 요청에서 다시 시도한다
 export function getDeviceId(): Promise<string | null> {
   if (!isNative) return Promise.resolve(null);

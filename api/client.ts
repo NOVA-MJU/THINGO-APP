@@ -1,6 +1,6 @@
 import axios, { AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
 import { Platform } from 'react-native';
-import { getDeviceId } from './device-id';
+import { getDeviceId, resetDeviceId } from './device-id';
 import { clearTokens, getAccessToken, getRefreshToken, setAccessToken } from './token';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL!;
@@ -83,6 +83,11 @@ client.interceptors.response.use(
     const url = original?.url ?? '';
 
     if (!original || (status !== 401 && status !== 403)) return Promise.reject(error);
+    // 비로그인 요청의 기기 ID가 무효인 경우는 토큰 재발급과 무관하므로, ID만 지우고 실패로 돌려준다
+    if ((error.response?.data as { error?: string } | undefined)?.error === 'DEVICE_ID_INVALID') {
+      await resetDeviceId();
+      return Promise.reject(error);
+    }
     if (url.includes('/auth/login') || url.includes('/auth/reissue')) return Promise.reject(error);
     if (original._retry) return Promise.reject(error);
 
