@@ -3,7 +3,7 @@ import { ExpoConfig } from 'expo/config';
 const config: ExpoConfig = {
   name: 'Thingo',
   slug: 'thingo-app',
-  version: '1.0.8',
+  version: '1.0.9',
   locales: { ko: './locales/ko.json' },
   orientation: 'portrait',
   icon: './assets/images/icon.png',
@@ -81,6 +81,9 @@ const config: ExpoConfig = {
         android: {
           // 네이버 지도 SDK Maven 저장소
           extraMavenRepos: ['https://repository.map.naver.com/archive/maven'],
+          // Google Play가 DEX 난독화 비율이 낮으면 게시를 제한하므로 릴리스 빌드에서 R8 축소·난독화를 켠다
+          enableMinifyInReleaseBuilds: true,
+          enableShrinkResourcesInReleaseBuilds: true,
         },
         ios: {
           // Firebase(Swift pod)는 static framework 형태로만 static 링크 가능 (SPM은 위에서 disableSPM으로 끔)
