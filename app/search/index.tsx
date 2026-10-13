@@ -512,7 +512,7 @@ export default function SearchScreen() {
                           </View>
                         </View>
                       ) : aiSummary ? (
-                        <Animated.View entering={contentFadeIn} className="gap-3.5">
+                        <Animated.View entering={contentFadeIn} style={{ gap: 14 }}>
                           <Text className="text-grey-80 text-body05">{aiSummary.summary}</Text>
                           <View>
                             {aiSummary.sources.map((source, index) => (
