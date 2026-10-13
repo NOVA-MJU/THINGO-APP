@@ -2,8 +2,11 @@ import {
   getBuildingDetail,
   getBuildings,
   getCategoryPins,
+  getMapThemePins,
+  getMapThemes,
   getPlaceDetail,
   MAP_CATEGORY_PINS_PAGE_SIZE,
+  MAP_THEMES_QUERY_KEY,
   type MapCategoryPin,
 } from '@/api/maps';
 import { SearchIcon, ThingoLogoSmall } from '@/components/icons';
@@ -89,11 +92,21 @@ const PAGE_DESCRIPTION =
 // 하나씩만 두면 충분하다 — 나중에 같은 종류를 여러 겹 쌓는 흐름이 생기면 레이어별로 쿼리를 분리해야 한다.
 type SheetScreenInit =
   | { kind: 'places'; categoryCode: string }
+  | { kind: 'theme'; themeId: string }
   | { kind: 'building'; buildingId: number }
   | { kind: 'place'; placeId: number }
   | { kind: 'bus'; station: BusStopStation }
   | { kind: 'category' };
 type SheetScreen = SheetScreenInit & { key: string; initialIndex: number };
+
+// 테마지도 핀 아이콘. 테마마다 장소 종류가 섞여 있어 테마 성격에 맞는 아이콘 하나로 통일한다
+const THEME_MARKER_ICONS: Record<string, string> = {
+  'budget-meal': 'RestaurantIcon',
+  'work-cafe': 'CafeIcon',
+  'campus-walk': 'PinIcon',
+  'senior-cafe': 'CafeIcon',
+  'group-dining': 'RestaurantIcon',
+};
 
 function MapQuickTooltip({
   children,
@@ -167,11 +180,13 @@ function roundCoordinate(value: number) {
 
 export default function MapsScreen() {
   const router = useRouter();
-  const { exactMatch, expanded, placeId, buildingId } = useLocalSearchParams<{
+  const { exactMatch, expanded, placeId, buildingId, theme } = useLocalSearchParams<{
     exactMatch?: string;
     expanded?: string;
     placeId?: string;
     buildingId?: string;
+    // 명지도 검색 화면의 테마지도 카드에서 넘어온 테마 id
+    theme?: string;
   }>();
   // 딥링크 진입 식별자. 즐겨찾기 목록 등 다른 화면에서 지도로 돌아올 때 이 값으로
   // place/building 레이어를 바로 열고 카메라·핀을 맞춘다 (아래 딥링크 useEffect들 참고).
@@ -298,6 +313,13 @@ export default function MapsScreen() {
     getLayerRef(belowKey).current?.snapToIndex(restoreIndex, { duration: 0 });
   }
 
+  // 스택을 모두 닫고 base(건물 목록)를 원래 높이로 되돌린다 (켜진 칩을 다시 눌러 해제할 때)
+  function closeAllLayers() {
+    const baseIndex = restoreIndexRef.current.get(BASE_LAYER_KEY) ?? 1;
+    resetStack();
+    bottomSheetRef.current?.snapToIndex(baseIndex, { duration: 0 });
+  }
+
   // 스택을 통째로 비움 (애니메이션 없이 즉시 언마운트 — bus/칩 재선택처럼 완전히 다른 컨텍스트로 전환할 때 사용)
   function resetStack() {
     setSheetStack([]);
@@ -311,6 +333,12 @@ export default function MapsScreen() {
     () =>
       sheetStack.find((s): s is Extract<SheetScreen, { kind: 'places' }> => s.kind === 'places')
         ?.categoryCode ?? null,
+    [sheetStack]
+  );
+  const selectedThemeId = React.useMemo(
+    () =>
+      sheetStack.find((s): s is Extract<SheetScreen, { kind: 'theme' }> => s.kind === 'theme')
+        ?.themeId ?? null,
     [sheetStack]
   );
   const selectedBuildingId = React.useMemo(
@@ -487,6 +515,54 @@ export default function MapsScreen() {
     if (isCloseToBottom) onCategoryPinsEndReached();
   }
 
+  // 테마지도 장소 목록 (테마당 10곳 안팎이라 한 번에 받는다)
+  const {
+    data: themePinsData,
+    isPending: isThemePinsLoading,
+    isPlaceholderData: isThemePinsPlaceholder,
+  } = useQuery({
+    queryKey: ['map-theme-pins', selectedThemeId, originLatitude, originLongitude],
+    queryFn: () => getMapThemePins(selectedThemeId!, originLatitude, originLongitude),
+    enabled: selectedThemeId !== null,
+    placeholderData: keepPreviousData,
+  });
+  // 데이터가 없을 때 매 렌더 새 배열이 생기면 마커가 계속 다시 그려지므로 같은 참조를 유지한다
+  const themePins = React.useMemo(() => themePinsData ?? [], [themePinsData]);
+  // 시트 제목용. 검색 화면에서 이미 받은 캐시를 그대로 쓴다
+  const { data: mapThemes = [] } = useQuery({
+    queryKey: MAP_THEMES_QUERY_KEY,
+    queryFn: getMapThemes,
+    enabled: selectedThemeId !== null,
+    staleTime: 60 * 60 * 1000,
+  });
+  const selectedTheme = mapThemes.find((item) => item.id === selectedThemeId);
+
+  // 테마를 열면 첫 장소로 카메라를 옮긴다. 지도가 다른 곳을 보고 있으면 테마 핀이 화면 밖에 있을 수 있어서다
+  // (다른 테마로 바꾸는 동안 이전 테마 결과가 잠깐 남아 있으므로 placeholder일 때는 기다린다)
+  const focusedThemeIdRef = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    if (!selectedThemeId) {
+      focusedThemeIdRef.current = null;
+      return;
+    }
+    const firstPin = themePinsData?.[0];
+    if (!firstPin || isThemePinsPlaceholder || focusedThemeIdRef.current === selectedThemeId)
+      return;
+    focusedThemeIdRef.current = selectedThemeId;
+    mapRef.current?.animateCameraTo(firstPin.latitude, firstPin.longitude, 16);
+  }, [selectedThemeId, themePinsData, isThemePinsPlaceholder]);
+
+  const themeMarkers = React.useMemo(
+    () =>
+      themePins.map((pin) => ({
+        id: String(pin.id),
+        latitude: pin.latitude,
+        longitude: pin.longitude,
+        name: pin.name,
+      })),
+    [themePins]
+  );
+
   // 캠퍼스 건물 마커
   const buildingMarkers = React.useMemo(
     () =>
@@ -520,6 +596,16 @@ export default function MapsScreen() {
     }
     return 'BuildingIcon';
   }, [selectedCategoryCode]);
+
+  // 검색 화면의 테마지도 카드로 진입한 경우: 테마 장소 목록 레이어를 바로 push
+  const rawThemeId = Array.isArray(theme) ? theme[0] : theme;
+  React.useEffect(() => {
+    if (!rawThemeId) return;
+    clearSearchResult();
+    resetStack();
+    pushSheet({ kind: 'theme', themeId: rawThemeId });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clearSearchResult, rawThemeId]);
 
   // 딥링크(placeId/buildingId 쿼리 파라미터)로 진입한 경우: place/building 레이어를 바로 push
   // (expanded=true는 place에서만 씀 — 즐겨찾기 목록 등 buildingId로 들어오는 경로는 항상 기본 높이로 연다)
@@ -636,7 +722,7 @@ export default function MapsScreen() {
       return;
     }
 
-    const pin = categoryPins.find((p) => String(p.id) === id);
+    const pin = [...categoryPins, ...themePins].find((p) => String(p.id) === id);
     if (!pin) return;
 
     selectCategoryPin(pin);
@@ -673,6 +759,14 @@ export default function MapsScreen() {
   // 칩 클릭 동작 정의
   function onQuickChipPress(chipId: string) {
     hideQuickTooltips();
+
+    // 이미 켜진 칩을 다시 누르면 선택을 해제하고 기본 화면(건물 목록)으로 돌아간다
+    const isActiveChip =
+      chipId === 'bus' ? selectedBusStation !== null : selectedCategoryCode === chipId;
+    if (isActiveChip) {
+      closeAllLayers();
+      return;
+    }
 
     // 버스 정류장 칩 클릭 → bus 레이어를 base 위에 바로 push
     if (chipId === 'bus') {
@@ -852,6 +946,19 @@ export default function MapsScreen() {
       );
     }
 
+    if (screen.kind === 'theme') {
+      return (
+        <PlaceListSheet
+          title={selectedTheme?.title}
+          subtitle={selectedTheme?.subtitle}
+          places={themePins}
+          onPlacePress={selectCategoryPin}
+          isLoading={isThemePinsLoading}
+          onClose={popSheet}
+        />
+      );
+    }
+
     if (screen.kind === 'building') {
       if (!selectedBuildingDetail) {
         return (
@@ -905,6 +1012,7 @@ export default function MapsScreen() {
         buildingMarkers={
           selectedSearchResult ||
           selectedCategoryCode ||
+          selectedThemeId ||
           selectedBusStation ||
           focusedPlaceMarkers.length > 0
             ? []
@@ -915,14 +1023,18 @@ export default function MapsScreen() {
             ? searchResultMarkers
             : selectedCategoryCode
               ? categoryMarkers
-              : focusedPlaceMarkers
+              : selectedThemeId
+                ? themeMarkers
+                : focusedPlaceMarkers
         }
         placeMarkerIcon={
           selectedSearchResult
             ? searchResultMarkerIcon
             : selectedCategoryCode
               ? categoryMarkerIcon
-              : focusedPlaceMarkerIcon
+              : selectedThemeId
+                ? (THEME_MARKER_ICONS[selectedThemeId] ?? 'PinIcon')
+                : focusedPlaceMarkerIcon
         }
         userLocation={userLocation}
         selectedBusStopId={selectedBusStopId}
