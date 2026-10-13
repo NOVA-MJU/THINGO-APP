@@ -131,6 +131,8 @@ export type MapSearchParams = {
   lng?: number;
   page?: number;
   size?: number;
+  // 이름에 검색어가 들어 있는 장소만 (통합검색 '명지도 장소' 칸처럼 장소 검색인지 확실하지 않은 곳에서 쓴다)
+  strict?: boolean;
 };
 
 export type MapSearchSuggestionParams = {
@@ -156,13 +158,14 @@ export async function getMapSearchResults({
   lng,
   page = 0,
   size = MAP_SEARCH_PAGE_SIZE,
+  strict,
 }: MapSearchParams): Promise<MapSearchItem[]> {
   const trimmedKeyword = keyword.trim();
   if (!trimmedKeyword) return [];
 
   // floorMap=true여야 서버가 교내 장소를 FLOOR_MAP + 층별 안내도 link로 내려준다 (기본값 false는 하위 호환용으로 PLACE로 낮춤)
   const { data } = await client.get<ApiResponse<MapSearchItem[]>>('/map/search', {
-    params: { keyword: trimmedKeyword, type, lat, lng, page, size, floorMap: true },
+    params: { keyword: trimmedKeyword, type, lat, lng, page, size, floorMap: true, strict },
   });
 
   return data.data;

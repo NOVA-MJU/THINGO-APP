@@ -9,6 +9,8 @@ import {
 } from '@/components/icons';
 import ArrowLeft from '@/components/icons/arrow-left';
 import { Skeleton } from '@/components/ui/skeleton';
+import AiSummaryText from './_components/ai-summary-text';
+import PlaceSection from './_components/place-section';
 import { TabBar } from '@/components/ui/tab-bar';
 import { Text } from '@/components/ui/text';
 import {
@@ -477,6 +479,9 @@ export default function SearchScreen() {
               </Animated.View>
             )}
 
+            {/* 장소를 찾는 검색이면 공지보다 위치가 답이라 결과 맨 위에 명지도 장소를 먼저 보여준다 */}
+            {!isLoading && currentTab === 'ALL' && <PlaceSection query={submittedQuery} />}
+
             {!isLoading && !!errorMessage && (
               <Text className="py-10 text-center text-grey-40 text-body05">{errorMessage}</Text>
             )}
@@ -513,7 +518,7 @@ export default function SearchScreen() {
                         </View>
                       ) : aiSummary ? (
                         <Animated.View entering={contentFadeIn} style={{ gap: 14 }}>
-                          <Text className="text-grey-80 text-body05">{aiSummary.summary}</Text>
+                          <AiSummaryText summary={aiSummary.summary} />
                           <View>
                             {aiSummary.sources.map((source, index) => (
                               <View
