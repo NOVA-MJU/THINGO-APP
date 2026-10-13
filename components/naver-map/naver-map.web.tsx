@@ -211,6 +211,12 @@ const MapContent = React.forwardRef<NaverMapHandle, MapContentProps>(function Ma
   const navermaps = useNavermaps();
   const mapRef = React.useRef<React.ComponentRef<typeof RNaverMap>>(null);
   const pendingCameraRef = React.useRef<PendingCamera | null>(null);
+  const resizeObserverRef = React.useRef<ResizeObserver | null>(null);
+
+  // JS SDK 지도는 처음 그릴 때의 크기를 기억하고 창(window) 크기 변화에만 맞춰 다시 그린다.
+  // 층별 안내도 등 다른 화면으로 가 있는 동안 지도 화면이 가려진 채로 모바일 주소창이 접히거나 펴지면
+  // 잘못된 크기로 굳어, 돌아왔을 때 지도가 일부만 그려진다. 그래서 지도 요소 크기가 바뀔 때마다 다시 맞춘다
+  React.useEffect(() => () => resizeObserverRef.current?.disconnect(), []);
 
   // 대상 좌표를 화면 픽셀 기준으로 위로 밀어서, 지도 정중앙이 아니라 상단 쪽에 오도록 만든다.
   // JS SDK v3의 panTo/morph는 넘긴 좌표를 항상 정중앙에 두는 방식이라 native의 pivot 같은
@@ -276,6 +282,17 @@ const MapContent = React.forwardRef<NaverMapHandle, MapContentProps>(function Ma
   }, [camera, moveCamera]);
 
   function onInit() {
+    const map = mapRef.current;
+    if (map && typeof ResizeObserver !== 'undefined') {
+      resizeObserverRef.current?.disconnect();
+      resizeObserverRef.current = new ResizeObserver(([entry]) => {
+        // 가려진 동안(크기 0)에는 맞추지 않고, 다시 보일 때 실제 크기로 맞춘다
+        if (entry.contentRect.width === 0 || entry.contentRect.height === 0) return;
+        map.autoResize();
+      });
+      resizeObserverRef.current.observe(map.getElement());
+    }
+
     const pendingCamera = pendingCameraRef.current;
     if (pendingCamera) {
       pendingCameraRef.current = null;

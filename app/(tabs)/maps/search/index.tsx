@@ -3,6 +3,7 @@ import {
   getMapSearchSuggestions,
   MAP_SEARCH_PAGE_SIZE,
   type MapSearchItem,
+  type MapTheme,
   type MapSearchSuggestion,
 } from '@/api/maps';
 import { getFloorPlan } from '@/assets/map-floors';
@@ -30,6 +31,7 @@ import {
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMapSearchSelection } from '@/context/map-search-selection';
+import ThemeMapList from './_components/theme-map-list';
 
 const MAX_RECENT_SEARCH_COUNT = 10;
 const RECENT_SEARCHES_KEY = 'map_recent_searches';
@@ -209,6 +211,12 @@ export default function MapsSearchScreen() {
     router.back();
   }
 
+  // 테마 카드 클릭: 지도로 돌아가 테마에 묶인 장소들을 핀과 목록 시트로 보여준다
+  function onThemePress(theme: MapTheme) {
+    Keyboard.dismiss();
+    router.dismissTo({ pathname: '/maps', params: { theme: theme.id } });
+  }
+
   // 자동완성 항목 클릭: 결과 목록을 거치지 않고 바로 층별 안내도나 지도로 이동한다.
   // 자동완성 응답에는 좌표가 없어 지도는 placeId/buildingId 딥링크로 연다 (지도가 상세를 받아 핀·카메라를 맞춘다)
   function onSuggestionPress(suggestion: MapSearchSuggestion) {
@@ -275,14 +283,20 @@ export default function MapsSearchScreen() {
       {/* 최근 검색어, 자동완성, 결과 목록이 바뀔 때 툭 바뀌지 않도록 화면마다 페이드인한다 */}
       {!trimmedQuery ? (
         <Animated.View key="recent" entering={contentFadeIn} className="flex-1">
-          <RecentSearches
-            recentSearches={recentSearches}
-            onClear={() => setRecentSearches([])}
-            onPress={runSearch}
-            onDelete={(keyword) =>
-              setRecentSearches((prev) => prev.filter((recent) => recent !== keyword))
-            }
-          />
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: inset.bottom + 24 }}
+          >
+            <RecentSearches
+              recentSearches={recentSearches}
+              onClear={() => setRecentSearches([])}
+              onPress={runSearch}
+              onDelete={(keyword) =>
+                setRecentSearches((prev) => prev.filter((recent) => recent !== keyword))
+              }
+            />
+            <ThemeMapList onPress={onThemePress} />
+          </ScrollView>
         </Animated.View>
       ) : isEditing ? (
         <Animated.View key="suggestions" entering={contentFadeIn} className="flex-1">
@@ -330,40 +344,37 @@ function RecentSearches({
   onPress: (keyword: string) => void;
   onDelete: (keyword: string) => void;
 }) {
+  // 최근 검색어가 없으면 영역 자체를 숨기고 테마지도가 바로 보이게 한다
+  if (recentSearches.length === 0) return null;
+
   return (
     <View className="mt-8 gap-2.5">
       <View className="flex-row items-end justify-between px-4">
         <Text className="text-black text-body02">최근 검색어</Text>
-        {recentSearches.length > 0 && (
-          <TouchableOpacity onPress={onClear} hitSlop={6}>
-            <Text className="text-grey-60 text-caption02">전체 삭제</Text>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity onPress={onClear} hitSlop={6}>
+          <Text className="text-grey-60 text-caption02">전체 삭제</Text>
+        </TouchableOpacity>
       </View>
 
-      {recentSearches.length > 0 ? (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
-        >
-          {recentSearches.map((keyword) => (
-            <TouchableOpacity
-              key={keyword}
-              className="flex-row rounded-full border border-grey-10 bg-white"
-              onPress={() => onPress(keyword)}
-              hitSlop={4}
-            >
-              <Text className="my-1.5 me-[3px] ms-3 text-grey-60 text-body05">{keyword}</Text>
-              <TouchableOpacity onPress={() => onDelete(keyword)} hitSlop={4}>
-                <XIcon size={12} className="my-[10.5px] me-[11px] ms-[3px] text-grey-20" />
-              </TouchableOpacity>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
+      >
+        {recentSearches.map((keyword) => (
+          <TouchableOpacity
+            key={keyword}
+            className="flex-row rounded-full border border-grey-10 bg-white"
+            onPress={() => onPress(keyword)}
+            hitSlop={4}
+          >
+            <Text className="my-1.5 me-[3px] ms-3 text-grey-60 text-body05">{keyword}</Text>
+            <TouchableOpacity onPress={() => onDelete(keyword)} hitSlop={4}>
+              <XIcon size={12} className="my-[10.5px] me-[11px] ms-[3px] text-grey-20" />
             </TouchableOpacity>
-          ))}
-        </ScrollView>
-      ) : (
-        <Text className="px-4 text-grey-40 text-body05">최근 검색어가 없습니다.</Text>
-      )}
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
     </View>
   );
 }
