@@ -11,6 +11,9 @@ import FavoriteSaveSheet, { type FavoriteSaveSheetHandle } from './favorite-save
 import CATEGORIES from '../../_constants/category-data';
 
 interface PlaceListSheetProps {
+  // 테마지도처럼 목록에 이름이 있는 경우 닫기 버튼 왼쪽에 제목·부제를 보여준다 (칩 목록은 칩이 곧 제목이라 없음)
+  title?: string;
+  subtitle?: string;
   places: MapCategoryPin[];
   onPlacePress?: (place: MapCategoryPin) => void;
   isFetchingNextPage?: boolean;
@@ -31,8 +34,36 @@ function resolvePlaceIcon(categoryCode: string): {
   return { Icon: BuildingIcon, iconClassName: 'text-blue-15' };
 }
 
+function SheetHeader({
+  title,
+  subtitle,
+  onClose,
+}: Pick<PlaceListSheetProps, 'title' | 'subtitle' | 'onClose'>) {
+  return (
+    <View className="flex-row items-start justify-between gap-3 px-4 pb-1">
+      {title ? (
+        <View className="flex-1 gap-0.5">
+          <Text className="text-black text-title03">{title}</Text>
+          {subtitle ? <Text className="text-grey-40 text-body05">{subtitle}</Text> : null}
+        </View>
+      ) : null}
+      <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel="닫기"
+        hitSlop={4}
+        onPress={onClose}
+        className="ms-auto h-7 w-7 items-center justify-center rounded-full bg-grey-02"
+      >
+        <XIcon size={14} className="text-grey-30" />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 // 장소 목록 표시 시트
 export default function PlaceListSheet({
+  title,
+  subtitle,
   places,
   onPlacePress,
   isFetchingNextPage,
@@ -55,15 +86,7 @@ export default function PlaceListSheet({
   if (isLoading) {
     return (
       <View>
-        <View className="flex-row justify-end px-4">
-          <TouchableOpacity
-            hitSlop={4}
-            onPress={onClose}
-            className="h-7 w-7 items-center justify-center rounded-full bg-grey-02"
-          >
-            <XIcon size={14} className="text-grey-30" />
-          </TouchableOpacity>
-        </View>
+        <SheetHeader title={title} subtitle={subtitle} onClose={onClose} />
         {Array.from({ length: 6 }).map((_, index) => (
           <Fragment key={index}>
             {index > 0 && <View className="m-4 h-[1.5px] bg-grey-02" />}
@@ -87,15 +110,7 @@ export default function PlaceListSheet({
   if (places.length === 0) {
     return (
       <View>
-        <View className="flex-row justify-end px-4">
-          <TouchableOpacity
-            hitSlop={4}
-            onPress={onClose}
-            className="h-7 w-7 items-center justify-center rounded-full bg-grey-02"
-          >
-            <XIcon size={14} className="text-grey-30" />
-          </TouchableOpacity>
-        </View>
+        <SheetHeader title={title} subtitle={subtitle} onClose={onClose} />
         <View className="items-center px-4 py-10">
           <Text className="text-grey-40 text-body04">표시할 장소가 없습니다.</Text>
         </View>
@@ -106,15 +121,7 @@ export default function PlaceListSheet({
   return (
     <>
       <ScrollView>
-        <View className="flex-row justify-end px-4">
-          <TouchableOpacity
-            hitSlop={4}
-            onPress={onClose}
-            className="h-7 w-7 items-center justify-center rounded-full bg-grey-02"
-          >
-            <XIcon size={14} className="text-grey-30" />
-          </TouchableOpacity>
-        </View>
+        <SheetHeader title={title} subtitle={subtitle} onClose={onClose} />
         {places.map((place, index) => {
           const { Icon, iconClassName } = resolvePlaceIcon(place.categoryCode);
 

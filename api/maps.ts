@@ -243,3 +243,32 @@ export async function getPlaceDetail(
     throw error;
   }
 }
+
+// 명지도 검색 화면 하단의 테마지도 카드. 기획상 고정 콘텐츠라 서버 리소스로 관리한다
+export type MapTheme = {
+  id: string;
+  title: string;
+  subtitle: string;
+  imageUrl: string;
+  placeCount: number;
+};
+
+// 검색 화면(카드 목록)과 지도 화면(선택한 테마 시트의 제목)이 같은 캐시를 쓴다
+export const MAP_THEMES_QUERY_KEY = ['map-themes'] as const;
+
+export async function getMapThemes(): Promise<MapTheme[]> {
+  const { data } = await client.get<ApiResponse<MapTheme[]>>('/map/themes');
+  return data.data;
+}
+
+// 테마에 묶인 장소 목록 (칩 목록과 같은 카드 형식, 서버가 정해둔 순서 그대로)
+export async function getMapThemePins(
+  themeId: string,
+  lat?: number,
+  lng?: number
+): Promise<MapCategoryPin[]> {
+  const { data } = await client.get<ApiResponse<MapCategoryPin[]>>(`/map/themes/${themeId}/pins`, {
+    params: { lat, lng },
+  });
+  return data.data;
+}
