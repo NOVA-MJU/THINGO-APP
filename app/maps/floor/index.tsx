@@ -356,7 +356,7 @@ export default function MapFloorScreen() {
         {FloorPlan ? (
           <GestureDetector gesture={viewportGesture}>
             <View className="flex-1">
-              <Animated.View className="flex-1" style={contentStyle}>
+              <Animated.View style={[{ flex: 1 }, contentStyle]}>
                 {/* 도면에 이미 있는 대상 이름을 같은 자리·글꼴·크기·회전으로 강조색으로 덮어 그린다.
                     도면과 같은 viewBox·크기라 맞춤(fit) 계산 없이 원본 글자와 정확히 겹친다 */}
                 {viewportSize.width > 0 && (

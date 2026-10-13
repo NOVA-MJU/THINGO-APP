@@ -280,9 +280,11 @@ export default function MapsSearchScreen() {
         </View>
       </View>
 
-      {/* 최근 검색어, 자동완성, 결과 목록이 바뀔 때 툭 바뀌지 않도록 화면마다 페이드인한다 */}
+      {/* 최근 검색어, 자동완성, 결과 목록이 바뀔 때 툭 바뀌지 않도록 화면마다 페이드인한다.
+          Reanimated의 Animated.View에는 NativeWind className이 적용되지 않아 flex는 style로 준다
+          (높이가 화면에 맞춰지지 않으면 안쪽 목록이 스크롤되지 않는다) */}
       {!trimmedQuery ? (
-        <Animated.View key="recent" entering={contentFadeIn} className="flex-1">
+        <Animated.View key="recent" entering={contentFadeIn} style={{ flex: 1 }}>
           <ScrollView
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ paddingBottom: inset.bottom + 24 }}
@@ -299,7 +301,7 @@ export default function MapsSearchScreen() {
           </ScrollView>
         </Animated.View>
       ) : isEditing ? (
-        <Animated.View key="suggestions" entering={contentFadeIn} className="flex-1">
+        <Animated.View key="suggestions" entering={contentFadeIn} style={{ flex: 1 }}>
           <SuggestionList
             query={trimmedQuery}
             suggestions={suggestionsQuery.data ?? []}
@@ -309,7 +311,7 @@ export default function MapsSearchScreen() {
           />
         </Animated.View>
       ) : (
-        <Animated.View key="results" entering={contentFadeIn} className="flex-1">
+        <Animated.View key="results" entering={contentFadeIn} style={{ flex: 1 }}>
           <SearchResultList
             query={submittedKeyword}
             results={searchResults}
