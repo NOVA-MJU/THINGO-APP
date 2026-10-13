@@ -137,51 +137,60 @@ export default function ProfileEditScreen() {
             </View>
             <Text className="mt-2 text-grey-30 text-caption02">※ 이메일은 수정할 수 없습니다.</Text>
 
-            {/* 비밀번호 변경 */}
-            <Text className="mt-4 text-grey-80 text-body04">현재 비밀번호</Text>
-            <Input
-              className="mt-2"
-              placeholder="현재 비밀번호를 입력하세요"
-              secureTextEntry
-              value={currentPassword}
-              onChangeText={setCurrentPassword}
-            />
-            <Text className="mt-4 text-grey-80 text-body04">새 비밀번호</Text>
-            <Input
-              className="mt-2"
-              placeholder="새 비밀번호를 입력하세요"
-              secureTextEntry
-              textContentType="newPassword"
-              autoComplete="new-password"
-              value={newPassword}
-              onChangeText={setNewPassword}
-            />
-            <View className="mt-2 flex-row items-center gap-1">
-              <InfoCircleIcon size={16} className="text-grey-30" />
-              <Text className="text-grey-30 text-caption02">
-                영문, 숫자, 특수문자 포함 8자 이상
+            {/* 비밀번호 변경 (구글로 가입해 비밀번호가 없으면 비밀번호 찾기로 새로 정한다) */}
+            {user?.hasPassword === false ? (
+              <Text className="mt-4 text-grey-30 text-caption02">
+                ※ 학교 Google 계정으로 가입했습니다. 이메일 로그인도 쓰려면 로그인 화면의 비밀번호
+                찾기에서 비밀번호를 만들 수 있습니다.
               </Text>
-            </View>
-            <Text className="mt-4 text-grey-80 text-body04">새 비밀번호 확인</Text>
-            <Input
-              className="mt-2"
-              placeholder="비밀번호를 다시 입력하세요"
-              secureTextEntry
-              textContentType="newPassword"
-              autoComplete="new-password"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              onSubmitEditing={handleChangePassword}
-              returnKeyType="done"
-            />
-            <Button
-              className="mt-4"
-              variant={currentPassword && newPassword && confirmPassword ? 'default' : 'subtle'}
-              onPress={handleChangePassword}
-              disabled={!currentPassword || !newPassword || !confirmPassword}
-            >
-              <Text>비밀번호 변경하기</Text>
-            </Button>
+            ) : (
+              <>
+                <Text className="mt-4 text-grey-80 text-body04">현재 비밀번호</Text>
+                <Input
+                  className="mt-2"
+                  placeholder="현재 비밀번호를 입력하세요"
+                  secureTextEntry
+                  value={currentPassword}
+                  onChangeText={setCurrentPassword}
+                />
+                <Text className="mt-4 text-grey-80 text-body04">새 비밀번호</Text>
+                <Input
+                  className="mt-2"
+                  placeholder="새 비밀번호를 입력하세요"
+                  secureTextEntry
+                  textContentType="newPassword"
+                  autoComplete="new-password"
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                />
+                <View className="mt-2 flex-row items-center gap-1">
+                  <InfoCircleIcon size={16} className="text-grey-30" />
+                  <Text className="text-grey-30 text-caption02">
+                    영문, 숫자, 특수문자 포함 8자 이상
+                  </Text>
+                </View>
+                <Text className="mt-4 text-grey-80 text-body04">새 비밀번호 확인</Text>
+                <Input
+                  className="mt-2"
+                  placeholder="비밀번호를 다시 입력하세요"
+                  secureTextEntry
+                  textContentType="newPassword"
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  onSubmitEditing={handleChangePassword}
+                  returnKeyType="done"
+                />
+                <Button
+                  className="mt-4"
+                  variant={currentPassword && newPassword && confirmPassword ? 'default' : 'subtle'}
+                  onPress={handleChangePassword}
+                  disabled={!currentPassword || !newPassword || !confirmPassword}
+                >
+                  <Text>비밀번호 변경하기</Text>
+                </Button>
+              </>
+            )}
           </View>
 
           {/* 기본 정보 */}

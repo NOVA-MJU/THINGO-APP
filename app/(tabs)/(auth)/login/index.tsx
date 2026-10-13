@@ -2,11 +2,15 @@ import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
-import { login } from '@/api/auth';
+import { googleLogin, login } from '@/api/auth';
 import { getMemberInfo } from '@/api/members';
+import { GoogleSignInButton, isGoogleSignInAvailable } from '@/components/google-sign-in-button';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'expo-router';
 import { showAlert } from '@/lib/alert';
+import { getApiErrorMessage } from '@/lib/api-error';
+import { setPendingGoogleSignup } from '@/lib/google-signup-session';
+import { useMutation } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import { useRef, useState } from 'react';
 import { ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
@@ -21,6 +25,32 @@ export default function LoginScreen() {
   const [isPending, setIsPending] = useState(false);
   const passwordRef = useRef<TextInput>(null);
 
+  // 로그인을 마친 뒤 원래 보던 화면으로 돌아간다
+  async function finishLogin() {
+    const member = await getMemberInfo();
+    setUser(member);
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/');
+    }
+  }
+
+  // 구글 로그인: 기존 회원이면 바로 로그인, 처음 온 학교 계정이면 추가 정보 입력 화면으로 보낸다
+  const googleLoginMutation = useMutation({
+    mutationFn: googleLogin,
+    onSuccess: async (result) => {
+      if (result.type === 'loggedIn') {
+        await finishLogin();
+        return;
+      }
+      setPendingGoogleSignup(result.profile);
+      router.push('/signup/google');
+    },
+    onError: (error) =>
+      showAlert('구글 로그인 실패', getApiErrorMessage(error, '잠시 후 다시 시도해주세요')),
+  });
+
   // 로그인 실행
   async function handleLogin() {
     if (!email) return showAlert('이메일을 입력해주세요.');
@@ -28,13 +58,7 @@ export default function LoginScreen() {
     setIsPending(true);
     try {
       await login({ email, password });
-      const member = await getMemberInfo();
-      setUser(member);
-      if (router.canGoBack()) {
-        router.back();
-      } else {
-        router.replace('/');
-      }
+      await finishLogin();
     } catch (e) {
       setPassword('');
       if (isAxiosError(e) && e.response?.status === 401) {
@@ -66,6 +90,19 @@ export default function LoginScreen() {
       <View className="flex-1 gap-3 px-4 py-8">
         <Text className="text-black text-title03">로그인</Text>
         <View className="rounded-xl bg-white p-4">
+          {isGoogleSignInAvailable && (
+            <>
+              <GoogleSignInButton
+                onIdToken={(idToken) => googleLoginMutation.mutate(idToken)}
+                disabled={googleLoginMutation.isPending}
+              />
+              <View className="my-5 flex-row items-center gap-3">
+                <View className="h-[1px] flex-1 bg-grey-10" />
+                <Text className="text-grey-30 text-caption02">또는 이메일로 로그인</Text>
+                <View className="h-[1px] flex-1 bg-grey-10" />
+              </View>
+            </>
+          )}
           <Text className="text-grey-80 text-body04">이메일</Text>
           <Input
             className="mt-2"

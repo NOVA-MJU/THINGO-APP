@@ -1,3 +1,4 @@
+export { default as GoogleIcon } from './google';
 export { default as ArrowLeftIcon } from './arrow-left';
 export { default as BackCircleIcon } from './back-circle';
 export { default as BulletListIcon } from './bullet-list';
