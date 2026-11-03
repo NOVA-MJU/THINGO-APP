@@ -15,15 +15,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 export default function DeleteAccountScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const [password, setPassword] = useState('');
   const [isPending, setIsPending] = useState(false);
+  // 구글로 가입해 비밀번호가 없는 회원은 로그인 상태만으로 탈퇴한다
+  const needsPassword = user?.hasPassword !== false;
 
   const handleDeleteAccount = async () => {
-    if (!password) return;
+    if (needsPassword && !password) return;
     setIsPending(true);
     try {
-      await deleteAccount(password);
+      await deleteAccount(needsPassword ? password : undefined);
       await logout();
       if (Platform.OS === 'web') {
         router.replace('/');
@@ -46,17 +48,21 @@ export default function DeleteAccountScreen() {
         <View className="flex-1 gap-3 px-4 py-8">
           <Text className="text-black text-title01">회원 탈퇴</Text>
           <View className="rounded-xl bg-white p-6">
-            <Text className="text-black text-body04">비밀번호 확인</Text>
+            <Text className="text-black text-body04">
+              {needsPassword ? '비밀번호 확인' : '탈퇴 확인'}
+            </Text>
             <Text className="mt-1 text-grey-40 text-caption02">
               탈퇴 시 모든 회원 정보가 삭제되며 복구할 수 없습니다. 정말 탈퇴하시겠습니까?
             </Text>
-            <Input
-              className="mt-4"
-              placeholder="비밀번호를 입력하세요"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-            />
+            {needsPassword && (
+              <Input
+                className="mt-4"
+                placeholder="비밀번호를 입력하세요"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+              />
+            )}
             <Button className="mt-6" variant="default" onPress={() => router.back()}>
               <Text>취소</Text>
             </Button>
@@ -64,7 +70,7 @@ export default function DeleteAccountScreen() {
               className="mt-2"
               variant="subtle"
               onPress={handleDeleteAccount}
-              disabled={!password || isPending}
+              disabled={(needsPassword && !password) || isPending}
             >
               <Text>{isPending ? '처리 중...' : '탈퇴하기'}</Text>
             </Button>
