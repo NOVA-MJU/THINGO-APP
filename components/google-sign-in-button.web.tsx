@@ -66,6 +66,11 @@ function loadGoogleIdentity(): Promise<GoogleIdentity> {
   return gsiScriptPromise;
 }
 
+// 구글 로그인 콜백은 페이지 전체에 하나뿐인데 버튼은 여러 개 떠 있을 수 있다(마이페이지 카드와 그 위의 로그인 시트).
+// 토큰은 마지막으로 누른 버튼으로 보낸다. 버튼이 iframe이라 클릭을 직접 받지 못해, iframe을 누르면 창이 blur되고
+// activeElement가 그 iframe이 되는 것으로 알아낸다. 누르기 전에는 가장 나중에 나타난 버튼을 쓴다
+let activeIdTokenHandler: { current: (idToken: string) => void } | null = null;
+
 // ID 토큰을 받는 흐름은 구글이 그린 버튼으로만 시작할 수 있고 그 버튼은 iframe이라 모양을 바꿀 수 없다.
 // 앱과 같은 모양을 직접 그리고 그 위에 거의 투명한 구글 버튼을 겹쳐 클릭을 받는다. 완전히 투명하면 브라우저가 클릭을 막을 수 있어 0.01로 둔다
 export function GoogleSignInButton({ onIdToken, disabled }: GoogleSignInButtonProps) {
@@ -77,13 +82,20 @@ export function GoogleSignInButton({ onIdToken, disabled }: GoogleSignInButtonPr
   useEffect(() => {
     if (!WEB_CLIENT_ID || isInAppBrowser) return;
     let cancelled = false;
+    activeIdTokenHandler = onIdTokenRef;
+    const markActiveOnPress = () =>
+      setTimeout(() => {
+        const container = containerRef.current as unknown as HTMLElement | null;
+        if (container?.contains(document.activeElement)) activeIdTokenHandler = onIdTokenRef;
+      });
+    window.addEventListener('blur', markActiveOnPress);
     loadGoogleIdentity()
       .then((google) => {
         const container = containerRef.current as unknown as HTMLElement | null;
         if (cancelled || !container) return;
         google.accounts.id.initialize({
           client_id: WEB_CLIENT_ID,
-          callback: ({ credential }) => onIdTokenRef.current(credential),
+          callback: ({ credential }) => activeIdTokenHandler?.current(credential),
           hd: 'mju.ac.kr',
           ux_mode: 'popup',
         });
@@ -103,6 +115,8 @@ export function GoogleSignInButton({ onIdToken, disabled }: GoogleSignInButtonPr
       });
     return () => {
       cancelled = true;
+      window.removeEventListener('blur', markActiveOnPress);
+      if (activeIdTokenHandler === onIdTokenRef) activeIdTokenHandler = null;
     };
   }, []);
 

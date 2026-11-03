@@ -16,7 +16,7 @@ const googleSignInPlugins: [string, { iosUrlScheme: string }][] = googleIosClien
 const config: ExpoConfig = {
   name: 'Thingo',
   slug: 'thingo-app',
-  version: '1.0.9',
+  version: '1.0.10',
   locales: { ko: './locales/ko.json' },
   orientation: 'portrait',
   icon: './assets/images/icon.png',
