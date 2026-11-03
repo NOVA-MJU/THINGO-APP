@@ -35,6 +35,9 @@ export type GoogleSignupProfile = {
   email: string;
   name: string;
   profileImageUrl: string | null;
+  // 서버가 구글 프로필 소속에서 찾은 학과. 가입 화면이 미리 골라 둔다
+  college: string | null;
+  departmentName: string | null;
 };
 
 export type GoogleLoginResult =
@@ -50,6 +53,8 @@ type GoogleAuthResponse = {
     email?: string;
     name?: string;
     profileImageUrl?: string;
+    college?: string;
+    departmentName?: string;
   };
 };
 
@@ -69,6 +74,8 @@ export async function googleLogin(idToken: string): Promise<GoogleLoginResult> {
       email: result.email ?? '',
       name: result.name ?? '',
       profileImageUrl: result.profileImageUrl ?? null,
+      college: result.college ?? null,
+      departmentName: result.departmentName ?? null,
     },
   };
 }

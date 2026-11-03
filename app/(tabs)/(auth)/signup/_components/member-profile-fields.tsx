@@ -20,18 +20,25 @@ export type MemberProfile = {
 type MemberProfileFieldsProps = {
   // 닉네임·학번 중복 확인과 단과대·학과 선택이 모두 끝나면 값을, 하나라도 비면 null을 알린다
   onChange: (profile: MemberProfile | null) => void;
+  // 구글 가입에서 프로필 소속으로 찾은 학과를 미리 골라 둔다. 사용자가 바꿀 수 있다
+  initialCollege?: string | null;
+  initialDepartment?: string | null;
 };
 
 // 이메일 가입과 구글 가입이 함께 쓰는 닉네임·단과대·학과·학번 입력 칸. 중복 확인 상태를 스스로 관리한다
-export default function MemberProfileFields({ onChange }: MemberProfileFieldsProps) {
+export default function MemberProfileFields({
+  onChange,
+  initialCollege = null,
+  initialDepartment = null,
+}: MemberProfileFieldsProps) {
   const [nickname, setNickname] = useState('');
   const [nicknameVerified, setNicknameVerified] = useState(false);
   const [nicknameLoading, setNicknameLoading] = useState(false);
   const [studentNumber, setStudentNumber] = useState('');
   const [studentNumberVerified, setStudentNumberVerified] = useState(false);
   const [studentNumberLoading, setStudentNumberLoading] = useState(false);
-  const [selectedCollege, setSelectedCollege] = useState<string | null>(null);
-  const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null);
+  const [selectedCollege, setSelectedCollege] = useState<string | null>(initialCollege);
+  const [selectedDepartment, setSelectedDepartment] = useState<string | null>(initialDepartment);
 
   const collegeLabel = COLLEGE_OPTIONS.find((c) => c.value === selectedCollege)?.label ?? null;
   const departmentOptions =
