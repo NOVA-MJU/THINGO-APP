@@ -1,7 +1,6 @@
 import { getProfileStats, type ProfileStats } from '@/api/members';
 import { useAuth } from '@/context/auth-context';
 import { DEPARTMENT_OPTIONS } from '@/lib/departments';
-import { Footer } from '@/components/footer';
 import { ArrowRightIcon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
@@ -184,7 +183,6 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
       </View>
-      <Footer />
     </ScrollView>
   );
 }

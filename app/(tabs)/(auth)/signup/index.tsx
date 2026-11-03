@@ -4,32 +4,24 @@ import {
   sendEmailVerificationCode,
   signup,
   validateEmail,
-  validateNickname,
-  validateStudentNumber,
 } from '@/api/members';
 import { Footer } from '@/components/footer';
 import { PASSWORD_MESSAGE, PASSWORD_REGEX } from '@/lib/validation';
-import { ArrowDownIcon, ArrowRightIcon, CheckboxIcon, InfoCircleIcon } from '@/components/icons';
+import { InfoCircleIcon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { useAuth } from '@/context/auth-context';
-import { COLLEGE_OPTIONS, DEPARTMENT_OPTIONS } from '@/lib/departments';
 import { isAxiosError } from 'axios';
 import { useRouter } from 'expo-router';
 import { showAlert } from '@/lib/alert';
-import { useImageUpload } from '@/hooks/useImageUpload';
-import { openLink } from '@/lib/open-link';
 import { useState } from 'react';
-import { Image, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
-import * as DropdownMenu from 'zeego/dropdown-menu';
+import { Platform, ScrollView, View } from 'react-native';
 import { AppHeader } from '@/components/app-header';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-const TERMS_URL = 'https://verbena-ixia-597.notion.site/Thingo-33e22ef5d21e80b08328edd8519b0b4e';
-const LOCATION_PRIVACY_URL =
-  'https://verbena-ixia-597.notion.site/Thingo-39722ef5d21e802ebf0edfe83047fa8f';
-const PRIVACY_URL = 'https://verbena-ixia-597.notion.site/Thingo-33e22ef5d21e807d9738dc14def5de24';
+import MemberProfileFields, { type MemberProfile } from './_components/member-profile-fields';
+import ProfileImageField from './_components/profile-image-field';
+import TermsAgreement from './_components/terms-agreement';
 
 export default function SignupScreen() {
   const insets = useSafeAreaInsets();
@@ -45,93 +37,13 @@ export default function SignupScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
-  const [nickname, setNickname] = useState('');
-  const [nicknameVerified, setNicknameVerified] = useState(false);
-  const [nicknameLoading, setNicknameLoading] = useState(false);
-  const [studentNumber, setStudentNumber] = useState('');
-  const [studentNumberVerified, setStudentNumberVerified] = useState(false);
-  const [studentNumberLoading, setStudentNumberLoading] = useState(false);
-  const [selectedCollege, setSelectedCollege] = useState<string | null>(null);
-  const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null);
+  const [profile, setProfile] = useState<MemberProfile | null>(null);
   const [signupLoading, setSignupLoading] = useState(false);
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
-  const { isLoading: isUploadingImage, pickAndUpload } = useImageUpload('PROFILE_IMAGE');
-
-  const [termsAgreed, setTermsAgreed] = useState(false);
-  const [privacyAgreed, setPrivacyAgreed] = useState(false);
-  const [locationPrivacyAgreed, setLocationPrivacyAgreed] = useState(false);
-  const allAgreed = termsAgreed && privacyAgreed && locationPrivacyAgreed;
+  const [allAgreed, setAllAgreed] = useState(false);
 
   const isFormComplete =
-    emailVerified &&
-    !!password &&
-    !!confirmPassword &&
-    !!name.trim() &&
-    nicknameVerified &&
-    !!selectedCollege &&
-    !!selectedDepartment &&
-    studentNumberVerified &&
-    allAgreed;
-
-  // 전체동의 토글
-  const handleToggleAllAgreements = () => {
-    const next = !allAgreed;
-    setTermsAgreed(next);
-    setPrivacyAgreed(next);
-    setLocationPrivacyAgreed(next);
-  };
-
-  const collegeLabel = COLLEGE_OPTIONS.find((c) => c.value === selectedCollege)?.label ?? null;
-  const departmentOptions =
-    DEPARTMENT_OPTIONS.find((d) => d.college.value === selectedCollege)?.departments ?? [];
-  const departmentLabel =
-    departmentOptions.find((d) => d.value === selectedDepartment)?.label ?? null;
-
-  // 프로필 이미지 업로드
-  const handlePickProfileImage = async () => {
-    const url = await pickAndUpload();
-    if (url) setProfileImageUrl(url);
-  };
-
-  // 학번 중복 확인
-  const handleStudentNumberCheck = async () => {
-    if (!studentNumber.trim()) return;
-    setStudentNumberLoading(true);
-    try {
-      await validateStudentNumber(studentNumber);
-      setStudentNumberVerified(true);
-      showAlert('사용 가능한 학번입니다.');
-    } catch (e) {
-      setStudentNumberVerified(false);
-      if (isAxiosError(e) && e.response?.data?.message) {
-        showAlert(e.response.data.message);
-      } else {
-        showAlert('학번 확인 중 오류가 발생했습니다.');
-      }
-    } finally {
-      setStudentNumberLoading(false);
-    }
-  };
-
-  // 닉네임 중복 확인
-  const handleNicknameCheck = async () => {
-    if (!nickname.trim()) return;
-    setNicknameLoading(true);
-    try {
-      await validateNickname(nickname);
-      setNicknameVerified(true);
-      showAlert('사용 가능한 닉네임입니다.');
-    } catch (e) {
-      setNicknameVerified(false);
-      if (isAxiosError(e) && e.response?.data?.message) {
-        showAlert(e.response.data.message);
-      } else {
-        showAlert('닉네임 확인 중 오류가 발생했습니다.');
-      }
-    } finally {
-      setNicknameLoading(false);
-    }
-  };
+    emailVerified && !!password && !!confirmPassword && !!name.trim() && !!profile && allAgreed;
 
   // 이메일 인증코드 확인
   const handleVerificationCodeCheck = async () => {
@@ -163,10 +75,7 @@ export default function SignupScreen() {
     if (!PASSWORD_REGEX.test(password)) return showAlert(PASSWORD_MESSAGE);
     if (password !== confirmPassword) return showAlert('비밀번호가 일치하지 않습니다.');
     if (!name.trim()) return showAlert('이름을 입력해주세요.');
-    if (!nicknameVerified) return showAlert('닉네임 중복 확인을 해주세요.');
-    if (!selectedCollege) return showAlert('단과대를 선택해주세요.');
-    if (!selectedDepartment) return showAlert('학과를 선택해주세요.');
-    if (!studentNumberVerified) return showAlert('학번 중복 확인을 해주세요.');
+    if (!profile) return showAlert('닉네임·학번 중복 확인과 단과대·학과 선택을 마쳐주세요.');
     if (!allAgreed) return showAlert('필수 약관에 모두 동의해주세요.');
 
     setSignupLoading(true);
@@ -175,10 +84,7 @@ export default function SignupScreen() {
         name: name.trim(),
         email: `${userEmail}@mju.ac.kr`,
         password,
-        nickname,
-        college: selectedCollege,
-        departmentName: selectedDepartment,
-        studentNumber,
+        ...profile,
         profileImageUrl: profileImageUrl ?? undefined,
         privacyAgreed: allAgreed,
       });
@@ -341,197 +247,14 @@ export default function SignupScreen() {
               </Text>
             </View>
 
-            <View>
-              {/* 닉네임 */}
-              <Text className="text-grey-80 text-body04">닉네임</Text>
-              <View className="mt-2 flex-row items-center gap-2">
-                <Input
-                  placeholder="닉네임을 입력하세요"
-                  className="flex-1"
-                  value={nickname}
-                  onChangeText={(text) => {
-                    setNickname(text);
-                    setNicknameVerified(false);
-                  }}
-                />
-                <Button
-                  variant={nickname.trim() && !nicknameVerified ? 'default' : 'subtle'}
-                  className="rounded-md"
-                  onPress={handleNicknameCheck}
-                  disabled={nicknameLoading || nicknameVerified}
-                >
-                  <Text>
-                    {nicknameLoading ? '확인 중...' : nicknameVerified ? '확인 완료' : '중복 확인'}
-                  </Text>
-                </Button>
-              </View>
-            </View>
-
-            <View>
-              {/* 단과대 */}
-              <Text className="text-grey-80 text-body04">단과대</Text>
-              <DropdownMenu.Root>
-                <DropdownMenu.Trigger>
-                  <View className="mt-2 flex-row items-center rounded-md border border-grey-10 px-3 py-[9.5px]">
-                    <Text
-                      className={`flex-1 text-body06 ${collegeLabel ? 'text-grey-80' : 'text-grey-20'}`}
-                      numberOfLines={1}
-                    >
-                      {collegeLabel ?? '단과대학을 선택해주세요'}
-                    </Text>
-                    <ArrowDownIcon size={24} className="text-grey-30" />
-                  </View>
-                </DropdownMenu.Trigger>
-                <DropdownMenu.Content>
-                  {COLLEGE_OPTIONS.map((option) => (
-                    <DropdownMenu.Item
-                      key={option.value}
-                      onSelect={() => {
-                        setSelectedCollege(option.value);
-                        setSelectedDepartment(null);
-                      }}
-                    >
-                      <DropdownMenu.ItemTitle>{option.label}</DropdownMenu.ItemTitle>
-                    </DropdownMenu.Item>
-                  ))}
-                </DropdownMenu.Content>
-              </DropdownMenu.Root>
-            </View>
-
-            <View>
-              {/* 학과 */}
-              <Text className="text-grey-80 text-body04">학과</Text>
-              <DropdownMenu.Root>
-                <DropdownMenu.Trigger disabled={!selectedCollege}>
-                  <View
-                    className={`mt-2 flex-row items-center rounded-md border border-grey-10 px-3 py-[9.5px] ${!selectedCollege ? 'opacity-40' : ''}`}
-                  >
-                    <Text
-                      className={`flex-1 text-body06 ${departmentLabel ? 'text-grey-80' : 'text-grey-20'}`}
-                      numberOfLines={1}
-                    >
-                      {departmentLabel ?? '학과를 선택해주세요'}
-                    </Text>
-                    <ArrowDownIcon size={24} className="text-grey-30" />
-                  </View>
-                </DropdownMenu.Trigger>
-                <DropdownMenu.Content>
-                  {departmentOptions.map((option) => (
-                    <DropdownMenu.Item
-                      key={option.value}
-                      onSelect={() => setSelectedDepartment(option.value)}
-                    >
-                      <DropdownMenu.ItemTitle>{option.label}</DropdownMenu.ItemTitle>
-                    </DropdownMenu.Item>
-                  ))}
-                </DropdownMenu.Content>
-              </DropdownMenu.Root>
-            </View>
-
-            <View>
-              {/* 학번 */}
-              <Text className="text-grey-80 text-body04">학번</Text>
-              <View className="mt-2 flex-row items-center gap-2">
-                <Input
-                  placeholder="ex. 60000000"
-                  className="flex-1"
-                  value={studentNumber}
-                  onChangeText={(text) => {
-                    setStudentNumber(text);
-                    setStudentNumberVerified(false);
-                  }}
-                  keyboardType="number-pad"
-                />
-                <Button
-                  variant={studentNumber.trim() && !studentNumberVerified ? 'default' : 'subtle'}
-                  className="rounded-md"
-                  onPress={handleStudentNumberCheck}
-                  disabled={studentNumberLoading || studentNumberVerified}
-                >
-                  <Text>
-                    {studentNumberLoading
-                      ? '확인 중...'
-                      : studentNumberVerified
-                        ? '확인 완료'
-                        : '중복 확인'}
-                  </Text>
-                </Button>
-              </View>
-            </View>
+            <MemberProfileFields onChange={setProfile} />
           </View>
 
           {/* 프로필 사진 */}
-          <View className="mt-4 flex-row items-center gap-1">
-            <Text className="text-black text-title03">프로필 사진</Text>
-            <Text className="text-grey-80 text-body02">(선택)</Text>
-          </View>
-          <View className="mt-2 rounded-xl bg-white p-4">
-            <Text className="text-grey-80 text-body04">프로필</Text>
-            <TouchableOpacity
-              className="mt-2 self-start"
-              onPress={handlePickProfileImage}
-              disabled={isUploadingImage}
-            >
-              <View className="aspect-square w-[88px] items-center justify-center overflow-hidden rounded-xl border border-grey-10">
-                {profileImageUrl ? (
-                  <Image
-                    source={{ uri: profileImageUrl }}
-                    className="h-full w-full"
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <Text className="text-grey-20 text-caption02">
-                    {isUploadingImage ? '업로드 중...' : '이미지 업로드'}
-                  </Text>
-                )}
-              </View>
-            </TouchableOpacity>
-          </View>
+          <ProfileImageField value={profileImageUrl} onChange={setProfileImageUrl} />
 
           {/* 약관 동의 */}
-          <Text className="mt-4 text-black text-title03">약관동의</Text>
-          <View className="mt-2 gap-4 rounded-xl bg-white py-4">
-            <View className="flex-row items-center gap-1 px-4">
-              <TouchableOpacity hitSlop={4} onPress={handleToggleAllAgreements}>
-                <CheckboxIcon checked={allAgreed} />
-              </TouchableOpacity>
-              <Text className="text-grey-80 text-body05">전체동의</Text>
-            </View>
-            <View className="mx-4 h-[1px] w-full bg-grey-02" />
-            <View className="flex-row items-center gap-1 px-4">
-              <TouchableOpacity hitSlop={4} onPress={() => setTermsAgreed((prev) => !prev)}>
-                <CheckboxIcon checked={termsAgreed} />
-              </TouchableOpacity>
-              <Text className="text-grey-80 text-body05">(필수)</Text>
-              <Text className="flex-1 text-grey-80 text-body05">Thingo 서비스 이용약관 동의</Text>
-              <TouchableOpacity hitSlop={4} onPress={() => openLink(TERMS_URL)}>
-                <ArrowRightIcon size={20} className="text-grey-30" />
-              </TouchableOpacity>
-            </View>
-            <View className="flex-row items-center gap-1 px-4">
-              <TouchableOpacity hitSlop={4} onPress={() => setPrivacyAgreed((prev) => !prev)}>
-                <CheckboxIcon checked={privacyAgreed} />
-              </TouchableOpacity>
-              <Text className="text-grey-80 text-body05">(필수)</Text>
-              <Text className="flex-1 text-grey-80 text-body05">개인정보 수집 및 이용동의</Text>
-              <TouchableOpacity hitSlop={4} onPress={() => openLink(PRIVACY_URL)}>
-                <ArrowRightIcon size={20} className="text-grey-30" />
-              </TouchableOpacity>
-            </View>
-            <View className="flex-row items-center gap-1 px-4">
-              <TouchableOpacity
-                hitSlop={4}
-                onPress={() => setLocationPrivacyAgreed((prev) => !prev)}
-              >
-                <CheckboxIcon checked={locationPrivacyAgreed} />
-              </TouchableOpacity>
-              <Text className="text-grey-80 text-body05">(필수)</Text>
-              <Text className="flex-1 text-grey-80 text-body05">위치기반 서비스 이용약관 동의</Text>
-              <TouchableOpacity hitSlop={4} onPress={() => openLink(LOCATION_PRIVACY_URL)}>
-                <ArrowRightIcon size={20} className="text-grey-30" />
-              </TouchableOpacity>
-            </View>
-          </View>
+          <TermsAgreement onChange={setAllAgreed} />
 
           {/* 회원가입 버튼 */}
           <Button

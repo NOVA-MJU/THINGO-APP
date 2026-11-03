@@ -1,5 +1,18 @@
 import { ExpoConfig } from 'expo/config';
 
+// iOS 구글 로그인은 iOS 클라이언트 ID를 뒤집은 URL 스킴으로 앱에 돌아온다 (예: com.googleusercontent.apps.123-abc)
+const googleIosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+const googleSignInPlugins: [string, { iosUrlScheme: string }][] = googleIosClientId
+  ? [
+      [
+        '@react-native-google-signin/google-signin',
+        {
+          iosUrlScheme: `com.googleusercontent.apps.${googleIosClientId.replace('.apps.googleusercontent.com', '')}`,
+        },
+      ],
+    ]
+  : [];
+
 const config: ExpoConfig = {
   name: 'Thingo',
   slug: 'thingo-app',
@@ -91,6 +104,8 @@ const config: ExpoConfig = {
         },
       },
     ],
+    // iOS 클라이언트 ID가 없는 빌드는 구글 로그인 버튼을 숨기므로 URL 스킴도 등록하지 않는다
+    ...googleSignInPlugins,
     [
       'expo-location',
       {

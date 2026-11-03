@@ -16,6 +16,8 @@ export type MemberInfo = {
   createdAt: string;
   updatedAt: string;
   role: string;
+  // 구글로 가입해 비밀번호가 없으면 false
+  hasPassword: boolean;
 };
 
 type MemberInfoResponse = {
@@ -202,7 +204,8 @@ export async function getMyCommentedPosts(page = 0): Promise<MyCommentedPostsPag
 }
 
 // 회원 탈퇴
-export async function deleteAccount(password: string): Promise<void> {
+// 비밀번호가 없는 구글 가입 회원은 password 없이 보낸다
+export async function deleteAccount(password?: string): Promise<void> {
   await client.delete('/members/info', { data: { password } });
 }
 

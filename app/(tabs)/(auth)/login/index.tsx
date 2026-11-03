@@ -1,125 +1,88 @@
-import { Footer } from '@/components/footer';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Text } from '@/components/ui/text';
-import { login } from '@/api/auth';
+import { googleLogin } from '@/api/auth';
 import { getMemberInfo } from '@/api/members';
+import { GoogleSignInButton, isGoogleSignInAvailable } from '@/components/google-sign-in-button';
+import ThingoLogoLarge from '@/components/icons/thingo-logo-large';
+import { Text } from '@/components/ui/text';
 import { useAuth } from '@/context/auth-context';
-import { useRouter } from 'expo-router';
 import { showAlert } from '@/lib/alert';
-import { isAxiosError } from 'axios';
-import { useRef, useState } from 'react';
-import { ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
+import { getApiErrorMessage } from '@/lib/api-error';
+import { setPendingGoogleSignup } from '@/lib/google-signup-session';
+import { useMutation } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { ScrollView, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import EmailLoginForm from './_components/email-login-form';
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { setUser } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isPending, setIsPending] = useState(false);
-  const passwordRef = useRef<TextInput>(null);
+  // 구글 클라이언트 ID가 없는 빌드는 구글 버튼이 숨겨지므로 이메일 로그인을 바로 보여 준다
+  const [showEmailForm, setShowEmailForm] = useState(!isGoogleSignInAvailable);
 
-  // 로그인 실행
-  async function handleLogin() {
-    if (!email) return showAlert('이메일을 입력해주세요.');
-    if (!password) return showAlert('비밀번호를 입력해주세요.');
-    setIsPending(true);
-    try {
-      await login({ email, password });
-      const member = await getMemberInfo();
-      setUser(member);
-      if (router.canGoBack()) {
-        router.back();
-      } else {
-        router.replace('/');
-      }
-    } catch (e) {
-      setPassword('');
-      if (isAxiosError(e) && e.response?.status === 401) {
-        showAlert('로그인 실패', '아이디 또는 비밀번호가 일치하지 않습니다');
-      } else {
-        showAlert('서버 오류', '잠시 후 다시 시도해주세요');
-      }
-    } finally {
-      setIsPending(false);
+  // 로그인을 마친 뒤 원래 보던 화면으로 돌아간다
+  async function finishLogin() {
+    const member = await getMemberInfo();
+    setUser(member);
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/');
     }
   }
 
-  // 아이디 찾기
-  function onFindIdPress() {
-    showAlert('아이디 찾기', '아이디는 학교 이메일(@mju.ac.kr)입니다.');
-  }
-
-  // 비밀번호 찾기
-  function onFindPasswordPress() {
-    router.push('/forgot-password');
-  }
+  // 구글 로그인: 기존 회원이면 바로 로그인, 처음 온 학교 계정이면 추가 정보 입력 화면으로 보낸다
+  const googleLoginMutation = useMutation({
+    mutationFn: async (idToken: string) => {
+      const result = await googleLogin(idToken);
+      if (result.type === 'loggedIn') {
+        await finishLogin();
+        return;
+      }
+      setPendingGoogleSignup(result.profile);
+      router.push('/signup/google');
+    },
+    onError: (error) =>
+      showAlert('구글 로그인 실패', getApiErrorMessage(error, '잠시 후 다시 시도해주세요')),
+  });
 
   return (
     <ScrollView
-      className="bg-grey-02"
+      className="bg-white"
       contentContainerStyle={{ paddingTop: insets.top, flexGrow: 1 }}
     >
-      {/* 로그인 영역 */}
-      <View className="flex-1 gap-3 px-4 py-8">
-        <Text className="text-black text-title03">로그인</Text>
-        <View className="rounded-xl bg-white p-4">
-          <Text className="text-grey-80 text-body04">이메일</Text>
-          <Input
-            className="mt-2"
-            placeholder="@mju.ac.kr"
-            value={email}
-            onChangeText={setEmail}
-            clearable
-            keyboardType="email-address"
-            autoCapitalize="none"
-            returnKeyType="next"
-            onSubmitEditing={() => passwordRef.current?.focus()}
-            submitBehavior="submit"
-          />
-          <Text className="mt-4 text-grey-80 text-body04">비밀번호</Text>
-          <Input
-            ref={passwordRef}
-            className="mt-2"
-            placeholder="비밀번호를 입력하세요"
-            value={password}
-            onChangeText={setPassword}
-            clearable
-            secureTextEntry
-            returnKeyType="done"
-            onSubmitEditing={handleLogin}
-          />
-          <Button
-            className="mt-7"
-            variant={email && password ? 'default' : 'secondary'}
-            onPress={handleLogin}
-            disabled={isPending}
-          >
-            <Text>{isPending ? '로그인 중...' : '로그인'}</Text>
-          </Button>
-          <Button className="mt-2" variant="muted" onPress={() => router.push('/signup')}>
-            <Text>회원가입</Text>
-          </Button>
-          <View className="mt-6 flex-row items-center">
-            <TouchableOpacity className="flex-1" onPress={onFindIdPress}>
-              <View className="h-10 items-center justify-center">
-                <Text className="text-grey-20 text-caption02">아이디 찾기</Text>
-              </View>
-            </TouchableOpacity>
-            <View className="h-4 w-[1px] bg-grey-20" />
-            <TouchableOpacity className="flex-1" onPress={onFindPasswordPress}>
-              <View className="h-10 items-center justify-center">
-                <Text className="text-grey-20 text-caption02">비밀번호 찾기</Text>
-              </View>
+      <View className="w-full max-w-[400px] flex-1 justify-center self-center px-5 py-8">
+        <ThingoLogoLarge width={100} height={38} />
+        <Text className="mt-5 text-black text-heading02">학교 계정으로{'\n'}바로 시작하세요</Text>
+        <Text className="mt-2 text-grey-60 text-body06">
+          처음이면 가입으로, 이미 회원이면 로그인으로 이어져요.
+        </Text>
+
+        {isGoogleSignInAvailable && (
+          <View className="mt-7">
+            <GoogleSignInButton
+              onIdToken={(idToken) => googleLoginMutation.mutate(idToken)}
+              disabled={googleLoginMutation.isPending}
+            />
+            <Text className="mt-2 text-center text-grey-40 text-caption02">
+              {googleLoginMutation.isPending
+                ? '구글 계정을 확인하고 있어요...'
+                : '명지대 구글 계정(@mju.ac.kr)만 이용할 수 있어요'}
+            </Text>
+            <TouchableOpacity
+              className="mt-2 h-10 items-center justify-center"
+              onPress={() => setShowEmailForm((shown) => !shown)}
+            >
+              <Text className="text-grey-40 underline text-caption02">
+                {showEmailForm ? '이메일 로그인 닫기' : '이메일 계정으로 로그인'}
+              </Text>
             </TouchableOpacity>
           </View>
-        </View>
-      </View>
+        )}
 
-      {/* 푸터 */}
-      <Footer />
+        {showEmailForm && <EmailLoginForm onLoggedIn={finishLogin} />}
+      </View>
     </ScrollView>
   );
 }
