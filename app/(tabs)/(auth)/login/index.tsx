@@ -1,14 +1,10 @@
-import { googleLogin } from '@/api/auth';
 import { getMemberInfo } from '@/api/members';
 import { GoogleSignInButton, isGoogleSignInAvailable } from '@/components/google-sign-in-button';
 import ThingoLogoLarge from '@/components/icons/thingo-logo-large';
 import { Text } from '@/components/ui/text';
 import { useAuth } from '@/context/auth-context';
-import { showAlert } from '@/lib/alert';
-import { getApiErrorMessage } from '@/lib/api-error';
-import { setPendingGoogleSignup } from '@/lib/google-signup-session';
-import { useMutation } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
+import { useGoogleLogin } from '@/hooks/useGoogleLogin';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,13 +14,13 @@ export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { setUser } = useAuth();
+  // 마이페이지나 로그인 시트의 '이메일 계정으로 로그인'으로 들어오면(email=1) 이메일 로그인을 펼쳐 둔다.
   // 구글 클라이언트 ID가 없는 빌드는 구글 버튼이 숨겨지므로 이메일 로그인을 바로 보여 준다
-  const [showEmailForm, setShowEmailForm] = useState(!isGoogleSignInAvailable);
+  const { email } = useLocalSearchParams<{ email?: string }>();
+  const [showEmailForm, setShowEmailForm] = useState(!isGoogleSignInAvailable || email === '1');
 
   // 로그인을 마친 뒤 원래 보던 화면으로 돌아간다
-  async function finishLogin() {
-    const member = await getMemberInfo();
-    setUser(member);
+  function goBack() {
     if (router.canGoBack()) {
       router.back();
     } else {
@@ -32,20 +28,13 @@ export default function LoginScreen() {
     }
   }
 
-  // 구글 로그인: 기존 회원이면 바로 로그인, 처음 온 학교 계정이면 추가 정보 입력 화면으로 보낸다
-  const googleLoginMutation = useMutation({
-    mutationFn: async (idToken: string) => {
-      const result = await googleLogin(idToken);
-      if (result.type === 'loggedIn') {
-        await finishLogin();
-        return;
-      }
-      setPendingGoogleSignup(result.profile);
-      router.push('/signup/google');
-    },
-    onError: (error) =>
-      showAlert('구글 로그인 실패', getApiErrorMessage(error, '잠시 후 다시 시도해주세요')),
-  });
+  async function finishLogin() {
+    const member = await getMemberInfo();
+    setUser(member);
+    goBack();
+  }
+
+  const googleLoginMutation = useGoogleLogin({ onLoggedIn: goBack });
 
   return (
     <ScrollView

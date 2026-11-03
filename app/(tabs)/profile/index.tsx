@@ -7,10 +7,12 @@ import { Text } from '@/components/ui/text';
 import { openContactMail } from '@/lib/contact';
 import { openLink } from '@/lib/open-link';
 import { showConfirm } from '@/lib/alert';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useLoginRequiredModal } from '@/context/login-required-modal-context';
+import { useFocusEffect, useRouter, type Href } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Image, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import GuestProfileCard from './_components/guest-profile-card';
 
 const TERMS_URL = 'https://verbena-ixia-597.notion.site/Thingo-33e22ef5d21e80b08328edd8519b0b4e';
 const LOCATION_PRIVACY_URL =
@@ -20,7 +22,8 @@ const PRIVACY_URL = 'https://verbena-ixia-597.notion.site/Thingo-33e22ef5d21e807
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, isInitializing, logout } = useAuth();
+  const { showLoginRequiredModal } = useLoginRequiredModal();
   const [stats, setStats] = useState<ProfileStats | null>(null);
   const departmentLabel = DEPARTMENT_OPTIONS.flatMap((c) => c.departments).find(
     (d) => d.value === user?.departmentName
@@ -30,6 +33,10 @@ export default function ProfileScreen() {
   useFocusEffect(
     useCallback(() => {
       let isActive = true;
+      if (!user) {
+        setStats(null);
+        return;
+      }
 
       getProfileStats()
         .then((nextStats) => {
@@ -40,8 +47,17 @@ export default function ProfileScreen() {
       return () => {
         isActive = false;
       };
-    }, [])
+    }, [user])
   );
+
+  // 로그인하지 않았으면 활동 화면 대신 로그인 시트를 띄운다
+  function openActivity(href: Href) {
+    if (user) {
+      router.push(href);
+    } else {
+      showLoginRequiredModal();
+    }
+  }
 
   return (
     <ScrollView
@@ -52,38 +68,43 @@ export default function ProfileScreen() {
         <View className="px-4 pt-5">
           <Text className="text-black text-title01">마이페이지</Text>
 
-          {/* 내 프로필 */}
-          <Text className="mt-4 text-grey-80 text-title03">프로필</Text>
-          <View className="mt-2 gap-5 rounded-xl bg-white p-4">
-            <View className="flex-row gap-4">
-              {user?.profileImageUrl ? (
-                <Image
-                  source={{ uri: user.profileImageUrl }}
-                  className="aspect-square w-[88px] rounded-xl border border-grey-10"
-                />
-              ) : (
-                <View className="aspect-square w-[88px] items-center justify-center rounded-xl border border-grey-10 bg-grey-02">
-                  <Text className="text-grey-30 text-caption02">이미지 없음</Text>
+          {/* 내 프로필. 로그인하지 않았으면 그 자리에서 로그인한다 */}
+          {!user && !isInitializing && <GuestProfileCard />}
+          {user && (
+            <>
+              <Text className="mt-4 text-grey-80 text-title03">프로필</Text>
+              <View className="mt-2 gap-5 rounded-xl bg-white p-4">
+                <View className="flex-row gap-4">
+                  {user?.profileImageUrl ? (
+                    <Image
+                      source={{ uri: user.profileImageUrl }}
+                      className="aspect-square w-[88px] rounded-xl border border-grey-10"
+                    />
+                  ) : (
+                    <View className="aspect-square w-[88px] items-center justify-center rounded-xl border border-grey-10 bg-grey-02">
+                      <Text className="text-grey-30 text-caption02">이미지 없음</Text>
+                    </View>
+                  )}
+                  <View className="gap-0.5">
+                    <Text className="text-black text-caption01">{user?.nickname}</Text>
+                    <Text className="text-black text-caption01">{departmentLabel}</Text>
+                    <Text className="text-black text-caption02">{user?.studentNumber}</Text>
+                    <Text className="text-grey-60 text-caption02">{user?.email}</Text>
+                  </View>
                 </View>
-              )}
-              <View className="gap-0.5">
-                <Text className="text-black text-caption01">{user?.nickname}</Text>
-                <Text className="text-black text-caption01">{departmentLabel}</Text>
-                <Text className="text-black text-caption02">{user?.studentNumber}</Text>
-                <Text className="text-grey-60 text-caption02">{user?.email}</Text>
+                <Button onPress={() => router.push('/profile/edit')}>
+                  <Text>프로필 수정</Text>
+                </Button>
               </View>
-            </View>
-            <Button onPress={() => router.push('/profile/edit')}>
-              <Text>프로필 수정</Text>
-            </Button>
-          </View>
+            </>
+          )}
 
           {/* 나의 활동 */}
           <Text className="mt-4 text-grey-80 text-title03">나의 활동</Text>
           <View className="mt-2 gap-3">
             <TouchableOpacity
               className="flex-row items-center gap-4 rounded-xl bg-white px-4 py-6"
-              onPress={() => router.push('/profile/maps/favorites')}
+              onPress={() => openActivity('/profile/maps/favorites')}
             >
               <Text className="flex-1 text-grey-80 text-body04">명지도 즐겨찾기</Text>
               <Text className="text-grey-40 text-body04">{stats?.mapFavoriteCount ?? '-'}개</Text>
@@ -91,7 +112,7 @@ export default function ProfileScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               className="flex-row items-center gap-4 rounded-xl bg-white px-4 py-6"
-              onPress={() => router.push('/profile/posts')}
+              onPress={() => openActivity('/profile/posts')}
             >
               <Text className="flex-1 text-grey-80 text-body04">내가 작성한 게시물</Text>
               <Text className="text-grey-40 text-body04">{stats?.postCount ?? '-'}개</Text>
@@ -99,7 +120,7 @@ export default function ProfileScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               className="flex-row items-center gap-4 rounded-xl bg-white px-4 py-6"
-              onPress={() => router.push('/profile/comments')}
+              onPress={() => openActivity('/profile/comments')}
             >
               <Text className="flex-1 text-grey-80 text-body04">내가 작성한 댓글</Text>
               <Text className="text-grey-40 text-body04">{stats?.commentCount ?? '-'}개</Text>
@@ -107,7 +128,7 @@ export default function ProfileScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               className="flex-row items-center gap-4 rounded-xl bg-white px-4 py-6"
-              onPress={() => router.push('/profile/liked-posts')}
+              onPress={() => openActivity('/profile/liked-posts')}
             >
               <Text className="flex-1 text-grey-80 text-body04">찜한 글</Text>
               <Text className="text-grey-40 text-body04">{stats?.likedPostCount ?? '-'}개</Text>
@@ -115,7 +136,7 @@ export default function ProfileScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               className="flex-row items-center gap-4 rounded-xl bg-white px-4 py-6"
-              onPress={() => router.push('/profile/keyword-alarms')}
+              onPress={() => openActivity('/profile/keyword-alarms')}
             >
               <Text className="flex-1 text-grey-80 text-body04">키워드 알림 설정</Text>
               <Text className="text-grey-40 text-body04">{stats?.keywordAlarmCount ?? '-'}개</Text>
@@ -123,7 +144,7 @@ export default function ProfileScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               className="flex-row items-center gap-4 rounded-xl bg-white px-4 py-6"
-              onPress={() => router.push('/profile/blocked-users')}
+              onPress={() => openActivity('/profile/blocked-users')}
             >
               <Text className="flex-1 text-grey-80 text-body04">차단한 사용자</Text>
               <Text className="text-grey-40 text-body04">{stats?.blockedUserCount ?? '-'}개</Text>
@@ -164,23 +185,27 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* 로그아웃 버튼 */}
-          <Button
-            className="mt-4"
-            variant="outline"
-            onPress={() => showConfirm('로그아웃 하시겠습니까?', undefined, logout)}
-          >
-            <Text>로그아웃</Text>
-          </Button>
+          {user && (
+            <>
+              {/* 로그아웃 버튼 */}
+              <Button
+                className="mt-4"
+                variant="outline"
+                onPress={() => showConfirm('로그아웃 하시겠습니까?', undefined, logout)}
+              >
+                <Text>로그아웃</Text>
+              </Button>
 
-          {/* 회원 탈퇴 버튼 */}
-          <TouchableOpacity
-            className="mt-6 self-start"
-            hitSlop={12}
-            onPress={() => router.push('/profile/delete-account')}
-          >
-            <Text className="text-grey-30 text-body05">탈퇴하기</Text>
-          </TouchableOpacity>
+              {/* 회원 탈퇴 버튼 */}
+              <TouchableOpacity
+                className="mt-6 self-start"
+                hitSlop={12}
+                onPress={() => router.push('/profile/delete-account')}
+              >
+                <Text className="text-grey-30 text-body05">탈퇴하기</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </View>
     </ScrollView>
