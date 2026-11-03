@@ -12,7 +12,11 @@
       "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "123457337888-1s9gfu2g2m13heqbjijr9d267pq4s917.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "123457337888-641e9iuo70h8knuruls4nsbjf7lsombg.apps.googleusercontent.com"
+      }
     }
   },
   "submit": {

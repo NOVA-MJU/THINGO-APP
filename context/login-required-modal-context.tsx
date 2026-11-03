@@ -1,3 +1,4 @@
+import { isGoogleSignInAvailable } from '@/components/google-sign-in-button';
 import { LoginRequiredModal } from '@/components/login-required-modal';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
@@ -20,9 +21,10 @@ export function LoginRequiredModalProvider({ children }: { children: React.React
     setVisible(false);
   }, []);
 
+  // 시트에서 '이메일 계정으로 로그인'을 누른 경우라 로그인 화면에서 이메일 로그인을 펼쳐 둔다
   const goToLogin = React.useCallback(() => {
     setVisible(false);
-    router.push('/login');
+    router.push({ pathname: '/login', params: isGoogleSignInAvailable ? { email: '1' } : {} });
   }, [router]);
 
   return (
