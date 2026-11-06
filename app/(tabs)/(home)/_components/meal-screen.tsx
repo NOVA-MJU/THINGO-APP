@@ -11,6 +11,7 @@ import { Text } from '@/components/ui/text';
 import { cn } from '@/lib/utils';
 import * as React from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
+import MealRating from './meal-rating';
 
 export default function MealScreen() {
   const [selectedDate, setSelectedDate] = React.useState<string | null>(null);
@@ -30,13 +31,17 @@ export default function MealScreen() {
     monday.setDate(now.getDate() + diffToMonday);
     monday.setHours(0, 0, 0, 0);
 
-    const result: { day: string; date: string }[] = [];
+    const result: { day: string; date: string; iso: string }[] = [];
     for (let weekday = 0; weekday < 5; weekday++) {
       const d = new Date(monday);
       d.setDate(monday.getDate() + weekday);
       const m = String(d.getMonth() + 1).padStart(2, '0');
       const day = String(d.getDate()).padStart(2, '0');
-      result.push({ date: `${m}/${day}`, day: DAY_NAMES[d.getDay()] });
+      result.push({
+        date: `${m}/${day}`,
+        day: DAY_NAMES[d.getDay()],
+        iso: `${d.getFullYear()}-${m}-${day}`,
+      });
     }
     return { today: todayObj, dates: result };
   }, []);
@@ -60,6 +65,10 @@ export default function MealScreen() {
       menus.find((m) => m.date.startsWith(dotDate) && m.menuCategory === category)?.meals ?? []
     );
   }
+
+  // 평점 API는 yyyy-MM-dd를 받는다. 주말엔 오늘이 평일 목록에 없어 평점 영역을 숨긴다
+  const selectedIso = dates.find((d) => d.date === selectedDate)?.iso;
+  const canRate = selectedDate === today.date;
 
   const breakfast = getMeals('BREAKFAST');
   const lunch = getMeals('LUNCH');
@@ -131,6 +140,9 @@ export default function MealScreen() {
               <Text className="text-grey-40 text-body05">식단 정보가 없습니다.</Text>
             )}
           </View>
+          {selectedIso && breakfast.length > 0 && (
+            <MealRating date={selectedIso} category="BREAKFAST" canRate={canRate} />
+          )}
         </View>
 
         {/* 중식 */}
@@ -151,6 +163,9 @@ export default function MealScreen() {
               <Text className="text-grey-40 text-body05">식단 정보가 없습니다.</Text>
             )}
           </View>
+          {selectedIso && lunch.length > 0 && (
+            <MealRating date={selectedIso} category="LUNCH" canRate={canRate} />
+          )}
         </View>
 
         {/* 석식 */}
@@ -171,6 +186,9 @@ export default function MealScreen() {
               <Text className="text-grey-40 text-body05">식단 정보가 없습니다.</Text>
             )}
           </View>
+          {selectedIso && dinner.length > 0 && (
+            <MealRating date={selectedIso} category="DINNER" canRate={canRate} />
+          )}
         </View>
 
         {/* 설명 */}

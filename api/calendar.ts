@@ -1,4 +1,5 @@
 import { client } from './client';
+import type { StudentType } from './members';
 
 export type CalendarEvent = {
   id: number;
@@ -48,9 +49,13 @@ export async function getCalendar(year: number, month: number): Promise<Calendar
   return data.data;
 }
 
-export async function getCalendarDdays(limit = 4): Promise<CalendarDday[]> {
+// studentType을 보내면 그 대상(학생/대학원생) 일정과 공통 일정만 온다
+export async function getCalendarDdays(
+  limit = 4,
+  studentType?: StudentType
+): Promise<CalendarDday[]> {
   const { data } = await client.get<CalendarDdaysApiResponse>('/ddays', {
-    params: { limit },
+    params: { limit, studentType },
   });
   return data.data;
 }
