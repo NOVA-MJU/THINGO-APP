@@ -47,15 +47,18 @@ export default function MealScreen() {
     return { today: todayObj, dates: result };
   }, []);
 
+  // 주말엔 오늘이 평일 목록에 없어 아무 날짜도 안 골라지므로 이번 주 금요일 식단을 보여준다
+  const defaultDate = dates.some((d) => d.date === today.date) ? today.date : dates[4].date;
+
   React.useEffect(() => {
-    setSelectedDate(today.date);
+    setSelectedDate(defaultDate);
     getMenus()
       .then((res) => setMenus(res.data))
       .catch(() => {});
-  }, [today.date]);
+  }, [defaultDate]);
 
   function handleSetToday(): void {
-    setSelectedDate(today.date);
+    setSelectedDate(defaultDate);
   }
 
   // "MM/DD" → "MM.DD" 로 변환해 API 응답 date 필드("05.12 (화)")와 비교
@@ -85,7 +88,7 @@ export default function MealScreen() {
           </Text>
 
           {/* 오늘 날짜로 돌아가기 버튼 */}
-          {selectedDate !== today.date && (
+          {selectedDate !== defaultDate && (
             <TouchableOpacity onPress={handleSetToday}>
               <View className="flex-row items-center gap-0.5 rounded-full bg-blue-02 px-2 py-[3px]">
                 <Text className="text-blue-20 text-caption01">오늘</Text>
