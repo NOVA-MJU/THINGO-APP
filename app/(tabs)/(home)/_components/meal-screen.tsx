@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import * as React from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
 import MealRating from './meal-rating';
+import { cleanMeals } from '@/lib/meal';
 
 export default function MealScreen() {
   const [selectedDate, setSelectedDate] = React.useState<string | null>(null);
@@ -61,7 +62,8 @@ export default function MealScreen() {
   function getMeals(category: 'BREAKFAST' | 'LUNCH' | 'DINNER'): string[] {
     if (!selectedDate) return [];
     const dotDate = selectedDate.replace('/', '.');
-    return (
+    // "등록된 식단 내용이 없습니다." 같은 안내 문구는 메뉴가 아니므로 빼서 식단 없음으로 보이고 평점도 숨긴다
+    return cleanMeals(
       menus.find((m) => m.date.startsWith(dotDate) && m.menuCategory === category)?.meals ?? []
     );
   }
