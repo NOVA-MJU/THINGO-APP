@@ -580,6 +580,40 @@ export default function AllScreen({ onNavigate }: Props) {
         </TouchableOpacity>
         */}
 
+        {/* 학사일정 */}
+        <View className="mt-8">
+          <View className="flex-row items-center justify-between">
+            <Text className="ms-4 text-black text-title03">학사일정</Text>
+            <TouchableOpacity
+              onPress={() => onNavigate(4)}
+              className="me-3.5"
+              accessibilityRole="button"
+              accessibilityLabel="학사일정 더보기"
+            >
+              <ArrowRightIcon size={20} className="text-grey-60" />
+            </TouchableOpacity>
+          </View>
+          <View className="mx-4 mt-3 rounded-xl bg-white">
+            <Text className="border-b border-grey-02 px-4 pb-1 pt-2 text-mju-primary text-body02">
+              {todayLabel}
+            </Text>
+            <View>
+              {todayEvents.length === 0 ? (
+                <Text className="px-5 py-2 text-grey-30 text-caption02">오늘 일정이 없습니다.</Text>
+              ) : (
+                todayEvents.map((item, index) => (
+                  <View key={index} className="flex-row items-start gap-2 px-4 py-3">
+                    <Text className="w-[80px] text-grey-40 text-caption02">{item.dateLabel}</Text>
+                    <Text className="flex-1 text-black text-caption02" numberOfLines={2}>
+                      {item.description}
+                    </Text>
+                  </View>
+                ))
+              )}
+            </View>
+          </View>
+        </View>
+
         {/* HOT 게시판 */}
         <View className="mt-8 flex-row items-center gap-1 px-4">
           <StarIcon />
@@ -629,40 +663,6 @@ export default function AllScreen({ onNavigate }: Props) {
                   </Link>
                 );
               })}
-        </View>
-
-        {/* 학사일정 */}
-        <View className="mt-8">
-          <View className="flex-row items-center justify-between">
-            <Text className="ms-4 text-black text-title03">학사일정</Text>
-            <TouchableOpacity
-              onPress={() => onNavigate(4)}
-              className="me-3.5"
-              accessibilityRole="button"
-              accessibilityLabel="학사일정 더보기"
-            >
-              <ArrowRightIcon size={20} className="text-grey-60" />
-            </TouchableOpacity>
-          </View>
-          <View className="mx-4 mt-3 rounded-xl bg-white">
-            <Text className="border-b border-grey-02 px-4 pb-1 pt-2 text-mju-primary text-body02">
-              {todayLabel}
-            </Text>
-            <View>
-              {todayEvents.length === 0 ? (
-                <Text className="px-5 py-2 text-grey-30 text-caption02">오늘 일정이 없습니다.</Text>
-              ) : (
-                todayEvents.map((item, index) => (
-                  <View key={index} className="flex-row items-start gap-2 px-4 py-3">
-                    <Text className="w-[80px] text-grey-40 text-caption02">{item.dateLabel}</Text>
-                    <Text className="flex-1 text-black text-caption02" numberOfLines={2}>
-                      {item.description}
-                    </Text>
-                  </View>
-                ))
-              )}
-            </View>
-          </View>
         </View>
 
         {/* 게시판 */}
