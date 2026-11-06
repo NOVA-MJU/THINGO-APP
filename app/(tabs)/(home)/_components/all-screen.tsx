@@ -70,6 +70,7 @@ const BOARD_CATEGORY_LABELS: Record<string, string> = {
 const CAROUSEL_PEEK = 12;
 const CAROUSEL_GAP = 10;
 const DDAYS_LIMIT = 3;
+const HOT_NOTICES_LIMIT = 5;
 // 홈 학식 카드에 보여줄 메뉴 줄 수. 넘치면 '외 N개'로 줄인다
 const MEAL_PREVIEW_LIMIT = 6;
 
@@ -144,7 +145,7 @@ export default function AllScreen({ onNavigate }: Props) {
 
   React.useEffect(() => {
     setHotNoticesLoading(true);
-    getHotNotices({ size: 6 })
+    getHotNotices({ size: HOT_NOTICES_LIMIT })
       .then((data) => setHotNotices(data))
       .catch(() => setHotNotices([]))
       .finally(() => setHotNoticesLoading(false));
@@ -480,7 +481,7 @@ export default function AllScreen({ onNavigate }: Props) {
         <Text className="px-4 text-grey-60 text-caption02">최근 일주일간 가장 많은 조회 수</Text>
         <View className="mx-4 mt-3 rounded-xl bg-white py-1">
           {hotNoticesLoading
-            ? Array.from({ length: 6 }).map((_, i) => (
+            ? Array.from({ length: HOT_NOTICES_LIMIT }).map((_, i) => (
                 <View key={i} className="flex-row items-center gap-1 px-4 py-3">
                   <Skeleton className="h-4 w-10 rounded" />
                   <Skeleton className="h-4 flex-1 rounded" />
