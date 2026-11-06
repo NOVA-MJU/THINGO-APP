@@ -1,4 +1,10 @@
-import { changePassword, getMemberInfo, updateMemberInfo, validateNickname } from '@/api/members';
+import {
+  changePassword,
+  getMemberInfo,
+  updateMemberInfo,
+  validateNickname,
+  type StudentType,
+} from '@/api/members';
 import { Footer } from '@/components/footer';
 import { ArrowDownIcon, InfoCircleIcon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
@@ -26,6 +32,7 @@ export default function ProfileEditScreen() {
   const [selectedDepartment, setSelectedDepartment] = useState<string | null>(
     user?.departmentName ?? null
   );
+  const [studentType, setStudentType] = useState<StudentType>(user?.studentType ?? 'STUDENT');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -57,7 +64,8 @@ export default function ProfileEditScreen() {
     nickname !== (user?.nickname ?? '') ||
     selectedCollege !== (user?.college ?? null) ||
     selectedDepartment !== (user?.departmentName ?? null) ||
-    profileImageUrl !== (user?.profileImageUrl ?? null);
+    profileImageUrl !== (user?.profileImageUrl ?? null) ||
+    studentType !== (user?.studentType ?? 'STUDENT');
 
   // 비밀번호 변경
   const handleChangePassword = async () => {
@@ -106,6 +114,7 @@ export default function ProfileEditScreen() {
         departmentName: selectedDepartment,
         studentNumber: user?.studentNumber ?? '',
         profileImageUrl: nextProfileImageUrl,
+        studentType,
       });
       const updated = await getMemberInfo();
       setUser({ ...updated, profileImageUrl });
@@ -318,6 +327,30 @@ export default function ProfileEditScreen() {
               <Text className="text-grey-40 text-body06">{user?.studentNumber}</Text>
             </View>
             <Text className="mt-2 text-grey-30 text-caption02">※학번은 수정할 수 없습니다.</Text>
+
+            {/* 구분: 홈 학사일정 디데이를 이 기준으로 거른다 */}
+            <Text className="mt-4 text-grey-80 text-body04">구분</Text>
+            <View className="mt-2 flex-row gap-2">
+              {(
+                [
+                  ['STUDENT', '학생'],
+                  ['GRADUATE_STUDENT', '대학원생'],
+                ] as const
+              ).map(([value, label]) => (
+                <Button
+                  key={value}
+                  className="flex-1"
+                  variant={studentType === value ? 'default' : 'outline'}
+                  onPress={() => setStudentType(value)}
+                  accessibilityState={{ selected: studentType === value }}
+                >
+                  <Text>{label}</Text>
+                </Button>
+              ))}
+            </View>
+            <Text className="mt-2 text-grey-30 text-caption02">
+              ※ 홈 화면 학사일정에 선택한 구분의 일정만 보여요.
+            </Text>
           </View>
 
           {/* 저장하기 버튼 */}

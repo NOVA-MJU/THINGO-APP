@@ -4,6 +4,9 @@ import { setAccessToken, setRefreshToken, setSessionFlag } from './token';
 
 const isWeb = Platform.OS === 'web';
 
+// 학사일정 디데이를 대상에 맞게 거르는 데 쓴다. 구버전 서버는 값을 안 보내므로 없으면 학생으로 본다
+export type StudentType = 'STUDENT' | 'GRADUATE_STUDENT';
+
 export type MemberInfo = {
   uuid: string;
   name: string;
@@ -18,6 +21,7 @@ export type MemberInfo = {
   role: string;
   // 구글로 가입해 비밀번호가 없으면 false
   hasPassword: boolean;
+  studentType?: StudentType;
 };
 
 type MemberInfoResponse = {
@@ -57,6 +61,7 @@ export type UpdateMemberRequest = {
   departmentName: string;
   studentNumber: string;
   profileImageUrl?: string | null;
+  studentType?: StudentType;
 };
 
 // 마이페이지 통계 조회

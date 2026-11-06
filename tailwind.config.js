@@ -90,6 +90,8 @@ module.exports = {
         '02': '#edf6ff',
       },
       error: '#f45353',
+      // 학식 별점
+      star: '#ffb524',
       grey: {
         80: '#4b4d4f',
         60: '#6d7073',

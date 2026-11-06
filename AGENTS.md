@@ -56,9 +56,10 @@ pnpm expo run:android
 
 ## routing (`app/(tabs)/(home)`)
 
-- 홈 탭(ALL/학식/게시판/공지사항/학사일정/명대신문/명대뉴스) 이동 방식이 플랫폼별로 다름
+- 홈 탭(ALL/학식/게시판/공지사항/학사일정) 이동 방식이 플랫폼별로 다름
   - **모바일**: 라우트는 항상 `/` 하나이고 `tab` 쿼리 파라미터로 어느 탭인지 구분 (`app/(tabs)/(home)/index.tsx`가 스와이프 뷰로 렌더링)
-  - **웹**: 탭마다 실제 URL이 따로 있음 (`/`, `/meal`, `/posts`, `/notices`, `/academic-calendar`, `/newspaper`, `/news` — `TAB_PATHS` 배열 참고). `/`로 이동해도 `tab` 파라미터는 무시되고 `AllScreen`만 렌더링됨
+  - **웹**: 탭마다 실제 URL이 따로 있음 (`/`, `/meal`, `/posts`, `/notices`, `/academic-calendar` — `_layout.tsx`의 `TAB_PATHS` 배열 참고). `/`로 이동해도 `tab` 파라미터는 무시되고 `AllScreen`만 렌더링됨
+  - 웹·모바일 탭바에는 명대신문·명대뉴스가 없다. `/newspaper`, `/news` 라우트와 화면 컴포넌트는 남아 있어 주소로 들어가면 열린다. 웹에서는 이때 탭바가 ALL이 선택된 상태로 보인다
 - 게시판 목록으로 되돌아가거나 새로고침 신호(`refreshBoards`, `boardCategory`)를 넘길 때, `Platform.OS`로 분기해서 모바일은 `pathname: '/'` + `tab: 'board'`, 웹은 `pathname: '/posts'`(`tab` 파라미터 불필요)로 이동해야 함
 
 ## app/ 하위 `_components` (라우트가 아닌 파일)
