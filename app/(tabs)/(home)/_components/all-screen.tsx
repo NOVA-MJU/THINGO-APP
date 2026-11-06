@@ -12,7 +12,6 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import Carousel from 'react-native-reanimated-carousel';
-import { YoutubeEmbed } from '@/components/youtube-embed';
 import { CategoryFilter } from '@/components/ui/category-filter';
 import { Footer } from '@/components/footer';
 import {
@@ -24,10 +23,10 @@ import {
 } from '@/api/notices';
 import { getBoards, getHotBoards, type Board } from '@/api/posts';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getNews, type NewsItem, type NewsCategory } from '@/api/news';
 import { getBanners, type Banner } from '@/api/banners';
-import { getBroadcasts, type BroadcastItem, type BroadcastSource } from '@/api/broadcast';
-import { getMenus, type DailyMenu } from '@/api/menus';
+import { getMealRatings, getMenus, type DailyMenu } from '@/api/menus';
+import { useAuth } from '@/context/auth-context';
+import { cleanMeals } from '@/lib/meal';
 import {
   getCalendar,
   getCalendarDdays,
@@ -35,16 +34,14 @@ import {
   type CalendarEvent,
 } from '@/api/calendar';
 import { formatTimeAgo } from '@/lib/utils';
+import { FireIcon, StarIcon } from '@/components/icons/home';
 import {
-  MyeongjiMapIcon,
-  DiningIcon,
-  CalendarIcon,
-  MegaphoneIcon,
-  ChatIcon,
-  FireIcon,
-  StarIcon,
-} from '@/components/icons/home';
-import { ArrowRightIcon, ChatBubbleIcon, HeartIcon } from '@/components/icons';
+  ArrowRightIcon,
+  ChatBubbleIcon,
+  HeartIcon,
+  StarIcon as RatingStarIcon,
+} from '@/components/icons';
+import { useQuery } from '@tanstack/react-query';
 import Svg, { Defs, LinearGradient as SvgLinearGradient, Rect, Stop } from 'react-native-svg';
 
 const NOTICE_CATEGORIES: { label: string; value: NoticeCategory }[] = [
@@ -65,18 +62,6 @@ type Props = {
   onNavigate: (tabIndex: number) => void;
 };
 
-const NEWSPAPER_CATEGORY_MAP: Record<string, NewsCategory> = {
-  전체: null,
-  보도: 'REPORT',
-  사회: 'SOCIETY',
-};
-
-const BROADCAST_SOURCE_MAP: Record<string, BroadcastSource> = {
-  전체: 'ALL',
-  명지대학교: 'OFFICIAL',
-  명대방송국: 'BROADCAST',
-};
-
 const BOARD_CATEGORY_LABELS: Record<string, string> = {
   FREE: '자유게시판',
   NOTICE: '공지게시판',
@@ -85,6 +70,14 @@ const BOARD_CATEGORY_LABELS: Record<string, string> = {
 const CAROUSEL_PEEK = 12;
 const CAROUSEL_GAP = 10;
 const DDAYS_LIMIT = 3;
+// 홈 학식 카드에 보여줄 메뉴 줄 수. 넘치면 '외 N개'로 줄인다
+const MEAL_PREVIEW_LIMIT = 6;
+
+// 홈 디데이는 이미 학생/대학원생 기준으로 걸러 오므로 앞의 [학부]·[대학원] 같은 태그는 빼고 일정 이름만 보여준다.
+// 태그는 학사일정 상세 화면에 그대로 남는다. 다 지우면 비는 경우엔 원문을 쓴다
+function stripAudienceTags(name: string): string {
+  return name.replace(/^\s*(\[[^\]]*\]\s*)+/, '') || name;
+}
 
 function formatDdayValue(value: number): string {
   return value === 0 ? 'D-DAY' : `D-${value}`;
@@ -101,8 +94,6 @@ export default function AllScreen({ onNavigate }: Props) {
   const [currentBannerIndex, setCurrentBannerIndex] = React.useState(0);
   const isBannerDraggingRef = React.useRef(false);
   const [selectedNoticeCategory, setSelectedNoticeCategory] = React.useState('전체');
-  const [selectedNewspaperCategory, setSelectedNewspaperCategory] = React.useState('전체');
-  const [selectedBroadcastSource, setSelectedBroadcastSource] = React.useState('전체');
   const [notices, setNotices] = React.useState<Notice[]>([]);
   const [noticesLoading, setNoticesLoading] = React.useState(false);
   const [hotNotices, setHotNotices] = React.useState<HotNotice[]>([]);
@@ -111,10 +102,6 @@ export default function AllScreen({ onNavigate }: Props) {
   const [hotBoardsLoading, setHotBoardsLoading] = React.useState(false);
   const [boards, setBoards] = React.useState<Board[]>([]);
   const [boardsLoading, setBoardsLoading] = React.useState(false);
-  const [newspaper, setNewspaper] = React.useState<NewsItem[]>([]);
-  const [newspaperLoading, setNewspaperLoading] = React.useState(false);
-  const [broadcasts, setBroadcasts] = React.useState<BroadcastItem[]>([]);
-  const [broadcastsLoading, setBroadcastsLoading] = React.useState(false);
   const [menus, setMenus] = React.useState<DailyMenu[]>([]);
   const [calendarDdays, setCalendarDdays] = React.useState<CalendarDday[]>([]);
   const [calendarDdaysLoading, setCalendarDdaysLoading] = React.useState(false);
@@ -139,34 +126,21 @@ export default function AllScreen({ onNavigate }: Props) {
   }, [selectedNoticeCategory]);
 
   React.useEffect(() => {
-    setNewspaperLoading(true);
-    getNews({ category: NEWSPAPER_CATEGORY_MAP[selectedNewspaperCategory], size: 4 })
-      .then((res) => setNewspaper(res.content))
-      .catch(() => setNewspaper([]))
-      .finally(() => setNewspaperLoading(false));
-  }, [selectedNewspaperCategory]);
-
-  React.useEffect(() => {
-    setBroadcastsLoading(true);
-    getBroadcasts({ source: BROADCAST_SOURCE_MAP[selectedBroadcastSource], size: 5 })
-      .then((res) => setBroadcasts(res.content))
-      .catch(() => setBroadcasts([]))
-      .finally(() => setBroadcastsLoading(false));
-  }, [selectedBroadcastSource]);
-
-  React.useEffect(() => {
     getMenus()
       .then((res) => setMenus(res.data))
       .catch(() => {});
   }, []);
 
+  // 로그인 안 했거나 값이 없으면 대부분인 학생 기준으로 보여준다
+  const { user } = useAuth();
+  const studentType = user?.studentType ?? 'STUDENT';
   React.useEffect(() => {
     setCalendarDdaysLoading(true);
-    getCalendarDdays(DDAYS_LIMIT)
+    getCalendarDdays(DDAYS_LIMIT, studentType)
       .then(setCalendarDdays)
       .catch(() => setCalendarDdays([]))
       .finally(() => setCalendarDdaysLoading(false));
-  }, []);
+  }, [studentType]);
 
   React.useEffect(() => {
     setHotNoticesLoading(true);
@@ -261,6 +235,17 @@ export default function AllScreen({ onNavigate }: Props) {
         ?.meals ?? []
     );
   }, [menus, currentMealCategory]);
+  const mealItems = cleanMeals(todayMeals);
+
+  // 학식 탭 평점과 같은 queryKey를 써서 캐시를 나눠 쓴다. 평가한 사람이 없으면 평점 자리에 화살표를 둔다
+  const now = new Date();
+  const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const { data: currentMealRating } = useQuery({
+    queryKey: ['meal-ratings', todayIso, user?.uuid ?? null],
+    queryFn: () => getMealRatings(todayIso),
+    select: (ratings) => ratings.find((r) => r.menuCategory === currentMealCategory),
+    enabled: mealItems.length > 0,
+  });
 
   // 배너 링크가 홈 탭(다른 스와이프 화면)을 가리키는 경우, 모바일에서는 router로 이동하면
   // 헤더·탭바가 없는 화면이 렌더링되므로 onNavigate로 스와이프 전환하고, 웹은 실제 URL이 있어 그대로 이동
@@ -289,14 +274,7 @@ export default function AllScreen({ onNavigate }: Props) {
         onNavigate(4);
         return;
       }
-      if (linkUrl.startsWith('/newspaper')) {
-        onNavigate(5);
-        return;
-      }
-      if (linkUrl.startsWith('/news')) {
-        onNavigate(6);
-        return;
-      }
+      // 명대신문(/newspaper)·명대뉴스(/news)는 스와이프 탭에서 빠져 아래에서 해당 라우트로 바로 연다
     }
     openLinkOrNavigate(linkUrl);
   }
@@ -417,51 +395,56 @@ export default function AllScreen({ onNavigate }: Props) {
           )}
 
           <View className="mt-3 flex-row gap-4 px-4">
-            {/* 퀵 메뉴 */}
-            <View className="flex-[4] gap-2">
-              <View className="flex-1 flex-row gap-2">
-                <Link href="/maps" asChild>
-                  <TouchableOpacity className="flex-1 rounded-xl bg-blue-02 pb-0.5 pe-1.5 ps-2.5 pt-2">
-                    <Text className="text-black text-body05">명지도</Text>
-                    <View className="flex-1 items-end justify-end">
-                      <MyeongjiMapIcon />
+            {/* 학식 */}
+            <TouchableOpacity
+              onPress={() => onNavigate(1)}
+              className="flex-[4] gap-2 rounded-xl bg-blue-02 px-3 py-3.5"
+              accessibilityRole="button"
+              accessibilityLabel={`${currentMealLabel} 식단 보기`}
+            >
+              <View className="flex-row items-center gap-1.5">
+                <Text className="text-black text-body04">{currentMealLabel}</Text>
+                <Text className="text-grey-60 text-caption02">
+                  {currentMealTimeRange.replace(/[()]/g, '')}
+                </Text>
+                {currentMealRating && currentMealRating.count > 0 ? (
+                  <View className="ml-auto flex-row items-center gap-0.5">
+                    <RatingStarIcon size={14} className="text-star" />
+                    <Text className="text-black text-caption01">
+                      {currentMealRating.average.toFixed(1)}
+                    </Text>
+                  </View>
+                ) : (
+                  <ArrowRightIcon size={16} className="ml-auto text-grey-40" />
+                )}
+              </View>
+              {mealItems.length > 0 ? (
+                <View className="flex-row flex-wrap gap-[5px]">
+                  {mealItems.slice(0, MEAL_PREVIEW_LIMIT).map((meal, index) => (
+                    <View key={index} className="max-w-full rounded-[6px] bg-white px-[7px] py-1">
+                      <Text className="text-[13px] leading-[19.5px] text-black" numberOfLines={1}>
+                        {meal}
+                      </Text>
                     </View>
-                  </TouchableOpacity>
-                </Link>
-                <TouchableOpacity
-                  className="flex-1 rounded-xl bg-blue-02 pb-0.5 pe-1.5 ps-2.5 pt-2"
-                  onPress={() => onNavigate(1)}
-                >
-                  <Text className="text-black text-body05">학식</Text>
-                  <View className="flex-1 items-end justify-end">
-                    <DiningIcon />
-                  </View>
-                </TouchableOpacity>
-              </View>
-              <View className="flex-1 flex-row gap-2">
-                <TouchableOpacity className="flex-1 gap-1" onPress={() => onNavigate(4)}>
-                  <View className="items-center rounded-xl bg-blue-02 p-2">
-                    <CalendarIcon />
-                  </View>
-                  <Text className="text-center text-black text-body05">학사일정</Text>
-                </TouchableOpacity>
-                <TouchableOpacity className="flex-1 gap-1" onPress={() => onNavigate(3)}>
-                  <View className="items-center rounded-xl bg-blue-02 p-2">
-                    <MegaphoneIcon />
-                  </View>
-                  <Text className="text-center text-black text-body05">공지사항</Text>
-                </TouchableOpacity>
-                <TouchableOpacity className="flex-1 gap-1" onPress={() => onNavigate(2)}>
-                  <View className="items-center rounded-xl bg-blue-02 p-2">
-                    <ChatIcon />
-                  </View>
-                  <Text className="text-center text-black text-body05">게시판</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+                  ))}
+                  {mealItems.length > MEAL_PREVIEW_LIMIT && (
+                    <Text className="self-center text-grey-40 text-caption02">
+                      외 {mealItems.length - MEAL_PREVIEW_LIMIT}개
+                    </Text>
+                  )}
+                </View>
+              ) : (
+                <Text className="text-grey-40 text-caption02">식단 정보가 없습니다.</Text>
+              )}
+            </TouchableOpacity>
 
-            {/* 학사일정 */}
-            <View className="flex-[3] gap-2 rounded-xl bg-blue-02 px-3.5 py-3">
+            {/* 학사일정: 누르면 학사일정 탭으로 */}
+            <TouchableOpacity
+              onPress={() => onNavigate(4)}
+              className="flex-[3] gap-2 rounded-xl bg-blue-02 px-3.5 py-3"
+              accessibilityRole="button"
+              accessibilityLabel="학사일정 보기"
+            >
               {calendarDdaysLoading ? (
                 Array.from({ length: DDAYS_LIMIT }).map((_, index) => (
                   <View key={index} className="flex-1 gap-1">
@@ -476,7 +459,7 @@ export default function AllScreen({ onNavigate }: Props) {
                       {formatDdayValue(item.ddayValue)}
                     </Text>
                     <Text className="text-grey-80 text-caption02" numberOfLines={1}>
-                      {item.eventName}
+                      {stripAudienceTags(item.eventName)}
                     </Text>
                   </View>
                 ))
@@ -485,34 +468,12 @@ export default function AllScreen({ onNavigate }: Props) {
                   <Text className="text-grey-40 text-caption02">예정된 학사일정이 없습니다.</Text>
                 </View>
               )}
-            </View>
+            </TouchableOpacity>
           </View>
         </View>
 
-        {/* 학식 */}
-        <TouchableOpacity
-          onPress={() => onNavigate(1)}
-          className="mx-4 mt-6 gap-2.5 rounded-xl bg-white px-4 py-5"
-        >
-          <View className="flex-row items-center gap-2">
-            <Text className="text-black text-body02">{currentMealLabel}</Text>
-            <Text className="text-grey-60 text-caption02">{currentMealTimeRange}</Text>
-          </View>
-          <View className="flex-row flex-wrap gap-1.5">
-            {todayMeals.length > 0 ? (
-              todayMeals.map((meal) => (
-                <View key={meal} className="rounded-[6px] bg-grey-02 px-1 py-0.5">
-                  <Text className="text-grey-80 text-body05">{meal}</Text>
-                </View>
-              ))
-            ) : (
-              <Text className="text-grey-40 text-body05">식단 정보가 없습니다.</Text>
-            )}
-          </View>
-        </TouchableOpacity>
-
         {/* HOT 공지사항 */}
-        <View className="mt-8 flex-row items-center gap-1 px-4">
+        <View className="mt-6 flex-row items-center gap-1 px-4">
           <FireIcon />
           <Text className="text-black text-title03">HOT 공지사항</Text>
         </View>
@@ -544,57 +505,6 @@ export default function AllScreen({ onNavigate }: Props) {
                     </Text>
                     <Text className="text-grey-30 text-caption04">{dateLabel}</Text>
                   </TouchableOpacity>
-                );
-              })}
-        </View>
-
-        {/* HOT 게시판 */}
-        <View className="mt-8 flex-row items-center gap-1 px-4">
-          <StarIcon />
-          <Text className="text-black text-title03">HOT 게시판</Text>
-        </View>
-        <Text className="px-4 text-grey-60 text-caption02">모두가 가장 보고 싶은 글</Text>
-        <View className="mx-4 mt-3 rounded-xl bg-white py-1">
-          {hotBoardsLoading
-            ? Array.from({ length: 2 }).map((_, i) => (
-                <View key={i} className="gap-2 px-4 pb-2 pt-3">
-                  <View className="flex-row gap-1">
-                    <Skeleton className="h-4 w-16 rounded" />
-                    <Skeleton className="h-4 flex-1 rounded" />
-                  </View>
-                  <View className="flex-row items-center gap-1">
-                    <Skeleton className="h-3 w-10 rounded" />
-                    <Skeleton className="h-3 w-12 rounded" />
-                    <Skeleton className="h-3 w-12 rounded" />
-                  </View>
-                </View>
-              ))
-            : hotBoards.map((item, index) => {
-                const d = new Date(item.createdAt);
-                const dateLabel = `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
-                return (
-                  <Link key={index} href={`/posts/${item.uuid}`} asChild>
-                    <TouchableOpacity className="gap-2 px-4 pb-2 pt-3">
-                      <View className="flex-row gap-1">
-                        <Text className="text-black text-body04" numberOfLines={1}>
-                          {BOARD_CATEGORY_LABELS[item.communityCategory ?? ''] ??
-                            item.communityCategory}
-                        </Text>
-                        <Text className="flex-1 text-black text-body05" numberOfLines={1}>
-                          {item.title}
-                        </Text>
-                      </View>
-                      <View className="flex-row items-center">
-                        <Text className="flex-1 text-grey-30 text-caption04">{dateLabel}</Text>
-                        <HeartIcon className="text-blue-10" />
-                        <Text className="ms-1 text-grey-40 text-caption02">{item.likeCount}</Text>
-                        <ChatBubbleIcon className="ms-2 text-blue-10" />
-                        <Text className="ms-1 text-grey-40 text-caption02">
-                          {item.commentCount}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  </Link>
                 );
               })}
         </View>
@@ -647,6 +557,80 @@ export default function AllScreen({ onNavigate }: Props) {
           </View>
         </View>
 
+        {/* 학식 섹션: 상단 학사일정 옆 학식 카드가 대신 보여주고 있어 숨겨 둔다. 이 위치로 되돌릴 수 있어 코드는 남긴다
+        <TouchableOpacity
+          onPress={() => onNavigate(1)}
+          className="mx-4 mt-8 gap-2.5 rounded-xl bg-white px-4 py-5"
+        >
+          <View className="flex-row items-center gap-2">
+            <Text className="text-black text-body02">{currentMealLabel}</Text>
+            <Text className="text-grey-60 text-caption02">{currentMealTimeRange}</Text>
+          </View>
+          <View className="flex-row flex-wrap gap-1.5">
+            {todayMeals.length > 0 ? (
+              todayMeals.map((meal) => (
+                <View key={meal} className="rounded-[6px] bg-grey-02 px-1 py-0.5">
+                  <Text className="text-grey-80 text-body05">{meal}</Text>
+                </View>
+              ))
+            ) : (
+              <Text className="text-grey-40 text-body05">식단 정보가 없습니다.</Text>
+            )}
+          </View>
+        </TouchableOpacity>
+        */}
+
+        {/* HOT 게시판 */}
+        <View className="mt-8 flex-row items-center gap-1 px-4">
+          <StarIcon />
+          <Text className="text-black text-title03">HOT 게시판</Text>
+        </View>
+        <Text className="px-4 text-grey-60 text-caption02">모두가 가장 보고 싶은 글</Text>
+        <View className="mx-4 mt-3 rounded-xl bg-white py-1">
+          {hotBoardsLoading
+            ? Array.from({ length: 2 }).map((_, i) => (
+                <View key={i} className="gap-2 px-4 pb-2 pt-3">
+                  <View className="flex-row gap-1">
+                    <Skeleton className="h-4 w-16 rounded" />
+                    <Skeleton className="h-4 flex-1 rounded" />
+                  </View>
+                  <View className="flex-row items-center gap-1">
+                    <Skeleton className="h-3 w-10 rounded" />
+                    <Skeleton className="h-3 w-12 rounded" />
+                    <Skeleton className="h-3 w-12 rounded" />
+                  </View>
+                </View>
+              ))
+            : hotBoards.map((item, index) => {
+                const d = new Date(item.createdAt);
+                const dateLabel = `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+                return (
+                  <Link key={index} href={`/posts/${item.uuid}`} asChild>
+                    <TouchableOpacity className="gap-2 px-4 pb-2 pt-3">
+                      <View className="flex-row gap-1">
+                        <Text className="text-black text-body04" numberOfLines={1}>
+                          {BOARD_CATEGORY_LABELS[item.communityCategory ?? ''] ??
+                            item.communityCategory}
+                        </Text>
+                        <Text className="flex-1 text-black text-body05" numberOfLines={1}>
+                          {item.title}
+                        </Text>
+                      </View>
+                      <View className="flex-row items-center">
+                        <Text className="flex-1 text-grey-30 text-caption04">{dateLabel}</Text>
+                        <HeartIcon className="text-blue-10" />
+                        <Text className="ms-1 text-grey-40 text-caption02">{item.likeCount}</Text>
+                        <ChatBubbleIcon className="ms-2 text-blue-10" />
+                        <Text className="ms-1 text-grey-40 text-caption02">
+                          {item.commentCount}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  </Link>
+                );
+              })}
+        </View>
+
         {/* 학사일정 */}
         <View className="mt-8">
           <View className="flex-row items-center justify-between">
@@ -682,7 +666,7 @@ export default function AllScreen({ onNavigate }: Props) {
         </View>
 
         {/* 게시판 */}
-        <View className="mt-8">
+        <View className="mb-9 mt-8">
           <View className="flex-row items-center justify-between">
             <Text className="ms-4 text-black text-title03">게시판</Text>
             <TouchableOpacity
@@ -737,115 +721,6 @@ export default function AllScreen({ onNavigate }: Props) {
                     </Link>
                   );
                 })}
-          </View>
-        </View>
-
-        {/* 명대신문 */}
-        <View className="mt-8">
-          <View className="flex-row items-center justify-between">
-            <Text className="ms-4 text-black text-title03">명대신문</Text>
-            <TouchableOpacity
-              onPress={() => onNavigate(5)}
-              className="me-3.5"
-              accessibilityRole="button"
-              accessibilityLabel="명대신문 더보기"
-            >
-              <ArrowRightIcon size={20} className="text-grey-60" />
-            </TouchableOpacity>
-          </View>
-          <View className="mt-3">
-            <CategoryFilter
-              categories={Object.keys(NEWSPAPER_CATEGORY_MAP)}
-              selected={selectedNewspaperCategory}
-              onSelect={setSelectedNewspaperCategory}
-              paddingHorizontal={16}
-            />
-          </View>
-          <View className="relative mx-4 mt-2 gap-2">
-            {newspaper.map((item, index) => (
-              <TouchableOpacity
-                key={index}
-                className="flex-row items-center gap-4 rounded-xl bg-white p-4"
-                onPress={() => openLink(item.link)}
-              >
-                <Image
-                  source={{ uri: item.imageUrl }}
-                  style={{ width: 110, height: 110 }}
-                  className="rounded border border-grey-10 bg-white"
-                />
-                <View className="flex-1">
-                  <Text className="text-black text-body02" numberOfLines={1}>
-                    {item.title}
-                  </Text>
-                  <Text className="mt-0.5 flex-1 text-black text-body05" numberOfLines={2}>
-                    {item.summary}
-                  </Text>
-                  <Text className="mt-0.5 text-grey-30 text-caption01" numberOfLines={1}>
-                    {item.reporter}
-                  </Text>
-                  <Text className="text-grey-30 text-caption04" numberOfLines={1}>
-                    {new Date(item.date).toISOString().slice(0, 10)}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-            {newspaperLoading && (
-              <View className="absolute inset-0 items-center justify-center">
-                <ActivityIndicator />
-              </View>
-            )}
-          </View>
-        </View>
-
-        {/* 명대뉴스 */}
-        <View className="mb-9 mt-8">
-          <View className="flex-row items-center justify-between">
-            <Text className="ms-4 text-black text-title03">명대뉴스</Text>
-            <TouchableOpacity
-              onPress={() => onNavigate(6)}
-              className="me-3.5"
-              accessibilityRole="button"
-              accessibilityLabel="명대뉴스 더보기"
-            >
-              <ArrowRightIcon size={20} className="text-grey-60" />
-            </TouchableOpacity>
-          </View>
-          <View className="mt-3">
-            <CategoryFilter
-              categories={Object.keys(BROADCAST_SOURCE_MAP)}
-              selected={selectedBroadcastSource}
-              onSelect={setSelectedBroadcastSource}
-              paddingHorizontal={16}
-            />
-          </View>
-          <View className="relative mx-4 mt-4 gap-4">
-            {broadcasts.map((item, index) => {
-              const videoId = new URL(item.url).searchParams.get('v') ?? '';
-              const d = new Date(item.publishedAt);
-              const dateLabel = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
-              return (
-                <View key={index}>
-                  <View className="overflow-hidden rounded-t-xl">
-                    <YoutubeEmbed videoId={videoId} height={192} />
-                  </View>
-                  <TouchableOpacity onPress={() => openLink(item.url)}>
-                    <View className="h-24 gap-0.5 rounded-b-xl bg-white px-4 py-2">
-                      <Text className="flex-1 text-black text-body02" numberOfLines={2}>
-                        {item.title}
-                      </Text>
-                      <Text className="text-grey-30 text-caption04" numberOfLines={1}>
-                        {dateLabel}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                </View>
-              );
-            })}
-            {broadcastsLoading && (
-              <View className="absolute inset-0 items-center justify-center">
-                <ActivityIndicator />
-              </View>
-            )}
           </View>
         </View>
       </View>

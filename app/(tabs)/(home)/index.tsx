@@ -10,21 +10,20 @@ import { Dimensions, Keyboard, Platform, ScrollView, TouchableOpacity, View } fr
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NoticeBoardScreen } from './_components/notice-board-page';
 import AllScreen from './_components/all-screen';
-import NewsScreen from './_components/news-screen';
 import MealScreen from './_components/meal-screen';
 import NoticeScreen from './_components/notice-screen';
 import AcademicCalendarScreen from './_components/academic-calendar-screen';
-import NewspaperScreen from './_components/newspaper-screen';
 import { Button } from '@/components/ui/button';
 import { TabBar } from '@/components/ui/tab-bar';
 import { useNotificationBadge } from '@/hooks/useNotificationBadge';
 
 const { width } = Dimensions.get('window');
-const TABS = ['ALL', '학식', '게시판', '공지사항', '학사일정', '명대신문', '명대뉴스'];
-const TAB_PATHS = ['/', '/meal', '/posts', '/notices', '/academic-calendar', '/newspaper', '/news'];
+// 명대신문·명대뉴스는 탭에서 뺐다. 화면은 /newspaper, /news 라우트로 남아 있어 주소로는 열린다
+const TABS = ['ALL', '학식', '게시판', '공지사항', '학사일정'];
+const TAB_PATHS = ['/', '/meal', '/posts', '/notices', '/academic-calendar'];
 // 모바일에서 `tab` 쿼리 파라미터로 넘어오는 값 (TABS와 인덱스 대응). 웹 라우트 슬러그(TAB_PATHS)와
 // 별개로 관리하는 이유는 게시판이 이미 'board'라는 값으로 여러 화면(posts/[postId] 등)에서 쓰이고 있어서
-const TAB_QUERY_SLUGS = ['', 'meal', 'board', 'notices', 'academic-calendar', 'newspaper', 'news'];
+const TAB_QUERY_SLUGS = ['', 'meal', 'board', 'notices', 'academic-calendar'];
 const HOME_TITLE = '띵고 Thingo - 명지대학교 통합 정보 탐색 플랫폼';
 
 export default function Screen() {
@@ -159,10 +158,10 @@ export default function Screen() {
         <AcademicCalendarScreen />
 
         {/* 명대신문 */}
-        <NewspaperScreen />
+        {/* 탭에서 뺐다. 화면은 /newspaper 라우트(newspaper.tsx)에 남아 있다 */}
 
         {/* 명대뉴스 */}
-        <NewsScreen />
+        {/* 탭에서 뺐다. 화면은 /news 라우트(news.tsx)에 남아 있다 */}
       </ScrollView>
 
       {/* 로그인 유도 dialog */}
