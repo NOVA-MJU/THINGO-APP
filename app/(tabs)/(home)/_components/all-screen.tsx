@@ -435,7 +435,11 @@ export default function AllScreen({ onNavigate }: Props) {
                   )}
                 </View>
               ) : (
-                <Text className="text-grey-40 text-caption02">식단 정보가 없습니다.</Text>
+                <Text className="text-grey-40 text-caption02">
+                  {[0, 6].includes(now.getDay())
+                    ? '주말엔 학식을 운영하지 않아요'
+                    : '식단 정보가 없습니다.'}
+                </Text>
               )}
             </TouchableOpacity>
 
