@@ -73,6 +73,8 @@ const DDAYS_LIMIT = 3;
 const HOT_NOTICES_LIMIT = 5;
 // 홈 학식 카드에 보여줄 메뉴 줄 수. 넘치면 '외 N개'로 줄인다
 const MEAL_PREVIEW_LIMIT = 6;
+// 토(6)·일(0)에서 다음 주 월요일까지 남은 날 수
+const WEEKEND_DAYS_TO_MONDAY: Record<number, number> = { 6: 2, 0: 1 };
 
 // 홈 디데이는 이미 학생/대학원생 기준으로 걸러 오므로 앞의 [학부]·[대학원] 같은 태그는 빼고 일정 이름만 보여준다.
 // 태그는 학사일정 상세 화면에 그대로 남는다. 다 지우면 비는 경우엔 원문을 쓴다
@@ -192,8 +194,17 @@ export default function AllScreen({ onNavigate }: Props) {
   }, []);
 
   // 현재 시각 기준으로 조식(~09:00) / 중식(~14:00) / 석식(14:00~) 결정 및 오늘 날짜 레이블 생성
+  // 주말엔 학식이 없으니 다음 주 월요일 조식(다음 끼니)을 보여준다. 학교가 주말 사이 다음 주 식단을 올린다
   const { currentMealLabel, currentMealTimeRange, currentMealCategory } = React.useMemo(() => {
     const now = new Date();
+    if (WEEKEND_DAYS_TO_MONDAY[now.getDay()]) {
+      return {
+        currentMealLabel: '월요일 조식',
+        // 카드 폭에 '월요일'과 시간이 한 줄에 다 안 들어가서 주말엔 시간을 뺀다
+        currentMealTimeRange: '',
+        currentMealCategory: 'BREAKFAST' as const,
+      };
+    }
     const hour = now.getHours() * 60 + now.getMinutes();
     let label: string;
     let timeRange: string;
@@ -228,8 +239,10 @@ export default function AllScreen({ onNavigate }: Props) {
 
   // menus 배열에서 오늘 날짜 + 현재 식사 카테고리에 해당하는 메뉴 항목 추출
   const todayMeals = React.useMemo(() => {
-    const mm = String(new Date().getMonth() + 1).padStart(2, '0');
-    const dd = String(new Date().getDate()).padStart(2, '0');
+    const mealDate = new Date();
+    mealDate.setDate(mealDate.getDate() + (WEEKEND_DAYS_TO_MONDAY[mealDate.getDay()] ?? 0));
+    const mm = String(mealDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(mealDate.getDate()).padStart(2, '0');
     const dotDate = `${mm}.${dd}`;
     return (
       menus.find((m) => m.date.startsWith(dotDate) && m.menuCategory === currentMealCategory)
@@ -245,7 +258,8 @@ export default function AllScreen({ onNavigate }: Props) {
     queryKey: ['meal-ratings', todayIso, user?.uuid ?? null],
     queryFn: () => getMealRatings(todayIso),
     select: (ratings) => ratings.find((r) => r.menuCategory === currentMealCategory),
-    enabled: mealItems.length > 0,
+    // 주말엔 월요일 식단을 미리 보여주는 것이라 오늘 평점을 붙이지 않는다
+    enabled: mealItems.length > 0 && !WEEKEND_DAYS_TO_MONDAY[now.getDay()],
   });
 
   // 배너 링크가 홈 탭(다른 스와이프 화면)을 가리키는 경우, 모바일에서는 router로 이동하면
@@ -435,11 +449,7 @@ export default function AllScreen({ onNavigate }: Props) {
                   )}
                 </View>
               ) : (
-                <Text className="text-grey-40 text-caption02">
-                  {[0, 6].includes(now.getDay())
-                    ? '주말엔 학식을 운영하지 않아요'
-                    : '식단 정보가 없습니다.'}
-                </Text>
+                <Text className="text-grey-40 text-caption02">식단 정보가 없습니다.</Text>
               )}
             </TouchableOpacity>
 
