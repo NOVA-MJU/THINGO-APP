@@ -19,7 +19,7 @@ export default function MealScreen() {
   const [menus, setMenus] = React.useState<DailyMenu[]>([]);
 
   // 오늘 날짜(today)와 이번 주 평일 목록(dates) 계산 — 마운트 시 1회만 실행
-  const { today, dates } = React.useMemo(() => {
+  const { today, thisWeek, nextWeek } = React.useMemo(() => {
     const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
     const now = new Date();
     const mm = String(now.getMonth() + 1).padStart(2, '0');
@@ -32,29 +32,40 @@ export default function MealScreen() {
     monday.setDate(now.getDate() + diffToMonday);
     monday.setHours(0, 0, 0, 0);
 
-    const result: { day: string; date: string; iso: string }[] = [];
-    for (let weekday = 0; weekday < 5; weekday++) {
-      const d = new Date(monday);
-      d.setDate(monday.getDate() + weekday);
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      result.push({
-        date: `${m}/${day}`,
-        day: DAY_NAMES[d.getDay()],
-        iso: `${d.getFullYear()}-${m}-${day}`,
-      });
-    }
-    return { today: todayObj, dates: result };
+    // weekOffset 0은 이번 주, 7은 다음 주
+    const weekdays = (weekOffset: number) => {
+      const result: { day: string; date: string; iso: string }[] = [];
+      for (let weekday = 0; weekday < 5; weekday++) {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + weekOffset + weekday);
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        result.push({
+          date: `${m}/${day}`,
+          day: DAY_NAMES[d.getDay()],
+          iso: `${d.getFullYear()}-${m}-${day}`,
+        });
+      }
+      return result;
+    };
+    return { today: todayObj, thisWeek: weekdays(0), nextWeek: weekdays(7) };
   }, []);
 
-  // 주말엔 오늘이 평일 목록에 없어 아무 날짜도 안 골라지므로 이번 주 금요일 식단을 보여준다
-  const defaultDate = dates.some((d) => d.date === today.date) ? today.date : dates[4].date;
+  // 주말엔 오늘이 평일 목록에 없다. 학교가 주말에 다음 주 식단으로 바꿔 올리므로,
+  // 다음 주 월요일 식단이 응답에 있으면 다음 주를 보여주고 아직이면 이번 주 금요일을 보여준다
+  const isWeekend = !thisWeek.some((d) => d.date === today.date);
+  const nextWeekReady = menus.some((m) => m.date.startsWith(nextWeek[0].date.replace('/', '.')));
+  const dates = isWeekend && nextWeekReady ? nextWeek : thisWeek;
+  const defaultDate = !isWeekend ? today.date : nextWeekReady ? nextWeek[0].date : thisWeek[4].date;
 
   React.useEffect(() => {
-    setSelectedDate(defaultDate);
     getMenus()
       .then((res) => setMenus(res.data))
       .catch(() => {});
+  }, []);
+
+  React.useEffect(() => {
+    setSelectedDate(defaultDate);
   }, [defaultDate]);
 
   function handleSetToday(): void {
