@@ -32,7 +32,8 @@ export function TabBar({ tabs, currentTab, onTabPress }: Props) {
         ref={scrollRef}
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16 }}
+        // 탭이 화면보다 좁으면 남는 폭을 탭마다 나눠 고루 퍼지게 하고, 넘치면 그대로 가로 스크롤한다
+        contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 16 }}
         onLayout={(e) => {
           containerWidth.current = e.nativeEvent.layout.width;
         }}
@@ -42,7 +43,7 @@ export function TabBar({ tabs, currentTab, onTabPress }: Props) {
             key={label}
             variant="ghost"
             className={clsx(
-              'rounded-none border-b-2 px-5 pb-1.5 pt-2.5',
+              'grow rounded-none border-b-2 px-3 pb-1.5 pt-2.5',
               currentTab === label ? 'border-mju-primary' : 'border-transparent'
             )}
             onPress={() => onTabPress(index)}
