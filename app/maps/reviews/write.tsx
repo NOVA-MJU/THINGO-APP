@@ -9,6 +9,7 @@ import {
   updatePlaceReview,
 } from '@/lib/maps/place-reviews';
 import { ReviewVideoThumbnail } from '@/components/maps/review-video-thumbnail';
+import PlacePhotoSuggestions from './_components/place-photo-suggestions';
 import { useMediaUpload } from '@/hooks/useImageUpload';
 import { ArrowLeftIcon, InfoOutlineIcon, PlusIcon, XIcon } from '@/components/icons';
 import {
@@ -83,17 +84,25 @@ export default function PlaceReviewWriteScreen() {
   const { user } = useAuth();
   const scrollViewRef = React.useRef<ScrollView>(null);
   const reviewInputFocusedRef = React.useRef(false);
-  const { placeId, placeName, categoryCode, reviewId } = useLocalSearchParams<{
+  const { placeId, placeName, categoryCode, reviewId, latitude, longitude } = useLocalSearchParams<{
     placeId?: string | string[];
     placeName?: string | string[];
     categoryCode?: string | string[];
     reviewId?: string | string[];
+    latitude?: string | string[];
+    longitude?: string | string[];
   }>();
   const numericPlaceId = Number(Array.isArray(placeId) ? placeId[0] : placeId);
   const resolvedPlaceName = Array.isArray(placeName) ? placeName[0] : placeName;
   const resolvedCategoryCode = Array.isArray(categoryCode) ? categoryCode[0] : categoryCode;
   const resolvedReviewId = Array.isArray(reviewId) ? reviewId[0] : reviewId;
   const isEditMode = Boolean(resolvedReviewId);
+  // 장소 좌표가 있어야 "여기서 찍은 사진"을 찾을 수 있다
+  const placePoint = React.useMemo(() => {
+    const lat = Number(Array.isArray(latitude) ? latitude[0] : latitude);
+    const lng = Number(Array.isArray(longitude) ? longitude[0] : longitude);
+    return Number.isFinite(lat) && Number.isFinite(lng) ? { latitude: lat, longitude: lng } : null;
+  }, [latitude, longitude]);
   const fallbackVisibleKeywords = React.useMemo(
     () => getVisibleReviewKeywords(resolvedCategoryCode),
     [resolvedCategoryCode]
@@ -112,6 +121,7 @@ export default function PlaceReviewWriteScreen() {
   );
   const [keyboardHeight, setKeyboardHeight] = React.useState(0);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isSuggestionUploading, setIsSuggestionUploading] = React.useState(false);
   const [exitDialogOpen, setExitDialogOpen] = React.useState(false);
   const {
     isLoading: isUploading,
@@ -122,7 +132,11 @@ export default function PlaceReviewWriteScreen() {
   const isDirty =
     selectedKeywordIds.length > 0 || mediaItems.length > 0 || content.trim().length > 0;
   const canSubmit =
-    selectedKeywordIds.length > 0 && content.trim().length > 0 && !isSubmitting && !isUploading;
+    selectedKeywordIds.length > 0 &&
+    content.trim().length > 0 &&
+    !isSubmitting &&
+    !isUploading &&
+    !isSuggestionUploading;
   const reviewFieldHeight = Math.max(
     MIN_REVIEW_FIELD_HEIGHT,
     reviewInputContentHeight + REVIEW_FIELD_EXTRA_HEIGHT
@@ -384,6 +398,24 @@ export default function PlaceReviewWriteScreen() {
               {uploadError ? (
                 <Text className="px-4 text-error text-caption02">{uploadError}</Text>
               ) : null}
+              {placePoint && resolvedPlaceName && Number.isFinite(numericPlaceId) && (
+                <View className="mt-7">
+                  <PlacePhotoSuggestions
+                    placeId={numericPlaceId}
+                    placeName={resolvedPlaceName}
+                    place={placePoint}
+                    mediaItems={mediaItems}
+                    maxCount={MAX_MEDIA_COUNT}
+                    onAdd={(item) =>
+                      setMediaItems((previous) => [...previous, item].slice(0, MAX_MEDIA_COUNT))
+                    }
+                    onRemove={(id) =>
+                      setMediaItems((previous) => previous.filter((item) => item.id !== id))
+                    }
+                    onUploadingChange={setIsSuggestionUploading}
+                  />
+                </View>
+              )}
             </View>
 
             <View className="mt-6">
