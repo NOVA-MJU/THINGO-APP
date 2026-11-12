@@ -68,6 +68,11 @@ pnpm expo run:android
 - 그래서 `app/**/_components/*.tsx`에는 **`export default`가 반드시 있어야 한다**. 없으면 앱 실행 때마다 `Route "..." is missing the required default export` 경고가 뜸
 - `export default function X()` 형태로 쓰고, import하는 쪽도 default import로 맞출 것 (named export를 겸하면 관례가 섞임)
 
+## 사진첩 접근
+
+- 안드로이드는 Google Play 사진 권한 정책 때문에 READ_MEDIA_IMAGES 등을 `app.config.ts`의 `blockedPermissions`로 막고 시스템 사진 선택기만 쓴다. 사진첩 전체를 읽는 기능은 iOS 전용으로 만든다
+- 리뷰 작성의 "여기서 찍은 사진"(`app/maps/reviews/_components/place-photo-suggestions.tsx`)은 사진 위치를 기기 안에서만 비교하고 서버로 보내지 않는다. expo-media-library next API의 `Asset`에는 `asset.id`가 아니라 `ph://` 형태의 `asset.uri`를 넘긴다
+
 ## web seo (메타 태그)
 
 - 웹 전용 메타 태그는 `expo-router/head`의 `<Head>`로 넣는다. 내부적으로 react-helmet이라 **나중에 선언된 쪽이 이김** (하위 페이지가 `_layout.tsx` 기본값을 덮어씀)

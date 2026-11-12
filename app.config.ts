@@ -13,6 +13,10 @@ const googleSignInPlugins: [string, { iosUrlScheme: string }][] = googleIosClien
     ]
   : [];
 
+// expo-image-picker와 expo-media-library가 같은 iOS 권한 문구(NSPhotoLibraryUsageDescription)를 쓰므로 하나로 맞춘다
+const PHOTOS_PERMISSION =
+  '리뷰를 쓸 때 그 장소에서 찍은 사진을 찾아 보여주고, 프로필·게시글·리뷰에 사진을 올리기 위해 사진 보관함 접근 권한이 필요합니다.';
+
 const config: ExpoConfig = {
   name: 'Thingo',
   slug: 'thingo-app',
@@ -77,9 +81,20 @@ const config: ExpoConfig = {
     [
       'expo-image-picker',
       {
-        photosPermission:
-          '프로필 이미지 또는 게시글 이미지 업로드를 위해 사진 라이브러리 접근 권한이 필요합니다.',
+        photosPermission: PHOTOS_PERMISSION,
         microphonePermission: false,
+      },
+    ],
+    [
+      'expo-media-library',
+      {
+        // 리뷰 작성 시 iOS에서만 사진첩을 읽어 장소 근처 사진을 추천한다.
+        // 안드로이드는 Google Play 사진 권한 정책 때문에 아래 android.blockedPermissions로 READ_MEDIA_* 를 계속 막는다
+        photosPermission: PHOTOS_PERMISSION,
+        savePhotosPermission: false,
+        granularPermissions: ['photo'],
+        // 선택한 사진만 허용한 사용자에게 앱을 켤 때마다 iOS가 사진 추가 팝업을 띄우지 않게 한다
+        preventAutomaticLimitedAccessAlert: true,
       },
     ],
     [
