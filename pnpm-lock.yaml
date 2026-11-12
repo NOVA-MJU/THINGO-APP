@@ -110,6 +110,9 @@ importers:
       expo-location:
         specifier: ~55.1.14
         version: 55.1.14(expo@55.0.30)(typescript@5.9.3)
+      expo-media-library:
+        specifier: ~55.0.21
+        version: 55.0.21(expo@55.0.30)(react-native@0.83.10(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.2.0))
       expo-notifications:
         specifier: ~55.0.27
         version: 55.0.27(expo@55.0.30)(react-native@0.83.10(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
@@ -3504,6 +3507,12 @@ packages:
     resolution: {integrity: sha512-CJmK0T6GOShZau7P7PvIbpNB7aG+peeSdR3wWRCOwmlFyHXegQnmR4uZo4abNBlDQ1qkhUXi7+W99BDiSeEbNA==}
     peerDependencies:
       expo: '*'
+
+  expo-media-library@55.0.21:
+    resolution: {integrity: sha512-3bUYbF/YQibRWUsCVY7HavzqUtmrPTFDZoaa8x6t7oXkZFMmj1MQPmkrIQD1nV04rxNh1iN3iGBdRf8+epiJTw==}
+    peerDependencies:
+      expo: '*'
+      react-native: '*'
 
   expo-modules-autolinking@55.0.27:
     resolution: {integrity: sha512-gBRONXQT41PwfsQgeZfFlaeK+zrYMYjRMgxocecnQuSXEm7wCTqD8SsTJmWAf3SDayMQGDZFBlMODeVEnv8FmA==}
@@ -10003,6 +10012,11 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
       - typescript
+
+  expo-media-library@55.0.21(expo@55.0.30)(react-native@0.83.10(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.2.0)):
+    dependencies:
+      expo: 55.0.30(@babel/core@7.29.0)(@expo/dom-webview@55.0.5)(@expo/metro-runtime@55.0.9)(expo-router@55.0.18)(react-dom@19.2.0(react@19.2.0))(react-native-webview@13.16.0(react-native@0.83.10(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.2.0))(react@19.2.0))(react-native-worklets@0.7.4(@babel/core@7.29.0)(react-native@0.83.10(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.2.0))(react@19.2.0))(react-native@0.83.10(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
+      react-native: 0.83.10(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.2.0)
 
   expo-modules-autolinking@55.0.27(typescript@5.9.3):
     dependencies:

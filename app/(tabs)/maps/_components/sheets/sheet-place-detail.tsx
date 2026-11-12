@@ -168,6 +168,8 @@ export default function PlaceDetailSheet({
                   placeId: String(place.id),
                   placeName: place.name,
                   categoryCode: place.categoryCode,
+                  latitude: String(place.latitude),
+                  longitude: String(place.longitude),
                 },
               })
             }
