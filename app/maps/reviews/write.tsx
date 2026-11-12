@@ -399,22 +399,20 @@ export default function PlaceReviewWriteScreen() {
                 <Text className="px-4 text-error text-caption02">{uploadError}</Text>
               ) : null}
               {placePoint && resolvedPlaceName && Number.isFinite(numericPlaceId) && (
-                <View className="mt-7">
-                  <PlacePhotoSuggestions
-                    placeId={numericPlaceId}
-                    placeName={resolvedPlaceName}
-                    place={placePoint}
-                    mediaItems={mediaItems}
-                    maxCount={MAX_MEDIA_COUNT}
-                    onAdd={(item) =>
-                      setMediaItems((previous) => [...previous, item].slice(0, MAX_MEDIA_COUNT))
-                    }
-                    onRemove={(id) =>
-                      setMediaItems((previous) => previous.filter((item) => item.id !== id))
-                    }
-                    onUploadingChange={setIsSuggestionUploading}
-                  />
-                </View>
+                <PlacePhotoSuggestions
+                  placeId={numericPlaceId}
+                  placeName={resolvedPlaceName}
+                  place={placePoint}
+                  mediaItems={mediaItems}
+                  maxCount={MAX_MEDIA_COUNT}
+                  onAdd={(item) =>
+                    setMediaItems((previous) => [...previous, item].slice(0, MAX_MEDIA_COUNT))
+                  }
+                  onRemove={(id) =>
+                    setMediaItems((previous) => previous.filter((item) => item.id !== id))
+                  }
+                  onUploadingChange={setIsSuggestionUploading}
+                />
               )}
             </View>
 

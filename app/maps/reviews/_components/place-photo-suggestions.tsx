@@ -48,7 +48,12 @@ type Props = {
 // iOS 전용. 안드로이드는 Google Play 사진 권한 정책 때문에 사진첩 전체를 읽지 않고 + 버튼(시스템 선택기)만 쓴다
 export default function PlacePhotoSuggestions(props: Props) {
   if (Platform.OS !== 'ios') return null;
-  return <PlacePhotoSuggestionsIos {...props} />;
+  // 여백도 iOS에서만 생기도록 여기서 준다 (웹·안드로이드에서 빈 간격이 남지 않게)
+  return (
+    <View className="mt-7">
+      <PlacePhotoSuggestionsIos {...props} />
+    </View>
+  );
 }
 
 function PlacePhotoSuggestionsIos({
