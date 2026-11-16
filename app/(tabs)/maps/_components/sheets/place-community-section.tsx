@@ -6,6 +6,7 @@ import {
   ArrowDownIcon,
   HeartIcon,
   MoreVerticalIcon,
+  PlusIcon,
   RadioIcon,
   XThinIcon,
 } from '@/components/icons';
@@ -75,6 +76,12 @@ type PlaceCommunitySectionProps = {
   onReviewsChange: (reviews: PlaceReview[]) => void;
   onReviewDeleted?: (reviewId: string) => void;
   onSortChange?: (sort: PlaceReviewSort) => void;
+  // 사진·영상이 하나도 없을 때 제목·빈 칸 대신 보여줄 내용 (내 사진 카드 또는 첫 사진 안내)
+  mediaEmptyContent?: React.ReactNode;
+  // 사진·영상 줄 아래에 붙일 내용 (내 사진 안내 띠)
+  mediaFooter?: React.ReactNode;
+  // 위 내용에 리뷰 쓰기 버튼이 이미 있으면 "어떠셨나요?" 카드를 숨겨 같은 버튼이 두 번 나오지 않게 한다
+  showReviewPrompt?: boolean;
 };
 
 const COMING_SOON_CATEGORY_CODES = new Set(['club-room', 'smoking']);
@@ -130,6 +137,9 @@ export default function PlaceCommunitySection({
   onReviewsChange,
   onReviewDeleted,
   onSortChange,
+  mediaEmptyContent,
+  mediaFooter,
+  showReviewPrompt = true,
 }: PlaceCommunitySectionProps) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
@@ -294,36 +304,50 @@ export default function PlaceCommunitySection({
 
   return (
     <View className="mt-4">
-      <View className="px-4">
-        <Text className="text-black text-title03">사진·영상</Text>
-      </View>
+      {reviewMediaItems.length > 0 ? (
+        <>
+          <View className="flex-row items-center gap-1.5 px-4">
+            <Text className="text-black text-title03">사진·영상</Text>
+            <Text className="text-grey-40 text-body04">{reviewMediaItems.length}</Text>
+          </View>
 
-      <NativeViewGestureHandler disallowInterruption>
-        <ScrollView
-          horizontal
-          nestedScrollEnabled
-          directionalLockEnabled
-          showsHorizontalScrollIndicator={false}
-          className="mt-2"
-          contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}
-        >
-          {reviewMediaItems.length > 0 ? (
-            reviewMediaItems.map((item, index) => (
+          <NativeViewGestureHandler disallowInterruption>
+            <ScrollView
+              horizontal
+              nestedScrollEnabled
+              directionalLockEnabled
+              showsHorizontalScrollIndicator={false}
+              className="mt-2"
+              contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}
+            >
+              {/* 사진을 올리는 길은 리뷰 쓰기 하나라서 맨 앞 칸도 리뷰 작성 화면으로 보낸다 */}
               <Pressable
-                key={`${item.reviewId}-${item.mediaItem.id}-${index}`}
-                className="h-[120px] w-[90px] overflow-hidden rounded-[4px] bg-grey-10"
-                onPress={() => onOpenMedia(item.reviewId, index, 'place-media')}
+                onPress={onWriteReview}
+                accessibilityRole="button"
+                accessibilityLabel="사진 추가"
+                className="h-[120px] w-[90px] items-center justify-center gap-1 rounded-[4px] border border-grey-10 bg-grey-02"
               >
-                <MediaThumbnail mediaItem={item.mediaItem} />
+                <PlusIcon size={22} className="text-grey-40" />
+                <Text className="text-grey-60 text-caption02">사진 추가</Text>
               </Pressable>
-            ))
-          ) : (
-            <View className="h-[120px] w-[90px] rounded-[4px] bg-grey-10" />
-          )}
-        </ScrollView>
-      </NativeViewGestureHandler>
+              {reviewMediaItems.map((item, index) => (
+                <Pressable
+                  key={`${item.reviewId}-${item.mediaItem.id}-${index}`}
+                  className="h-[120px] w-[90px] overflow-hidden rounded-[4px] bg-grey-10"
+                  onPress={() => onOpenMedia(item.reviewId, index, 'place-media')}
+                >
+                  <MediaThumbnail mediaItem={item.mediaItem} />
+                </Pressable>
+              ))}
+            </ScrollView>
+          </NativeViewGestureHandler>
+          {mediaFooter}
+        </>
+      ) : (
+        mediaEmptyContent
+      )}
 
-      <ReviewPromptCard placeName={placeName} onWriteReview={onWriteReview} />
+      {showReviewPrompt && <ReviewPromptCard placeName={placeName} onWriteReview={onWriteReview} />}
 
       <View className="mt-5 px-4">
         <View className="flex-row items-center justify-between">
@@ -395,8 +419,11 @@ export default function PlaceCommunitySection({
             ))}
           </View>
         ) : (
-          <View className="mt-3 h-[88px] items-center justify-center rounded-[4px] border border-grey-10 bg-white">
-            <Text className="text-grey-30 text-body05">첫 리뷰를 남겨주세요!</Text>
+          <View className="mt-3 items-center justify-center gap-0.5 rounded-xl border border-grey-10 bg-white py-6">
+            <Text className="text-grey-60 text-body05">아직 리뷰가 없어요</Text>
+            <Text className="text-grey-40 text-caption02">
+              다녀왔다면 첫 리뷰의 주인공이 되어주세요
+            </Text>
           </View>
         )}
       </View>

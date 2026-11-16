@@ -71,7 +71,12 @@ pnpm expo run:android
 ## 사진첩 접근
 
 - 안드로이드는 Google Play 사진 권한 정책 때문에 READ_MEDIA_IMAGES 등을 `app.config.ts`의 `blockedPermissions`로 막고 시스템 사진 선택기만 쓴다. 사진첩 전체를 읽는 기능은 iOS 전용으로 만든다
-- 리뷰 작성의 "여기서 찍은 사진"(`app/maps/reviews/_components/place-photo-suggestions.tsx`)은 사진 위치를 기기 안에서만 비교하고 서버로 보내지 않는다. expo-media-library next API의 `Asset`에는 `asset.id`가 아니라 `ph://` 형태의 `asset.uri`를 넘긴다
+- 리뷰 작성의 "여기서 찍은 사진"(`app/maps/reviews/_components/place-photo-suggestions.tsx`)은 사진 위치를 기기 안에서만 비교하고 서버로 보내지 않는다
+- 장소 상세(`sheet-place-detail.tsx`)와 리뷰 작성은 같은 훅 `hooks/use-place-photos.ts`(같은 react-query 캐시)를 쓴다
+- 사진 찾기는 기간·장수 제한 없이 사진첩 전체를 본다. 사진마다 위치를 따로 묻는 expo-media-library로는 수만 장이 너무 느려서, 로컬 네이티브 모듈 `modules/photo-location-scan`(iOS 전용, `./modules`는 Expo 자동 링크 대상)이 PHAsset 목록을 한 번 훑으며 좌표 상자 안 사진만 돌려준다. 이 모듈을 바꾸면 스토어 빌드가 새로 나가야 반영된다
+- 지도의 다홍색 "다녀온 곳" 핀(`hooks/use-visited-places.ts`)은 대동명지도 가게 전체(`/map/categories/daedong/markers`)와 내 사진 위치를 기기 안에서 비교해 만든다. 대동 상권은 가게가 몇 m 간격이라 GPS로 가릴 수 없어서, 가장 가까운 가게와 10m(`PLACE_AMBIGUITY_METERS`) 안 가게는 후보로 묶고 "이 사진, 어디서 찍었나요?" 시트에서 고르게 한다. 장소 상세의 사진 수도 같은 기준(`filterPhotosForPlace`)이라 핀과 맞는다
+- 이 기기에서 리뷰를 쓴 가게는 AsyncStorage(`lib/maps/reviewed-places.ts`)에 기억해 핀에서 뺀다. 서버에 "내가 쓴 리뷰" API가 생기면 그걸로 바꾼다
+- iOS 지도 마커의 자식 뷰는 이미지로 찍히는데 그 시점에 RN Text가 그려지지 않는다. 라벨 글자는 SDK `caption`(`align: 'Center'`)으로 얹고 뷰는 배경만 그린다 (`components/naver-map/naver-map.native.tsx`)
 
 ## web seo (메타 태그)
 

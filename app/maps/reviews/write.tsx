@@ -10,6 +10,9 @@ import {
 } from '@/lib/maps/place-reviews';
 import { ReviewVideoThumbnail } from '@/components/maps/review-video-thumbnail';
 import PlacePhotoSuggestions from './_components/place-photo-suggestions';
+import { VISITED_PLACES_QUERY_KEY } from '@/hooks/use-visited-places';
+import { markPlaceReviewed } from '@/lib/maps/reviewed-places';
+import { useQueryClient } from '@tanstack/react-query';
 import { useMediaUpload } from '@/hooks/useImageUpload';
 import { ArrowLeftIcon, InfoOutlineIcon, PlusIcon, XIcon } from '@/components/icons';
 import {
@@ -81,17 +84,20 @@ const KEYWORD_CARD_BORDER_STYLE = { borderWidth: 0.6 };
 
 export default function PlaceReviewWriteScreen() {
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
   const { user } = useAuth();
   const scrollViewRef = React.useRef<ScrollView>(null);
   const reviewInputFocusedRef = React.useRef(false);
-  const { placeId, placeName, categoryCode, reviewId, latitude, longitude } = useLocalSearchParams<{
-    placeId?: string | string[];
-    placeName?: string | string[];
-    categoryCode?: string | string[];
-    reviewId?: string | string[];
-    latitude?: string | string[];
-    longitude?: string | string[];
-  }>();
+  const { placeId, placeName, categoryCode, reviewId, latitude, longitude, photoIds } =
+    useLocalSearchParams<{
+      placeId?: string | string[];
+      placeName?: string | string[];
+      categoryCode?: string | string[];
+      reviewId?: string | string[];
+      latitude?: string | string[];
+      longitude?: string | string[];
+      photoIds?: string | string[];
+    }>();
   const numericPlaceId = Number(Array.isArray(placeId) ? placeId[0] : placeId);
   const resolvedPlaceName = Array.isArray(placeName) ? placeName[0] : placeName;
   const resolvedCategoryCode = Array.isArray(categoryCode) ? categoryCode[0] : categoryCode;
@@ -103,6 +109,11 @@ export default function PlaceReviewWriteScreen() {
     const lng = Number(Array.isArray(longitude) ? longitude[0] : longitude);
     return Number.isFinite(lat) && Number.isFinite(lng) ? { latitude: lat, longitude: lng } : null;
   }, [latitude, longitude]);
+  // 장소 상세에서 골라 온 내 사진 (사진첩 id, 쉼표로 구분)
+  const initialPhotoIds = React.useMemo(() => {
+    const raw = Array.isArray(photoIds) ? photoIds.join(',') : photoIds;
+    return raw ? raw.split(',').filter(Boolean) : undefined;
+  }, [photoIds]);
   const fallbackVisibleKeywords = React.useMemo(
     () => getVisibleReviewKeywords(resolvedCategoryCode),
     [resolvedCategoryCode]
@@ -264,6 +275,9 @@ export default function PlaceReviewWriteScreen() {
           mediaItems,
           keywordIds: selectedKeywordIds,
         });
+        // 지도의 "리뷰 남길 곳" 핀에서 이 장소를 뺀다
+        await markPlaceReviewed(numericPlaceId).catch(() => undefined);
+        void queryClient.invalidateQueries({ queryKey: VISITED_PLACES_QUERY_KEY });
       }
       router.back();
     } catch (error) {
@@ -405,6 +419,7 @@ export default function PlaceReviewWriteScreen() {
                   place={placePoint}
                   mediaItems={mediaItems}
                   maxCount={MAX_MEDIA_COUNT}
+                  initialPhotoIds={initialPhotoIds}
                   onAdd={(item) =>
                     setMediaItems((previous) => [...previous, item].slice(0, MAX_MEDIA_COUNT))
                   }

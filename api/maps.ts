@@ -275,3 +275,22 @@ export async function getMapThemePins(
   });
   return data.data;
 }
+
+export type MapCategoryMarker = {
+  id: number;
+  type: MapEntityType;
+  title: string;
+  categoryCode: string;
+  // 건물 안 시설을 건물 하나로 묶은 마커면 true (이때 id는 건물 id)
+  grouped: boolean;
+  latitude: number;
+  longitude: number;
+};
+
+// 카테고리 전체 마커 (페이지 없이 한 번에). 대동명지도(daedong)는 학교 주변 가게 전체가 온다
+export async function getCategoryMarkers(code: string): Promise<MapCategoryMarker[]> {
+  const { data } = await client.get<ApiResponse<MapCategoryMarker[]>>(
+    `/map/categories/${code}/markers`
+  );
+  return data.data;
+}
