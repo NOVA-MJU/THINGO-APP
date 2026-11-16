@@ -43,6 +43,8 @@ import PlaceDetailSheet from './_components/sheets/sheet-place-detail';
 import PlaceListSheet from './_components/sheets/sheet-place-list';
 import SheetHandle from './_components/sheets/sheet-handle';
 import SheetStackLayer from './_components/sheet-stack-layer';
+import VisitedPlacesButton from './_components/visited-places-button';
+import VisitCandidatesSheet from './_components/sheets/sheet-visit-candidates';
 import CATEGORIES from './_constants/category-data';
 import { CurrentLocationIcon, MoreIcon, StarIcon } from '@/components/icons/map';
 import { useMapSearchSelection } from '@/context/map-search-selection';
@@ -55,6 +57,7 @@ import {
 } from '@/lib/maps/campus';
 import { getMapIconKey } from '@/lib/maps/icons';
 import { cn } from '@/lib/utils';
+import { useVisitedPlaces, type VisitedPlaceCandidate } from '@/hooks/use-visited-places';
 
 const QUICK_CHIP_IDS = ['bus', 'daedong', 'printer', 'lounge', 'bank'];
 const QUICK_TOOLTIP_VISIBLE_MS = 4000;
@@ -96,6 +99,8 @@ type SheetScreenInit =
   | { kind: 'building'; buildingId: number }
   | { kind: 'place'; placeId: number }
   | { kind: 'bus'; station: BusStopStation }
+  // 내 사진첩 "다녀온 곳" 핀의 후보 가게 고르기 (useVisitedPlaces 결과의 key)
+  | { kind: 'visit'; visitKey: string }
   | { kind: 'category' };
 type SheetScreen = SheetScreenInit & { key: string; initialIndex: number };
 
@@ -563,6 +568,63 @@ export default function MapsScreen() {
     [themePins]
   );
 
+  // 내 사진첩 기준 "다녀온 곳"(리뷰 남길 곳) 핀. iOS에서 사진 권한이 있을 때만 생긴다
+  const visitedPlaces = useVisitedPlaces();
+  const reviewSuggestionMarkers = React.useMemo(
+    () =>
+      visitedPlaces.places.map((visit) => {
+        const [nearest, ...others] = visit.candidates;
+        return {
+          id: visit.key,
+          latitude: nearest.latitude,
+          longitude: nearest.longitude,
+          // 붙어 있는 가게라 어느 곳인지 모르면 "OO 외 N곳"으로 띄우고, 누르면 고르게 한다
+          name: others.length ? `${nearest.name} 외 ${others.length}곳` : nearest.name,
+          photoCount: visit.photoIds.length,
+        };
+      }),
+    [visitedPlaces.places]
+  );
+
+  function openVisitedPlace(key: string) {
+    const visit = visitedPlaces.places.find((item) => item.key === key);
+    if (!visit) return;
+    const [nearest] = visit.candidates;
+    if (visit.candidates.length === 1) {
+      openVisitCandidate(nearest);
+      return;
+    }
+    hideQuickTooltips();
+    clearSearchResult();
+    mapRef.current?.animateCameraTo(nearest.latitude, nearest.longitude);
+    const top = sheetStack[sheetStack.length - 1] as SheetScreen | undefined;
+    if (top?.kind === 'visit') {
+      setSheetStack((prev) => [
+        ...prev.slice(0, -1),
+        { kind: 'visit', visitKey: key, key: top.key, initialIndex: top.initialIndex },
+      ]);
+      return;
+    }
+    pushSheet({ kind: 'visit', visitKey: key });
+  }
+
+  function openVisitCandidate(candidate: VisitedPlaceCandidate) {
+    selectCategoryPin({
+      id: candidate.id,
+      type: 'FACILITY',
+      latitude: candidate.latitude,
+      longitude: candidate.longitude,
+    });
+  }
+
+  // 검색·칩·테마·버스·장소 핀이 하나도 떠 있지 않은 기본 지도 상태
+  const isMapOverlayFree =
+    !selectedSearchResult &&
+    !selectedCategoryCode &&
+    !selectedThemeId &&
+    !selectedBusStation &&
+    focusedPlaceMarkers.length === 0;
+
   // 캠퍼스 건물 마커
   const buildingMarkers = React.useMemo(
     () =>
@@ -570,6 +632,7 @@ export default function MapsScreen() {
         id: String(building.id),
         latitude: building.latitude,
         longitude: building.longitude,
+        name: building.name,
       })),
     [buildings]
   );
@@ -673,7 +736,7 @@ export default function MapsScreen() {
 
   // 칩 조회 결과 핀 선택 (건물 핀이면 건물 상세, 그 외는 장소 상세로 조회) - places 목록 위에 push
   // 마커 클릭과 리스트 항목 클릭에서 공통으로 사용
-  function selectCategoryPin(pin: MapCategoryPin) {
+  function selectCategoryPin(pin: Pick<MapCategoryPin, 'id' | 'type' | 'latitude' | 'longitude'>) {
     const nextScreen: SheetScreenInit =
       pin.type === 'BUILDING'
         ? { kind: 'building', buildingId: pin.id }
@@ -974,6 +1037,20 @@ export default function MapsScreen() {
       return <BusInfoSheet station={screen.station} onClose={popSheet} />;
     }
 
+    if (screen.kind === 'visit') {
+      const visit = visitedPlaces.places.find((item) => item.key === screen.visitKey);
+      if (!visit) {
+        return (
+          <View className="items-center py-8">
+            <Text className="text-grey-40 text-body05">이미 리뷰를 남긴 곳이에요</Text>
+          </View>
+        );
+      }
+      return (
+        <VisitCandidatesSheet visit={visit} onSelect={openVisitCandidate} onClose={popSheet} />
+      );
+    }
+
     if (!selectedPlaceDetail) {
       return (
         <View className="items-center py-8">
@@ -1008,16 +1085,11 @@ export default function MapsScreen() {
         initialZoom={16}
         // 버스 정류장 마커는 bus 레이어가 떠 있을 때만 노출 (카테고리/검색 화면에서는 지도가 혼잡해지는 것을 방지)
         busStopMarkers={selectedBusStation ? BUS_STOPS : []}
-        // 장소 핀이 떠 있으면(검색·딥링크로 연 장소) 건물 번호 핀을 숨겨 찾은 위치만 눈에 띄게 한다
-        buildingMarkers={
-          selectedSearchResult ||
-          selectedCategoryCode ||
-          selectedThemeId ||
-          selectedBusStation ||
-          focusedPlaceMarkers.length > 0
-            ? []
-            : buildingMarkers
-        }
+        // 장소 핀이 떠 있으면(검색·딥링크로 연 장소) 건물 번호 핀을 숨겨 찾은 위치만 눈에 띄게 한다 (지금은 번호 대신 건물 이름 라벨)
+        buildingMarkers={isMapOverlayFree ? buildingMarkers : []}
+        // 다녀온 곳 핀도 건물 라벨과 같이, 검색·칩·테마·버스로 다른 핀을 볼 때는 숨긴다
+        reviewSuggestionMarkers={isMapOverlayFree ? reviewSuggestionMarkers : []}
+        onReviewSuggestionMarkerPress={openVisitedPlace}
         placeMarkers={
           selectedSearchResult
             ? searchResultMarkers
@@ -1166,6 +1238,20 @@ export default function MapsScreen() {
             <MapQuickTooltips opacity={quickTooltipOpacity} />
           </View>
         )}
+
+      {isMapOverlayFree && (
+        <VisitedPlacesButton
+          status={visitedPlaces.status}
+          count={visitedPlaces.places.length}
+          isFetching={visitedPlaces.isFetching}
+          bottom={insets.bottom + 64}
+          onFind={() => void visitedPlaces.requestPermission()}
+          onOpen={() => {
+            const latest = visitedPlaces.places[0];
+            if (latest) openVisitedPlace(latest.key);
+          }}
+        />
+      )}
 
       <View
         className="absolute right-4 flex-row items-center gap-2"

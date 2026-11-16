@@ -15,11 +15,14 @@ import {
 } from '@/lib/maps/place-reviews';
 import { useFocusEffect, useRouter } from 'expo-router';
 import * as React from 'react';
-import { Image, ScrollView, TouchableOpacity, View } from 'react-native';
+import { ScrollView, TouchableOpacity, View } from 'react-native';
 import FavoriteSaveSheet, {
   type FavoriteSaveSheetHandle,
 } from '@/app/(tabs)/maps/_components/sheets/favorite-save-sheet';
 import PlaceCommunitySection from './place-community-section';
+import { EmptyPlaceMedia, MyPlacePhotosCard, MyPlacePhotosNudge } from './place-my-photos';
+import PlacePhotoGallery from './place-photo-gallery';
+import { usePlacePhotos } from '@/hooks/use-place-photos';
 
 // 명지도 장소(비건물) 상세보기 시트 - 건물 상세와 달리 강의실 코드는 없고 위치·추가정보(infoText)를 제공
 // operatingStatus: 서버가 아직 실제 운영 상태 문자열("운영중"/"운영 종료" 등)을 내려주지 않는 중이라
@@ -38,6 +41,22 @@ export default function PlaceDetailSheet({
   const favoriteSaveSheetRef = React.useRef<FavoriteSaveSheetHandle>(null);
   const [reviews, setReviews] = React.useState<PlaceReview[]>([]);
   const [reviewMediaItems, setReviewMediaItems] = React.useState<PlaceReviewMediaStripItem[]>([]);
+  // 첫 응답 전에 "사진 없음" 안내가 잠깐 보였다가 사라지지 않도록 받아왔는지 따로 기억한다
+  const [isReviewMediaLoaded, setIsReviewMediaLoaded] = React.useState(false);
+  const placePoint = React.useMemo(
+    () => ({ latitude: place.latitude, longitude: place.longitude }),
+    [place.latitude, place.longitude]
+  );
+  const myPhotos = usePlacePhotos(place.id, placePoint);
+  const myVisits = myPhotos.status === 'granted' ? (myPhotos.visits ?? []) : [];
+  const hasMyPhotos = myVisits.length > 0;
+  // 장소 대표 사진이 없으면 리뷰 사진으로 위쪽 큰 사진 자리를 채운다
+  const heroUrls = place.imageUrl
+    ? [place.imageUrl]
+    : reviewMediaItems
+        .filter((item) => item.mediaItem.type === 'image')
+        .slice(0, 5)
+        .map((item) => item.mediaItem.url);
 
   // 즐겨찾기 버튼 클릭 → 그룹 선택 바텀시트를 연다.
   // 로그인 안 돼 있으면 시트를 열지 않고 로그인 필요 모달을 표시
@@ -58,9 +77,34 @@ export default function PlaceDetailSheet({
   );
 
   const loadReviewMediaItems = React.useCallback(async () => {
-    const nextMediaItems = await getPlaceReviewMediaStrip(place.id);
-    setReviewMediaItems(nextMediaItems);
+    try {
+      const nextMediaItems = await getPlaceReviewMediaStrip(place.id);
+      setReviewMediaItems(nextMediaItems);
+    } finally {
+      setIsReviewMediaLoaded(true);
+    }
   }, [place.id]);
+
+  // 같은 시트에서 다른 장소로 바뀌면(지도 핀 연속 클릭) 이전 장소의 사진 상태를 비운다
+  React.useEffect(() => {
+    setReviewMediaItems([]);
+    setIsReviewMediaLoaded(false);
+  }, [place.id]);
+
+  // photoIds: 장소 상세의 내 사진 카드에서 골라 온 사진첩 id. 리뷰 작성 화면이 열리면서 자동으로 올린다
+  function openWriteReview(photoIds?: string[]) {
+    router.push({
+      pathname: '/maps/reviews/write',
+      params: {
+        placeId: String(place.id),
+        placeName: place.name,
+        categoryCode: place.categoryCode,
+        latitude: String(place.latitude),
+        longitude: String(place.longitude),
+        ...(photoIds?.length ? { photoIds: photoIds.join(',') } : {}),
+      },
+    });
+  }
 
   useFocusEffect(
     React.useCallback(() => {
@@ -137,17 +181,11 @@ export default function PlaceDetailSheet({
             </View>
           )}
 
-          <View className="mt-2 px-4">
-            {place.imageUrl ? (
-              <Image
-                source={{ uri: place.imageUrl }}
-                className="h-[200px] w-full rounded-lg bg-grey-10"
-                resizeMode="cover"
-              />
-            ) : (
-              <View className="h-[200px] rounded-lg bg-grey-10" />
-            )}
-          </View>
+          {heroUrls.length > 0 && (
+            <View className="mt-2 px-4">
+              <PlacePhotoGallery urls={heroUrls} />
+            </View>
+          )}
 
           <PlaceCommunitySection
             placeName={place.name}
@@ -161,18 +199,39 @@ export default function PlaceDetailSheet({
               );
             }}
             onSortChange={(sort) => void loadReviews(sort)}
-            onWriteReview={() =>
-              router.push({
-                pathname: '/maps/reviews/write',
-                params: {
-                  placeId: String(place.id),
-                  placeName: place.name,
-                  categoryCode: place.categoryCode,
-                  latitude: String(place.latitude),
-                  longitude: String(place.longitude),
-                },
-              })
+            onWriteReview={() => openWriteReview()}
+            mediaEmptyContent={
+              !isReviewMediaLoaded ? null : hasMyPhotos ? (
+                <MyPlacePhotosCard
+                  key={place.id}
+                  visits={myVisits}
+                  photoCount={myPhotos.photoCount}
+                  onWriteReview={openWriteReview}
+                />
+              ) : (
+                <EmptyPlaceMedia
+                  searching={
+                    myPhotos.status === 'granted' && myPhotos.isFetching && !myPhotos.visits
+                  }
+                  onAddPhoto={() => openWriteReview()}
+                  onFindMine={
+                    myPhotos.status === 'undetermined'
+                      ? () => void myPhotos.requestPermission()
+                      : undefined
+                  }
+                />
+              )
             }
+            mediaFooter={
+              hasMyPhotos ? (
+                <MyPlacePhotosNudge
+                  photos={myVisits[0].photos}
+                  photoCount={myPhotos.photoCount}
+                  onPress={() => openWriteReview()}
+                />
+              ) : null
+            }
+            showReviewPrompt={isReviewMediaLoaded && reviewMediaItems.length > 0 && !hasMyPhotos}
             onOpenMedia={(reviewId, mediaIndex, source) =>
               router.push({
                 pathname: '/maps/reviews/media',
