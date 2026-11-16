@@ -17,7 +17,7 @@ export default function PlacePhotoGallery({ urls }: { urls: string[] }) {
   const [width, setWidth] = React.useState(0);
   const [page, setPage] = React.useState(0);
 
-  if (!urls.length) return <View className="h-[200px] rounded-lg bg-grey-10" />;
+  if (!urls.length) return null;
 
   if (urls.length === 1) {
     return (

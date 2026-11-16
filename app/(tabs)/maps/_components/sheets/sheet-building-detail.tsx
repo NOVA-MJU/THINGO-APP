@@ -197,17 +197,15 @@ export default function BuildingDetailSheet({
             )}
           </View>
 
-          {/* 썸네일 */}
-          <View className="mt-2 px-4">
-            {building.imageUrl ? (
+          {/* 썸네일 (사진이 없으면 로딩 중처럼 보이는 회색 빈 칸을 두지 않고 영역을 뺀다) */}
+          {building.imageUrl ? (
+            <View className="mt-2 px-4">
               <Image
                 source={{ uri: building.imageUrl }}
                 className="h-[200px] w-full rounded-lg bg-grey-10"
               />
-            ) : (
-              <View className="h-[200px] rounded-lg bg-grey-10" />
-            )}
-          </View>
+            </View>
+          ) : null}
 
           {/* 시설 필터 버튼 */}
           <ScrollView

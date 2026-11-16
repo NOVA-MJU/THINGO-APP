@@ -2,6 +2,12 @@
 import * as React from 'react';
 import { getAssetByID } from '@react-native/assets-registry/registry';
 import {
+  BUILDING_LABEL_COLORS,
+  BUILDING_LABEL_FONT_SIZE,
+  BUILDING_LABEL_HEIGHT,
+  buildingLabelWidth,
+} from './building-label';
+import {
   Container,
   CustomOverlay,
   Marker as NaverMarker,
@@ -9,14 +15,7 @@ import {
   NavermapsProvider,
   useNavermaps,
 } from 'react-naver-maps';
-import {
-  BUILDING_MARKER_ACTIVE_IMAGES,
-  BUILDING_MARKER_EMPTY_ACTIVE_IMAGE,
-  BUILDING_MARKER_EMPTY_IMAGE,
-  BUILDING_MARKER_IMAGES,
-  CATEGORY_MARKER_ACTIVE_IMAGES,
-  CATEGORY_MARKER_IMAGES,
-} from '@/assets/map-markers';
+import { CATEGORY_MARKER_ACTIVE_IMAGES, CATEGORY_MARKER_IMAGES } from '@/assets/map-markers';
 
 /**
  * 바텀시트가 항상 화면 하단을 가리고 있어, 카메라 이동 대상 좌표가 화면 정중앙(0.5) 대신
@@ -48,6 +47,34 @@ const ACTIVE_MARKER_ICON_HEIGHT = 32;
  * 여유 있는 사각 영역을 클릭 가능 영역으로 지정한다 (좌표는 아이콘 좌상단(0,0) 기준 픽셀).
  */
 const MARKER_HIT_SLOP = 10;
+
+// 네이티브(naver-map.native.tsx)의 건물 이름 라벨과 같은 모양을 HTML 마커로 그린다
+function buildingLabelHtml(name: string, width: number, isActive: boolean) {
+  const background = isActive
+    ? BUILDING_LABEL_COLORS.activeBackground
+    : BUILDING_LABEL_COLORS.background;
+  const border = isActive ? BUILDING_LABEL_COLORS.activeBackground : BUILDING_LABEL_COLORS.border;
+  const color = isActive ? BUILDING_LABEL_COLORS.activeText : BUILDING_LABEL_COLORS.text;
+  // 정적 렌더링(서버)에서도 돌 수 있게 document 없이 문자열로 만든다. 이름은 서버 데이터라 HTML 이스케이프한다
+  const escapedName = name.replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`);
+  const style = [
+    `width:${width}px`,
+    `height:${BUILDING_LABEL_HEIGHT}px`,
+    'box-sizing:border-box',
+    `border-radius:${BUILDING_LABEL_HEIGHT / 2}px`,
+    `border:1px solid ${border}`,
+    `background:${background}`,
+    `color:${color}`,
+    'font-family:Pretendard',
+    'font-weight:600',
+    `font-size:${BUILDING_LABEL_FONT_SIZE}px`,
+    `line-height:${BUILDING_LABEL_HEIGHT - 2}px`,
+    'text-align:center',
+    'white-space:nowrap',
+    'cursor:pointer',
+  ].join(';');
+  return `<div style="${style}">${escapedName}</div>`;
+}
 
 function markerHitShape(width: number, height: number): naver.maps.MarkerShape {
   return {
@@ -88,6 +115,15 @@ export interface BuildingMarkerData {
   id: string;
   latitude: number;
   longitude: number;
+  name: string;
+}
+
+export interface ReviewSuggestionMarkerData {
+  id: string;
+  latitude: number;
+  longitude: number;
+  name: string;
+  photoCount: number;
 }
 
 export interface PlaceMarkerData {
@@ -117,6 +153,8 @@ interface Props {
   busStopMarkers?: BusStopMarkerData[];
   buildingMarkers?: BuildingMarkerData[];
   placeMarkers?: PlaceMarkerData[];
+  // 내 사진첩 기준 "다녀온 곳" 핀. 사진첩은 iOS 앱에서만 읽으므로 웹에서는 항상 비어 있어 그리지 않는다
+  reviewSuggestionMarkers?: ReviewSuggestionMarkerData[];
   // assets/map-markers의 CATEGORY_MARKER_IMAGES 조회용 키
   placeMarkerIcon?: string;
   userLocation?: UserLocationData | null;
@@ -128,6 +166,7 @@ interface Props {
   onBusStopMarkerPress?: (id: string) => void;
   onBuildingMarkerPress?: (id: string) => void;
   onPlaceMarkerPress?: (id: string) => void;
+  onReviewSuggestionMarkerPress?: (id: string) => void;
 }
 
 export interface NaverMapHandle {
@@ -396,39 +435,17 @@ const MapContent = React.forwardRef<NaverMapHandle, MapContentProps>(function Ma
       })}
       {buildingMarkers.map((marker) => {
         const isActive = marker.id === selectedBuildingId;
+        const width = buildingLabelWidth(marker.name);
         return (
           <NaverMarker
             key={marker.id}
             position={new navermaps.LatLng(marker.latitude, marker.longitude)}
-            icon={
-              isActive
-                ? {
-                    url: resolveMarkerIconUri(
-                      BUILDING_MARKER_ACTIVE_IMAGES[marker.id] ?? BUILDING_MARKER_EMPTY_ACTIVE_IMAGE
-                    ),
-                    size: new navermaps.Size(ACTIVE_MARKER_ASSET_WIDTH, ACTIVE_MARKER_ASSET_HEIGHT),
-                    scaledSize: new navermaps.Size(
-                      ACTIVE_MARKER_ICON_WIDTH,
-                      ACTIVE_MARKER_ICON_HEIGHT
-                    ),
-                    anchor: new navermaps.Point(
-                      ACTIVE_MARKER_ICON_WIDTH / 2,
-                      ACTIVE_MARKER_ICON_HEIGHT
-                    ),
-                  }
-                : {
-                    url: resolveMarkerIconUri(
-                      BUILDING_MARKER_IMAGES[marker.id] ?? BUILDING_MARKER_EMPTY_IMAGE
-                    ),
-                    size: new navermaps.Size(MARKER_ICON_ASSET_SIZE, MARKER_ICON_ASSET_SIZE),
-                    scaledSize: new navermaps.Size(MARKER_ICON_SIZE, MARKER_ICON_SIZE),
-                    anchor: new navermaps.Point(MARKER_ICON_SIZE / 2, MARKER_ICON_SIZE / 2),
-                  }
-            }
-            shape={markerHitShape(
-              isActive ? ACTIVE_MARKER_ICON_WIDTH : MARKER_ICON_SIZE,
-              isActive ? ACTIVE_MARKER_ICON_HEIGHT : MARKER_ICON_SIZE
-            )}
+            zIndex={isActive ? 2 : 1}
+            icon={{
+              content: buildingLabelHtml(marker.name, width, isActive),
+              size: new navermaps.Size(width, BUILDING_LABEL_HEIGHT),
+              anchor: new navermaps.Point(width / 2, BUILDING_LABEL_HEIGHT / 2),
+            }}
             onClick={() => onBuildingMarkerPress(marker.id)}
           />
         );

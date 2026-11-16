@@ -3,16 +3,20 @@ import {
   NaverMapMarkerOverlay,
   NaverMapViewRef,
 } from '@mj-studio/react-native-naver-map';
-import {
-  BUILDING_MARKER_ACTIVE_IMAGES,
-  BUILDING_MARKER_EMPTY_ACTIVE_IMAGE,
-  BUILDING_MARKER_EMPTY_IMAGE,
-  BUILDING_MARKER_IMAGES,
-  CATEGORY_MARKER_ACTIVE_IMAGES,
-  CATEGORY_MARKER_IMAGES,
-} from '@/assets/map-markers';
+import { CATEGORY_MARKER_ACTIVE_IMAGES, CATEGORY_MARKER_IMAGES } from '@/assets/map-markers';
 import * as React from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import {
+  BUILDING_LABEL_COLORS,
+  BUILDING_LABEL_FONT_SIZE,
+  BUILDING_LABEL_HEIGHT,
+  buildingLabelWidth,
+  REVIEW_PIN_BODY_HEIGHT,
+  REVIEW_PIN_COLOR,
+  REVIEW_PIN_TAIL_HEIGHT,
+  reviewPinCountText,
+  reviewPinWidth,
+} from './building-label';
 
 const MARKER_SIZE = 24;
 
@@ -48,6 +52,15 @@ export interface BuildingMarkerData {
   id: string;
   latitude: number;
   longitude: number;
+  name: string;
+}
+
+export interface ReviewSuggestionMarkerData {
+  id: string;
+  latitude: number;
+  longitude: number;
+  name: string;
+  photoCount: number;
 }
 
 export interface PlaceMarkerData {
@@ -75,6 +88,8 @@ interface Props {
   busStopMarkers?: BusStopMarkerData[];
   buildingMarkers?: BuildingMarkerData[];
   placeMarkers?: PlaceMarkerData[];
+  // 내 사진첩 기준 "다녀온 곳" 핀 (리뷰를 남길 수 있는 가게)
+  reviewSuggestionMarkers?: ReviewSuggestionMarkerData[];
   // assets/map-markers의 CATEGORY_MARKER_IMAGES 조회용 키
   placeMarkerIcon?: string;
   userLocation?: UserLocationData | null;
@@ -86,6 +101,7 @@ interface Props {
   onBusStopMarkerPress?: (id: string) => void;
   onBuildingMarkerPress?: (id: string) => void;
   onPlaceMarkerPress?: (id: string) => void;
+  onReviewSuggestionMarkerPress?: (id: string) => void;
 }
 
 export interface NaverMapHandle {
@@ -107,6 +123,7 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
     busStopMarkers = [],
     buildingMarkers = [],
     placeMarkers = [],
+    reviewSuggestionMarkers = [],
     placeMarkerIcon,
     userLocation,
     selectedBusStopId,
@@ -116,6 +133,7 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
     onBusStopMarkerPress,
     onBuildingMarkerPress,
     onPlaceMarkerPress,
+    onReviewSuggestionMarkerPress,
   },
   ref
 ) {
@@ -210,21 +228,76 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
       })}
       {buildingMarkers.map((marker) => {
         const isActive = marker.id === selectedBuildingId;
+        const width = buildingLabelWidth(marker.name);
         return (
           <NaverMapMarkerOverlay
-            key={marker.id}
+            key={`${marker.id}-${isActive}`}
             latitude={marker.latitude}
             longitude={marker.longitude}
-            width={isActive ? ACTIVE_MARKER_WIDTH : MARKER_SIZE}
-            height={isActive ? ACTIVE_MARKER_HEIGHT : MARKER_SIZE}
-            anchor={isActive ? ACTIVE_MARKER_ANCHOR : MARKER_ANCHOR}
-            image={
-              isActive
-                ? (BUILDING_MARKER_ACTIVE_IMAGES[marker.id] ?? BUILDING_MARKER_EMPTY_ACTIVE_IMAGE)
-                : (BUILDING_MARKER_IMAGES[marker.id] ?? BUILDING_MARKER_EMPTY_IMAGE)
-            }
+            width={width}
+            height={BUILDING_LABEL_HEIGHT}
+            anchor={MARKER_ANCHOR}
+            zIndex={isActive ? 2 : 1}
+            isHideCollidedSymbols
             onTap={() => onBuildingMarkerPress?.(marker.id)}
-          />
+            caption={{
+              text: marker.name,
+              align: 'Center',
+              textSize: BUILDING_LABEL_FONT_SIZE,
+              color: isActive ? BUILDING_LABEL_COLORS.activeText : BUILDING_LABEL_COLORS.text,
+            }}
+          >
+            {/* iOS는 자식 뷰를 이미지로 찍어 마커로 쓰는데, 찍는 시점에 RN Text가 아직 그려지지 않아 글자가 빠진다.
+                그래서 알약 배경만 뷰로 그리고 글자는 SDK 캡션(가운데 정렬)으로 위에 얹는다. key가 바뀌어야 다시 찍는다 */}
+            <View
+              key={`${marker.name}/${width}/${isActive}`}
+              collapsable={false}
+              style={[
+                styles.buildingLabel,
+                {
+                  width,
+                  backgroundColor: isActive
+                    ? BUILDING_LABEL_COLORS.activeBackground
+                    : BUILDING_LABEL_COLORS.background,
+                  borderColor: isActive
+                    ? BUILDING_LABEL_COLORS.activeBackground
+                    : BUILDING_LABEL_COLORS.border,
+                },
+              ]}
+            />
+          </NaverMapMarkerOverlay>
+        );
+      })}
+      {reviewSuggestionMarkers.map((marker) => {
+        const width = reviewPinWidth(marker.name, marker.photoCount);
+        const height = REVIEW_PIN_BODY_HEIGHT + REVIEW_PIN_TAIL_HEIGHT;
+        return (
+          <NaverMapMarkerOverlay
+            key={`review-${marker.id}`}
+            latitude={marker.latitude}
+            longitude={marker.longitude}
+            width={width}
+            height={height}
+            anchor={ACTIVE_MARKER_ANCHOR}
+            zIndex={3}
+            isHideCollidedSymbols
+            onTap={() => onReviewSuggestionMarkerPress?.(marker.id)}
+            caption={{
+              text: `${marker.name}  ${reviewPinCountText(marker.photoCount)}`,
+              align: 'Center',
+              textSize: BUILDING_LABEL_FONT_SIZE,
+              color: '#FFFFFF',
+            }}
+          >
+            <View
+              key={`${marker.name}/${marker.photoCount}/${width}`}
+              collapsable={false}
+              style={{ width, height, alignItems: 'center' }}
+            >
+              <View style={[styles.reviewPinBody, { width }]} />
+              <View style={styles.reviewPinTail} />
+            </View>
+          </NaverMapMarkerOverlay>
         );
       })}
       {placeMarkerIcon &&
@@ -255,4 +328,30 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
         })}
     </NaverMapView>
   );
+});
+
+const styles = StyleSheet.create({
+  buildingLabel: {
+    height: BUILDING_LABEL_HEIGHT,
+    borderRadius: BUILDING_LABEL_HEIGHT / 2,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reviewPinBody: {
+    height: REVIEW_PIN_BODY_HEIGHT,
+    borderRadius: REVIEW_PIN_BODY_HEIGHT / 2,
+    backgroundColor: REVIEW_PIN_COLOR,
+  },
+  // 아래로 뾰족한 꼬리 (테두리 삼각형)
+  reviewPinTail: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 5,
+    borderRightWidth: 5,
+    borderTopWidth: REVIEW_PIN_TAIL_HEIGHT,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: REVIEW_PIN_COLOR,
+  },
 });
