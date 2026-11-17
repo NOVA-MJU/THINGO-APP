@@ -42,6 +42,13 @@
   - 텍스트 스타일: `12px`, `font-weight 600`, 색상 `#0b1215`, 4방향 1px `text-shadow`로 `#ffffff` 외곽선(halo) 구현 (`-webkit-text-stroke`는 브라우저 호환성이 불안정해 사용 안 함). native `caption`의 `color`/`haloColor`도 동일한 값으로 맞춰뒀다.
   - 캔버스 측정 폭과 실제 DOM 렌더링 폭은 미세하게 다를 수 있어, 겹침 판정에 여유 폭(`CAPTION_PADDING_X`)을 더해둔 상태
 
+### 건물 이름 라벨 겹침
+
+건물 라벨(알약)은 겹치면 라벨 전체를 숨긴다 (줌인하면 다시 보인다). 우선순위는 선택한 건물 > `buildingMarkers` 배열 앞쪽(API 순서, 건물 번호순) 순이다.
+
+- **native**: `isHideCollidedMarkers` + `zIndex`(앞쪽일수록 큼). 선택한 건물은 `isForceShowIcon`으로 항상 보인다. 다녀온 곳 핀은 건물보다 zIndex가 커서 겹치면 건물 라벨이 숨는다
+- **web**: 위 캡션과 같은 `recomputeCaptionVisibility`에서 `buildingLabelWidth`로 사각형을 만들어 판정하고 `visible`로 숨긴다
+
 ## 바텀시트 동작 방식 (`app/(tabs)/maps/index.tsx`)
 
 `@gorhom/bottom-sheet`를 **base 시트 1개 + 스택 레이어 N개**로 구성한다. base는 학교 건물 목록(`BuildingListSheet`) 하나만 보여주고, category(칩 전체보기)를 포함해 bus/places 목록 → building/place 상세로 이어지는 드릴다운은 각 화면을 실제 별도의 `BottomSheet` 인스턴스(스택 레이어)로 쌓아 올린다. `BottomSheetModal`은 쓰지 않는다 — `@gorhom/portal`로 앱 루트에 렌더링되기 때문에 `(tabs)` 하단 네비게이션 바까지 덮어버린다 (포털을 안 쓰는 일반 `BottomSheet`는 탭 화면 콘텐츠 영역 안에 그대로 자식으로 렌더링되므로 이 문제가 없다).
