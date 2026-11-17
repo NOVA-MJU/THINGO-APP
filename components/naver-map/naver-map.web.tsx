@@ -49,7 +49,12 @@ const ACTIVE_MARKER_ICON_HEIGHT = 32;
 const MARKER_HIT_SLOP = 10;
 
 // 네이티브(naver-map.native.tsx)의 건물 이름 라벨과 같은 모양을 HTML 마커로 그린다
-function buildingLabelHtml(name: string, width: number, isActive: boolean) {
+// 겹쳐서 숨길 때 DOM을 다시 만들지 않고 투명도만 바꿔 서서히 사라지고 나타나게 한다 (네이버 지도 글자처럼). 그래서 id로 찾는다
+function buildingLabelElementId(id: string) {
+  return `thingo-building-label-${id}`;
+}
+
+function buildingLabelHtml(id: string, name: string, width: number, isActive: boolean) {
   const background = isActive
     ? BUILDING_LABEL_COLORS.activeBackground
     : BUILDING_LABEL_COLORS.background;
@@ -72,8 +77,9 @@ function buildingLabelHtml(name: string, width: number, isActive: boolean) {
     'text-align:center',
     'white-space:nowrap',
     'cursor:pointer',
+    `transition:opacity ${BUILDING_LABEL_FADE_MS}ms ease`,
   ].join(';');
-  return `<div style="${style}">${escapedName}</div>`;
+  return `<div id="${buildingLabelElementId(id)}" style="${style}">${escapedName}</div>`;
 }
 
 function markerHitShape(width: number, height: number): naver.maps.MarkerShape {
@@ -205,7 +211,10 @@ const CAPTION_HALO_COLOR = '#ffffff';
 const CAPTION_GAP = 8; // 마커 좌표에서 캡션까지의 세로 간격
 const CAPTION_HEIGHT = 14; // 겹침 판정에 사용할 캡션 한 줄 높이(대략치)
 const CAPTION_PADDING_X = 4; // 겹침 판정 시 캡션 좌우 여유폭
-const BUILDING_LABEL_GAP = 2; // 건물 라벨끼리 이만큼은 떨어져 있어야 겹치지 않은 것으로 본다
+// 건물 라벨끼리 이만큼은 떨어져 있어야 겹치지 않은 것으로 본다. native SDK처럼 닿기만 안 하면 보여준다
+// (국제관과 도서관은 기본 줌에서 2px 떨어져 있어 여유를 두면 도서관이 늘 숨는다)
+const BUILDING_LABEL_GAP = 0;
+const BUILDING_LABEL_FADE_MS = 200;
 
 let captionMeasureCtx: CanvasRenderingContext2D | null | undefined;
 
@@ -383,6 +392,10 @@ const MapContent = React.forwardRef<NaverMapHandle, MapContentProps>(function Ma
     setHiddenBuildingIds((prev) =>
       sameIds(prev, nextHiddenBuildings) ? prev : nextHiddenBuildings
     );
+    for (const marker of buildingMarkers) {
+      const element = document.getElementById(buildingLabelElementId(marker.id));
+      if (element) element.style.opacity = nextHiddenBuildings.has(marker.id) ? '0' : '1';
+    }
 
     const accepted: CaptionRect[] = [];
     const nextVisible = new Set<string>();
@@ -427,6 +440,8 @@ const MapContent = React.forwardRef<NaverMapHandle, MapContentProps>(function Ma
       onPinchstart={onInteraction}
       onTap={onInteraction}
       onZooming={onInteraction}
+      // 줌 단계가 바뀔 때마다 다시 계산해, 지도가 멈춘 뒤 한꺼번에 바뀌지 않고 확대·축소를 따라 라벨이 나타나고 사라지게 한다
+      onZoomChanged={recomputeCaptionVisibility}
     >
       {busStopMarkers.map((marker) => {
         const isActive = marker.id === selectedBusStopId;
@@ -471,9 +486,10 @@ const MapContent = React.forwardRef<NaverMapHandle, MapContentProps>(function Ma
             key={marker.id}
             position={new navermaps.LatLng(marker.latitude, marker.longitude)}
             zIndex={isActive ? 2 : 1}
-            visible={!hiddenBuildingIds.has(marker.id)}
+            // 겹친 라벨은 숨기는 대신 투명하게 만들고(recomputeCaptionVisibility) 눌리지 않게만 한다
+            clickable={!hiddenBuildingIds.has(marker.id)}
             icon={{
-              content: buildingLabelHtml(marker.name, width, isActive),
+              content: buildingLabelHtml(marker.id, marker.name, width, isActive),
               size: new navermaps.Size(width, BUILDING_LABEL_HEIGHT),
               anchor: new navermaps.Point(width / 2, BUILDING_LABEL_HEIGHT / 2),
             }}

@@ -9,7 +9,7 @@ import {
 import { ArrowLeftIcon, SearchIcon, XIcon } from '@/components/icons';
 import { Text } from '@/components/ui/text';
 import { formatMapDistance, getOperatingStatusClassName } from '@/lib/maps/format';
-import { getFloorPlanHref } from '@/lib/maps/floor-plan-href';
+import { formatPlaceSubtitle, getFloorPlanHref } from '@/lib/maps/floor-plan-href';
 import { getMapIcon, getMapIconClassName } from '@/lib/maps/icons';
 import { contentFadeIn, listItemEnter } from '@/lib/motion';
 import { cn } from '@/lib/utils';
@@ -487,7 +487,7 @@ function SearchResultList({
 
 function SearchResultItem({ item, onPress }: { item: MapSearchItem; onPress: () => void }) {
   const Icon = getMapIcon(item.iconKey, item.categoryCode);
-  const subtitle = item.classroomCode || item.location;
+  const subtitle = item.classroomCode || formatPlaceSubtitle(item);
 
   return (
     <TouchableOpacity activeOpacity={0.75} onPress={onPress}>

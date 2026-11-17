@@ -1,7 +1,7 @@
 import { getMapSearchResults, type MapSearchItem } from '@/api/maps';
 import { ArrowRightIcon } from '@/components/icons';
 import { Text } from '@/components/ui/text';
-import { formatPlaceLocation, getFloorPlanHref } from '@/lib/maps/floor-plan-href';
+import { formatPlaceSubtitle, getFloorPlanHref } from '@/lib/maps/floor-plan-href';
 import { getMapIcon, getMapIconClassName } from '@/lib/maps/icons';
 import { listItemEnter } from '@/lib/motion';
 import { useQuery } from '@tanstack/react-query';
@@ -57,9 +57,9 @@ export default function PlaceSection({ query }: { query: string }) {
                   <Text className="text-black text-body04" numberOfLines={1}>
                     {place.name}
                   </Text>
-                  {place.location ? (
+                  {formatPlaceSubtitle(place) ? (
                     <Text className="text-grey-40 text-caption02" numberOfLines={1}>
-                      {formatPlaceLocation(place.location)}
+                      {formatPlaceSubtitle(place)}
                     </Text>
                   ) : null}
                 </View>

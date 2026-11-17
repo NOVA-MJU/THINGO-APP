@@ -45,6 +45,7 @@ import {
 import type { MapBuildingDetail } from '@/api/maps';
 import { getFloorPlan } from '@/assets/map-floors';
 import { formatMapFloorLabel } from '@/lib/maps/format';
+import BuildingRoomSearch from './building-room-search';
 import FloorPlanCarousel from './floor-plan-carousel';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
@@ -142,6 +143,14 @@ export default function BuildingDetailSheet({
     });
   }
 
+  // 호실 검색 결과 클릭 → 그 층 안내도를 열고 찾은 글자를 강조한다 (target은 도면 글자 키)
+  function onRoomPress(floorLabel: string, target: string) {
+    router.push({
+      pathname: '/maps/floor',
+      params: { buildingId: String(building.id), floorLabel, target },
+    });
+  }
+
   const HeaderIcon = resolveMapIcon(building.iconKey);
   const statusLabel = building.operatingStatus ?? '운영 정보가 없습니다';
   const statusColor = building.operatingStatus ? 'text-blue-35' : 'text-grey-40';
@@ -210,6 +219,10 @@ export default function BuildingDetailSheet({
 
           {/* 층별 안내도. 건물 사진(가장 먼저 보여줄 정보) 바로 아래에서 층을 좌우로 넘겨 보고, 누르면 그 층 안내도 화면이 열린다.
               층 번호 버튼은 아래 층별 시설 목록과 겹쳐서 두지 않는다. 도면이 없는 건물(미래관·생활관)은 아무것도 그리지 않는다 */}
+          {/* 호실 검색: 이 건물 안내도에서 '1353'·'소강당'처럼 찾아 그 층 안내도로 바로 간다 */}
+          <View className="mt-3">
+            <BuildingRoomSearch buildingId={String(building.id)} onOpenRoom={onRoomPress} />
+          </View>
           <View className="mt-3">
             <FloorPlanCarousel
               buildingId={String(building.id)}

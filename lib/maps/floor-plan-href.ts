@@ -27,3 +27,16 @@ export function formatPlaceLocation(location: string | null): string {
     floor === 'B' ? ` 지하 ${number}층` : ` ${number}층`
   );
 }
+
+// 검색 결과 둘째 줄: 이름과 다른 호실 코드가 있으면 위치 앞에 붙인다. '코이노니아홀' → 'S10134 · MCC관 1층'
+// (이름이 곧 코드인 강의실 'S1353'은 위치만)
+export function formatPlaceSubtitle(
+  item: Pick<MapSearchItem, 'name' | 'indoorCode' | 'location'>
+): string {
+  const normalize = (text: string) => text.replace(/[\s-]/g, '').toLowerCase();
+  const code =
+    item.indoorCode && !normalize(item.name).includes(normalize(item.indoorCode))
+      ? item.indoorCode
+      : null;
+  return [code, formatPlaceLocation(item.location)].filter(Boolean).join(' · ');
+}

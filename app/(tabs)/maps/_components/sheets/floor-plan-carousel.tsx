@@ -6,6 +6,7 @@ import {
 } from '@/assets/map-floors';
 import { ArrowRightIcon } from '@/components/icons';
 import { Text } from '@/components/ui/text';
+import { sortFloorLabels } from '@/lib/maps/floor-plan-search';
 import { formatFloorPlanLabel } from '@/lib/maps/format';
 import { cn } from '@/lib/utils';
 import * as React from 'react';
@@ -155,13 +156,4 @@ export default function FloorPlanCarousel({
       )}
     </View>
   );
-}
-
-// 'B2','B1','F1','F2'... 아래층부터 (도면 파일 순서는 F10이 F1 다음에 오는 등 뒤섞여 있다)
-function sortFloorLabels(labels: string[]) {
-  const level = (label: string) => {
-    const number = Number(label.slice(1));
-    return label.startsWith('B') ? -number : number;
-  };
-  return [...labels].sort((a, b) => level(a) - level(b));
 }
