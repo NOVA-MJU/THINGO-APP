@@ -152,6 +152,24 @@ export function getFloorPlanLayout(buildingId: string, floorLabel: string) {
   return FLOOR_PLAN_LAYOUTS[buildingId]?.[floorLabel];
 }
 
+// 도면 SVG는 세로로 긴 캔버스 가운데에 층 모양이 얇게 그려져 있어, 작은 미리보기에서는 그림이 점처럼 작아진다.
+// 도면에 적힌 글자(방 이름·출입문) 위치로 층 모양이 있는 영역을 어림해 그 부분만 보이는 viewBox를 만든다
+const CONTENT_BOX_PADDING = 24;
+
+export function getFloorPlanContentViewBox(buildingId: string, floorLabel: string) {
+  const layout = getFloorPlanLayout(buildingId, floorLabel);
+  const texts = layout ? Object.values(layout.targets).flat() : [];
+  if (!layout || texts.length === 0) return undefined;
+
+  const xs = texts.map((text) => text.center[0]);
+  const ys = texts.flatMap((text) => [text.center[1], text.top]);
+  const minX = Math.max(0, Math.min(...xs) - CONTENT_BOX_PADDING);
+  const minY = Math.max(0, Math.min(...ys) - CONTENT_BOX_PADDING);
+  const maxX = Math.min(layout.width, Math.max(...xs) + CONTENT_BOX_PADDING);
+  const maxY = Math.min(layout.height, Math.max(...ys) + CONTENT_BOX_PADDING);
+  return `${minX} ${minY} ${maxX - minX} ${maxY - minY}`;
+}
+
 // 검색 링크의 target(호실 코드 또는 장소명)이 도면에 적힌 위치. 띄어쓰기·대소문자가 달라도 찾도록 정규화해서 비교한다
 export function findFloorPlanTargetTexts(
   buildingId: string,

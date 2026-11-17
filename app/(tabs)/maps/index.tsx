@@ -83,6 +83,11 @@ const MAP_CONTROL_SHADOW = {
 };
 
 // base(학교 건물 목록) 시트를 가리키는 키. 스택 레이어들과 동일한 index-복원 로직을 타도록 맞춰둔 값
+// 지도 라벨에만 쓰는 짧은 건물 이름. 방목학술정보관은 국제관과 50m 거리라 긴 이름 라벨이 늘 겹쳐 숨겨졌고,
+// 그 자리에 네이버 기본 글자("도서관 방목학술정보관")만 보였다. 학생들이 부르는 이름으로 줄여 라벨이 보이게 한다
+// (라벨이 덮는 네이버 기본 글자는 isHideCollidedSymbols로 숨는다). 시트·검색은 원래 이름을 쓴다
+const BUILDING_LABEL_SHORT_NAMES: Record<string, string> = { 방목학술정보관: '도서관' };
+
 const BASE_LAYER_KEY = '__base__';
 const PAGE_TITLE = '명지대 캠퍼스 명지도 | 띵고 Thingo';
 const PAGE_DESCRIPTION =
@@ -634,7 +639,7 @@ export default function MapsScreen() {
         id: String(building.id),
         latitude: building.latitude,
         longitude: building.longitude,
-        name: building.name,
+        name: BUILDING_LABEL_SHORT_NAMES[building.name] ?? building.name,
       })),
     [buildings]
   );
