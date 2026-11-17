@@ -226,7 +226,7 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
           />
         );
       })}
-      {buildingMarkers.map((marker) => {
+      {buildingMarkers.map((marker, index) => {
         const isActive = marker.id === selectedBuildingId;
         const width = buildingLabelWidth(marker.name);
         return (
@@ -237,7 +237,11 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
             width={width}
             height={BUILDING_LABEL_HEIGHT}
             anchor={MARKER_ANCHOR}
-            zIndex={isActive ? 2 : 1}
+            // 라벨끼리 겹치면 zIndex가 낮은 쪽을 SDK가 숨긴다 (줌인하면 다시 보인다).
+            // 선택한 건물 > 목록 앞쪽(건물 번호순) 순으로 남기고, 선택한 건물은 항상 보이게 한다
+            zIndex={isActive ? buildingMarkers.length + 1 : buildingMarkers.length - index}
+            isHideCollidedMarkers
+            isForceShowIcon={isActive}
             isHideCollidedSymbols
             onTap={() => onBuildingMarkerPress?.(marker.id)}
             caption={{
@@ -279,7 +283,7 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
             width={width}
             height={height}
             anchor={ACTIVE_MARKER_ANCHOR}
-            zIndex={3}
+            zIndex={buildingMarkers.length + 2}
             isHideCollidedSymbols
             onTap={() => onReviewSuggestionMarkerPress?.(marker.id)}
             caption={{
