@@ -570,6 +570,8 @@ export default function MapsScreen() {
 
   // 내 사진첩 기준 "다녀온 곳"(리뷰 남길 곳) 핀. iOS에서 사진 권한이 있을 때만 생긴다
   const visitedPlaces = useVisitedPlaces();
+  // 다녀온 곳 핀은 기본으로 숨기고, 왼쪽 아래 버튼을 눌렀을 때만 띄운다 (앱을 다시 열면 다시 숨김)
+  const [visitedPinsShown, setVisitedPinsShown] = React.useState(false);
   const reviewSuggestionMarkers = React.useMemo(
     () =>
       visitedPlaces.places.map((visit) => {
@@ -1082,14 +1084,15 @@ export default function MapsScreen() {
         ref={mapRef}
         initialLatitude={CAMPUS_LATITUDE}
         initialLongitude={CAMPUS_LONGITUDE}
-        initialZoom={16}
+        // 캠퍼스 건물 이름이 다 보이는 줌. 웹(JS SDK)은 같은 줌 값이 앱보다 한 단계 멀리 보여서 1을 더한다
+        initialZoom={Platform.OS === 'web' ? 17 : 16}
         // 버스 정류장 마커는 bus 레이어가 떠 있을 때만 노출 (카테고리/검색 화면에서는 지도가 혼잡해지는 것을 방지)
         busStopMarkers={selectedBusStation ? BUS_STOPS : []}
         // 장소 핀이 떠 있으면(검색·딥링크로 연 장소) 건물 번호 핀을 숨겨 찾은 위치만 눈에 띄게 한다 (지금은 번호 대신 건물 이름 라벨)
         buildingMarkers={isMapOverlayFree ? buildingMarkers : []}
         // 다녀온 곳 핀도 건물 라벨과 같이, 검색·칩·테마·버스로 다른 핀을 볼 때는 숨긴다
         reviewSuggestionMarkers={
-          isMapOverlayFree && !visitedPlaces.pinsHidden ? reviewSuggestionMarkers : []
+          isMapOverlayFree && visitedPinsShown ? reviewSuggestionMarkers : []
         }
         onReviewSuggestionMarkerPress={openVisitedPlace}
         placeMarkers={
@@ -1246,13 +1249,12 @@ export default function MapsScreen() {
           status={visitedPlaces.status}
           count={visitedPlaces.places.length}
           isFetching={visitedPlaces.isFetching}
-          pinsHidden={visitedPlaces.pinsHidden}
-          onTogglePins={() => visitedPlaces.setPinsHidden(!visitedPlaces.pinsHidden)}
+          pinsShown={visitedPinsShown}
+          onTogglePins={() => setVisitedPinsShown((shown) => !shown)}
           bottom={insets.bottom + 64}
-          onFind={() => void visitedPlaces.requestPermission()}
-          onOpen={() => {
-            const latest = visitedPlaces.places[0];
-            if (latest) openVisitedPlace(latest.key);
+          onFind={async () => {
+            const response = await visitedPlaces.requestPermission();
+            if (response.granted) setVisitedPinsShown(true);
           }}
         />
       )}
