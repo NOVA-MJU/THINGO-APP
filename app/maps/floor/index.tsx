@@ -27,13 +27,10 @@ import FloorSelector from './_components/floor-selector';
 
 const MIN_SCALE = 1;
 const MAX_SCALE = 4;
-// 층을 처음 열 때 배율. 배율 1은 층 전체가 화면 폭에 맞는 크기라 건물 시트의 미리보기 카드와 거의 같아서 글자를 읽기 어렵다
-// (도면이 모두 가로로 길어 폭에 맞춰진다). 확대한 채로 열고, 층 전체는 더블탭이나 - 버튼으로 본다.
-// 얇고 긴 층(종합관)은 크게, 세로로도 큰 층(학생회관·MCC관)은 덜 확대해 층 모양이 너무 잘리지 않게
-// 도면 높이가 화면 높이의 INITIAL_CONTENT_HEIGHT 만큼 차도록 하되 MIN~MAX 사이로 둔다
-const INITIAL_SCALE_MIN = 1.5;
-const INITIAL_SCALE_MAX = 2;
-const INITIAL_CONTENT_HEIGHT = 0.6;
+// 층을 처음 열 때는 도면이 그려진 영역(targets.json의 content)이 상하좌우 어디도 잘리지 않는 선에서 화면에 가득 차게 맞춘다.
+// 처음부터 확대해 두면 층 모양을 보려고 좌우로 꼭 밀어야 해서, 한눈에 본 뒤 원하는 곳을 직접 확대하게 한다.
+// 화면 가장자리에 딱 붙지 않게 남기는 여백(px)
+const FIT_PADDING = 16;
 // +/- 버튼 한 번에 바뀌는 배율
 const ZOOM_STEP = 1.5;
 // 대상 핀은 명지도 지도의 선택(active) 마커와 같은 PNG·크기를 쓴다 (components/naver-map의 ACTIVE_MARKER_WIDTH/HEIGHT)
@@ -45,8 +42,9 @@ const SHARP_MARGIN = 0.25;
 
 // 도면 가장자리에서 더 끌어낼 수 있는 여유 폭(px). 도면이 세로로 길쭉해 좌우가 남고,
 // 좌측 하단 층 선택 UI에 가려지는 부분도 있어서 배율 1에서도 좌우로 밀어볼 수 있게 한다.
+// 위아래 여유는 도면이 캔버스 가운데보다 위·아래로 치우친 층(학생회관 등 최대 약 56px)도 처음 열 때 화면 가운데에 둘 수 있게 둔다
 const PAN_GAP_X = 80;
-const PAN_GAP_Y = 0;
+const PAN_GAP_Y = 80;
 
 function clampValue(value: number, min: number, max: number) {
   'worklet';
@@ -123,7 +121,7 @@ export default function MapFloorScreen() {
   }, [buildingId, floorLabel, selectedFloorLabel, target]);
 
   // 첫 번째 대상의 핀 위치 (확대 전 뷰포트 좌표). 도면 좌표(viewBox)를 SVG 기본 preserveAspectRatio(xMidYMid meet)와
-  // 같은 방식으로 뷰포트에 맞춘다. 처음 열 때 이 핀을 화면 가운데에 두고 확대한다(initialView)
+  // 같은 방식으로 뷰포트에 맞춘다. 층 전체가 보이게 열므로(initialView) 핀은 층 안 위치를 바로 알려 준다
   const targetMarker = React.useMemo(() => {
     const [firstText] = targetTexts;
     if (!firstText || !floorLayout || viewportSize.width === 0) return null;
@@ -140,8 +138,7 @@ export default function MapFloorScreen() {
     };
   }, [floorLayout, targetTexts, viewportSize]);
 
-  // 층을 처음 열 때(층을 바꿀 때 포함) 화면: 위 INITIAL_SCALE_* 기준으로 확대하고, 찾은 장소가 있으면 그 핀을,
-  // 없으면 도면이 그려진 영역(targets.json의 content) 가운데를 화면 가운데에 둔다.
+  // 층을 처음 열 때(층을 바꿀 때 포함) 화면: 도면이 그려진 영역이 잘리지 않는 최대 배율로 맞추고 그 영역 가운데를 화면 가운데에 둔다.
   // 확대 레이어의 점 p는 화면에서 c + t + (p - c) * s 에 그려지므로 p를 가운데(c)에 두려면 t = -(p - c) * s
   const initialView = React.useMemo(() => {
     if (!floorLayout || viewportSize.width === 0) return null;
@@ -150,23 +147,23 @@ export default function MapFloorScreen() {
     const offsetX = (width - floorLayout.width * fit) / 2;
     const offsetY = (height - floorLayout.height * fit) / 2;
     const [minX, minY, maxX, maxY] = floorLayout.content;
-    const focusX = targetMarker?.x ?? offsetX + ((minX + maxX) / 2) * fit;
-    const focusY = targetMarker?.top ?? offsetY + ((minY + maxY) / 2) * fit;
     const nextScale = clampValue(
-      (height * INITIAL_CONTENT_HEIGHT) / ((maxY - minY) * fit),
-      INITIAL_SCALE_MIN,
-      INITIAL_SCALE_MAX
+      Math.min(
+        (width - FIT_PADDING * 2) / ((maxX - minX) * fit),
+        (height - FIT_PADDING * 2) / ((maxY - minY) * fit)
+      ),
+      MIN_SCALE,
+      MAX_SCALE
     );
-    // 처음엔 여유 갭(PAN_GAP) 없이 도면 끝이 화면 끝에 맞도록 한다 (핀이 가장자리 호실이면 옆이 비어 보여서)
+    const focusX = offsetX + ((minX + maxX) / 2) * fit;
+    const focusY = offsetY + ((minY + maxY) / 2) * fit;
     const bounds = getPanBounds(nextScale, width, height);
-    const maxTranslateX = bounds.maxX - PAN_GAP_X;
-    const maxTranslateY = bounds.maxY - PAN_GAP_Y;
     return {
       scale: nextScale,
-      x: clampValue(-(focusX - width / 2) * nextScale, -maxTranslateX, maxTranslateX),
-      y: clampValue(-(focusY - height / 2) * nextScale, -maxTranslateY, maxTranslateY),
+      x: clampValue(-(focusX - width / 2) * nextScale, -bounds.maxX, bounds.maxX),
+      y: clampValue(-(focusY - height / 2) * nextScale, -bounds.maxY, bounds.maxY),
     };
-  }, [floorLayout, targetMarker, viewportSize]);
+  }, [floorLayout, viewportSize]);
 
   React.useEffect(() => {
     if (!initialView) return;
@@ -192,14 +189,16 @@ export default function MapFloorScreen() {
     setSharpView(nextScale > MIN_SCALE ? { scale: nextScale, x: nextX, y: nextY } : null);
   }
 
+  // 처음 열었을 때 화면(층 전체가 가득 찬 배율)으로 되돌린다
   function resetViewport() {
-    scale.value = withTiming(MIN_SCALE);
-    translateX.value = withTiming(0);
-    translateY.value = withTiming(0);
-    savedScale.value = MIN_SCALE;
-    savedTranslateX.value = 0;
-    savedTranslateY.value = 0;
-    setSharpView(null);
+    const view = initialView ?? { scale: MIN_SCALE, x: 0, y: 0 };
+    scale.value = withTiming(view.scale);
+    translateX.value = withTiming(view.x);
+    translateY.value = withTiming(view.y);
+    savedScale.value = view.scale;
+    savedTranslateX.value = view.x;
+    savedTranslateY.value = view.y;
+    commitSharpView(view.scale, view.x, view.y);
   }
 
   // +/- 버튼: 기준점이 화면에서 제자리에 남도록 확대·축소한다. 찾은 장소가 있으면 그 핀을 기준으로 해서
