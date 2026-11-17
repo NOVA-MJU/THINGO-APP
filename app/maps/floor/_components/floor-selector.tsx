@@ -21,8 +21,11 @@ const SETTLE_MS = 140;
 // 웹은 snapToInterval이 없어서 CSS scroll-snap으로 항목 가운데에 멈추게 한다 (RN 타입에 없는 CSS 속성이라 웹에서만 붙인다)
 const WEB_SNAP_CONTAINER =
   Platform.OS === 'web' ? ({ scrollSnapType: 'y mandatory' } as unknown as ViewStyle) : undefined;
+// scroll-snap-stop: always는 한 번 밀 때 관성으로 여러 층을 건너뛰지 않고 다음 칸에서 멈추게 한다
 const WEB_SNAP_ITEM =
-  Platform.OS === 'web' ? ({ scrollSnapAlign: 'center' } as unknown as ViewStyle) : undefined;
+  Platform.OS === 'web'
+    ? ({ scrollSnapAlign: 'center', scrollSnapStop: 'always' } as unknown as ViewStyle)
+    : undefined;
 
 interface FloorSelectorProps {
   // 건물 상세 API의 floorLabel('B1', 'F1', 'F2'...) 목록. 도면 파일명과 동일한 값이라 그대로 식별자로 쓴다
@@ -117,6 +120,8 @@ export default function FloorSelector({
           // 처음 그릴 때부터 선택된 층이 가운데에 있게 (iOS는 아래 scrollTo 전에 한 번 그려진다)
           contentOffset={{ x: 0, y: Math.max(selectedIndex, 0) * ITEM_HEIGHT }}
           snapToInterval={ITEM_HEIGHT}
+          // 세게 튕겨도 관성으로 여러 층을 날아가지 않고 손을 뗀 위치 다음 칸에서 멈춘다 (끌어서 옮긴 만큼은 그대로 움직인다)
+          disableIntervalMomentum
           decelerationRate="fast"
           scrollEventThrottle={16}
           onScroll={onScroll}
