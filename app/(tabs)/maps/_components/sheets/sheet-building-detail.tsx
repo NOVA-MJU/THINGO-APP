@@ -112,9 +112,12 @@ const PARKING_FEE_INFO = [
 // 명지대학교 캠퍼스 건물 전용 상세 보기 시트
 export default function BuildingDetailSheet({
   building,
+  buildingNames,
   onClose,
 }: {
   building: MapBuildingDetail;
+  // 호실 검색이 다른 건물에서 찾았을 때 붙일 건물 이름 (건물 id → 이름)
+  buildingNames: Record<string, string>;
   onClose?: () => void;
 }) {
   const router = useRouter();
@@ -144,10 +147,10 @@ export default function BuildingDetailSheet({
   }
 
   // 호실 검색 결과 클릭 → 그 층 안내도를 열고 찾은 글자를 강조한다 (target은 도면 글자 키)
-  function onRoomPress(floorLabel: string, target: string) {
+  function onRoomPress(roomBuildingId: string, floorLabel: string, target: string) {
     router.push({
       pathname: '/maps/floor',
-      params: { buildingId: String(building.id), floorLabel, target },
+      params: { buildingId: roomBuildingId, floorLabel, target },
     });
   }
 
@@ -219,15 +222,20 @@ export default function BuildingDetailSheet({
 
           {/* 층별 안내도. 건물 사진(가장 먼저 보여줄 정보) 바로 아래에서 층을 좌우로 넘겨 보고, 누르면 그 층 안내도 화면이 열린다.
               층 번호 버튼은 아래 층별 시설 목록과 겹쳐서 두지 않는다. 도면이 없는 건물(미래관·생활관)은 아무것도 그리지 않는다 */}
-          {/* 호실 검색: 이 건물 안내도에서 '1353'·'소강당'처럼 찾아 그 층 안내도로 바로 간다 */}
-          <View className="mt-3">
-            <BuildingRoomSearch buildingId={String(building.id)} onOpenRoom={onRoomPress} />
-          </View>
+          {/* 호실 검색: 이 건물 안내도에서 '1353'·'소강당'처럼 찾아 그 층 안내도로 바로 간다.
+              따로 떨어져 있으면 눈에 잘 안 띄어서 층별 안내도 카드 맨 위에 붙인다 */}
           <View className="mt-3">
             <FloorPlanCarousel
               buildingId={String(building.id)}
               buildingName={building.name}
               onOpenFloor={onFloorPress}
+              header={
+                <BuildingRoomSearch
+                  buildingId={String(building.id)}
+                  buildingNames={buildingNames}
+                  onOpenRoom={onRoomPress}
+                />
+              }
             />
           </View>
 
