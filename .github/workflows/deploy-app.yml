@@ -1,8 +1,12 @@
 name: Deploy App
 
+# 앱(EAS 빌드 + 스토어 제출)은 웹과 따로, app-release 브랜치에 올렸을 때만 돈다.
+# EAS 무료 플랜은 월 빌드 횟수가 적어서 main 머지(웹 배포)마다 빌드하지 않는다.
+# 앱 출시: 확인을 마친 main을 그대로 올린다 -> git push origin main:app-release
 on:
   push:
-    branches: [main]
+    branches: [app-release]
+  workflow_dispatch:
 
 jobs:
   build-and-submit:

@@ -25,6 +25,7 @@ import * as React from 'react';
 import {
   ActivityIndicator,
   Animated,
+  BackHandler,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
@@ -88,6 +89,8 @@ const MAP_CONTROL_SHADOW = {
 // (라벨이 덮는 네이버 기본 글자는 isHideCollidedSymbols로 숨는다). 시트·검색은 원래 이름을 쓴다
 const BUILDING_LABEL_SHORT_NAMES: Record<string, string> = { 방목학술정보관: '도서관' };
 
+// 웹 뒤로가기로 시트를 닫기 위해 쌓는 기록(history.state)의 표시
+const SHEET_HISTORY_GUARD = '__thingoMapSheet';
 const BASE_LAYER_KEY = '__base__';
 const PAGE_TITLE = '명지대 캠퍼스 명지도 | 띵고 Thingo';
 const PAGE_DESCRIPTION =
@@ -337,6 +340,43 @@ export default function MapsScreen() {
     restoreIndexRef.current.clear();
     suppressCloseRef.current.clear();
   }
+
+  // 뒤로가기(안드로이드 하드웨어, 웹 브라우저)로 맨 위 시트부터 하나씩 닫는다. 막지 않으면 명지도를 떠나 이전 페이지(홈)로 간다.
+  // 리스너는 한 번만 달고, 최신 스택은 ref로 읽는다
+  const sheetDepth = sheetStack.length;
+  const sheetDepthRef = React.useRef(sheetDepth);
+  sheetDepthRef.current = sheetDepth;
+  const popSheetRef = React.useRef(popSheet);
+  popSheetRef.current = popSheet;
+
+  React.useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (sheetDepthRef.current === 0) return false;
+      popSheetRef.current();
+      return true;
+    });
+    return () => subscription.remove();
+  }, []);
+
+  // 웹: 시트가 떠 있는 동안 같은 주소의 기록을 하나 더 쌓아 두고(가드), 뒤로가기로 가드에서 빠져나오면 시트를 하나 닫는다.
+  // 시트가 남아 있으면 가드를 다시 쌓는다. 가드는 현재 기록 상태를 복사해 expo-router가 같은 화면으로 인식한다.
+  // 다른 화면(층별 안내도 등)에서 뒤로 와서 가드에 도착한 경우는 시트를 닫지 않는다
+  React.useEffect(() => {
+    if (Platform.OS !== 'web' || sheetDepth === 0) return;
+    if (window.history.state?.[SHEET_HISTORY_GUARD]) return;
+    window.history.pushState({ ...window.history.state, [SHEET_HISTORY_GUARD]: true }, '');
+  }, [sheetDepth]);
+
+  React.useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    function onPopState(event: PopStateEvent) {
+      if (event.state?.[SHEET_HISTORY_GUARD]) return;
+      if (sheetDepthRef.current > 0) popSheetRef.current();
+    }
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
   // 스택에서 각 종류별 활성 식별자 도출 (현재는 종류당 최대 1개만 존재하므로 find로 충분)
   const selectedCategoryCode = React.useMemo(
@@ -1309,6 +1349,7 @@ export default function MapsScreen() {
             topInset={insets.top}
             onChange={(index) => updateLayerIndex(screen.key, index)}
             onClose={() => handleLayerClosed(screen.key, belowKey)}
+            onDismiss={popSheet}
             onScroll={screen.kind === 'places' ? onPlacesScroll : undefined}
           >
             {renderStackScreenContent(screen)}

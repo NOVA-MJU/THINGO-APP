@@ -42,6 +42,12 @@ pnpm expo run:android
 | `pnpm expo export --platform web`       | `pnpm build:web` |
 | `rm -rf .expo node_modules android ios` | `pnpm clean`     |
 
+## deploy
+
+- 웹: `main`에 머지하면 `deploy-web.yml`이 바로 배포한다 (feature → `develop` PR → `develop` → `main` PR)
+- 앱: `app-release` 브랜치에 올렸을 때만 `deploy-app.yml`이 EAS로 iOS·Android를 빌드하고 스토어에 제출한다. EAS 무료 플랜은 월 빌드 횟수가 적으니 시뮬레이터로 다 확인한 최종본만 올린다: `git push origin main:app-release`
+- App Store에 이미 승인된 버전 번호로는 새 빌드를 받지 않는다 (ITMS-90186). 출시 전에 `app.config.ts`의 `version`을 올린다
+
 ## naming conventions
 
 | 구분                     | 규칙                              | 예시                                                                          |
