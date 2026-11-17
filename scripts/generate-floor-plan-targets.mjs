@@ -3,6 +3,7 @@
 // 다시 그리고(중심 좌표에는 핀) 표시할 때 쓴다. 방 모양(사각형·사다리꼴·곡선)과 무관하게 이름 위치를 기준으로 삼는다.
 // 도면이 react-native-svg-transformer로 컴포넌트가 되어 런타임에는 SVG 원문을 읽을 수 없어서 미리 계산해 둔다.
 // 도면 SVG를 추가하거나 다시 export하면 `node scripts/generate-floor-plan-targets.mjs`로 다시 생성한다.
+// (export한 SVG의 첫 줄 캔버스 전체 배경 사각형 `<rect width=".." height=".." fill="#F5F7F9"/>`은 지우고 넣는다)
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -132,14 +133,70 @@ function parseLabels(svg) {
 
 const round = (value) => Math.round(value * 10) / 10;
 
+// 도면에 실제로 그려진 영역(viewBox 좌표의 [minX, minY, maxX, maxY]). 캔버스는 세로로 길고 층 모양은 가운데에 얇게 있어서,
+// 건물 시트의 미리보기는 이 영역만 잘라 그린다. 경로(Figma export라 절대 좌표 M/L/H/V/C/Z만 쓴다)·사각형·선·글자 중심을 모은다.
+// 곡선(C)은 조절점까지 포함해 실제보다 조금 넓을 수 있다
+function contentBounds(svg, labels) {
+  const points = labels.flatMap((label) => [label.center, [label.center[0], label.top]]);
+  for (const [, d] of svg.matchAll(/<path\b[^>]*\bd="([^"]*)"/g)) {
+    let x = 0;
+    let y = 0;
+    for (const [, command, args] of d.matchAll(/([MLHVCZ])([^MLHVCZ]*)/g)) {
+      const values = args.trim()
+        ? args
+            .trim()
+            .split(/[\s,]+/)
+            .map(Number)
+        : [];
+      if (command === 'H') {
+        for (const value of values) points.push([(x = value), y]);
+      } else if (command === 'V') {
+        for (const value of values) points.push([x, (y = value)]);
+      } else {
+        for (let i = 0; i + 1 < values.length; i += 2) {
+          points.push([values[i], values[i + 1]]);
+          [x, y] = [values[i], values[i + 1]];
+        }
+      }
+    }
+  }
+  for (const [rect] of svg.matchAll(/<rect\b[^>]*>/g)) {
+    const rx = Number(attr(rect, 'x') ?? 0);
+    const ry = Number(attr(rect, 'y') ?? 0);
+    const rw = Number(attr(rect, 'width') ?? 0);
+    const rh = Number(attr(rect, 'height') ?? 0);
+    const matrix = parseTransform(attr(rect, 'transform'));
+    for (const [cx, cy] of [
+      [rx, ry],
+      [rx + rw, ry],
+      [rx, ry + rh],
+      [rx + rw, ry + rh],
+    ]) {
+      points.push(apply(matrix, cx, cy));
+    }
+  }
+  for (const [line] of svg.matchAll(/<line\b[^>]*>/g)) {
+    points.push([Number(attr(line, 'x1')), Number(attr(line, 'y1'))]);
+    points.push([Number(attr(line, 'x2')), Number(attr(line, 'y2'))]);
+  }
+  const xs = points.map(([px]) => px);
+  const ys = points.map(([, py]) => py);
+  return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)].map(round);
+}
+
 function buildFloor(svg) {
   const [, , width, height] = attr(svg, 'viewBox').split(/\s+/).map(Number);
+  // 캔버스 전체를 덮는 배경 사각형이 남아 있으면 그려진 영역이 캔버스 전체가 되므로 막는다 (배경은 화면 쪽 배경색으로 칠한다)
+  if (new RegExp(`<rect width="${width}" height="${height}"`).test(svg)) {
+    throw new Error('도면 SVG에서 캔버스 전체 배경 사각형을 지워야 한다');
+  }
+  const labels = parseLabels(svg);
   const targets = {};
-  for (const { text, ...label } of parseLabels(svg)) {
+  for (const { text, ...label } of labels) {
     const key = normalizeLabel(text);
     targets[key] = [...(targets[key] ?? []), label];
   }
-  return { width, height, targets };
+  return { width, height, content: contentBounds(svg, labels), targets };
 }
 
 const result = {};
