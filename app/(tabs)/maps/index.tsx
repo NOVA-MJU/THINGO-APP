@@ -47,7 +47,7 @@ import SheetStackLayer from './_components/sheet-stack-layer';
 import VisitedPlacesButton from './_components/visited-places-button';
 import VisitCandidatesSheet from './_components/sheets/sheet-visit-candidates';
 import CATEGORIES from './_constants/category-data';
-import { CurrentLocationIcon, MoreIcon, StarIcon } from '@/components/icons/map';
+import { CampusIcon, CurrentLocationIcon, MoreIcon, StarIcon } from '@/components/icons/map';
 import { useMapSearchSelection } from '@/context/map-search-selection';
 import { showAlert } from '@/lib/alert';
 import {
@@ -75,6 +75,8 @@ const QUICK_CHIPS = ALL_CHIPS.filter((chip) => QUICK_CHIP_IDS.includes(chip.id))
 );
 
 const SNAP_POINTS = ['10%', '50%', '100%'];
+// 캠퍼스 건물 이름이 다 보이는 줌 (처음 열 때, 학교로 돌아가기 버튼). 웹(JS SDK)은 같은 줌 값이 앱보다 한 단계 멀리 보여서 1을 더한다
+const CAMPUS_ZOOM = Platform.OS === 'web' ? 17 : 16;
 const MAP_CONTROL_SHADOW = {
   shadowColor: '#000',
   shadowOffset: { width: 0, height: 2 },
@@ -966,6 +968,13 @@ export default function MapsScreen() {
     };
   }, []);
 
+  // 학교로 돌아가기 버튼: 지도를 돌아다니다가 처음 열었을 때 화면(캠퍼스 중심, 건물 이름이 다 보이는 줌)으로 돌아간다.
+  // 줌도 처음 값으로 되돌린다. 멀리 축소했거나 크게 확대한 채로 위치만 옮기면 캠퍼스가 한눈에 안 들어오기 때문
+  function onCampusPress() {
+    hideQuickTooltips();
+    mapRef.current?.animateCameraTo(CAMPUS_LATITUDE, CAMPUS_LONGITUDE, CAMPUS_ZOOM);
+  }
+
   // 현위치 찾기 버튼 클릭
   async function onCurrentLocationPress() {
     hideQuickTooltips();
@@ -1155,8 +1164,7 @@ export default function MapsScreen() {
         ref={mapRef}
         initialLatitude={CAMPUS_LATITUDE}
         initialLongitude={CAMPUS_LONGITUDE}
-        // 캠퍼스 건물 이름이 다 보이는 줌. 웹(JS SDK)은 같은 줌 값이 앱보다 한 단계 멀리 보여서 1을 더한다
-        initialZoom={Platform.OS === 'web' ? 17 : 16}
+        initialZoom={CAMPUS_ZOOM}
         // 버스 정류장 마커는 bus 레이어가 떠 있을 때만 노출 (카테고리/검색 화면에서는 지도가 혼잡해지는 것을 방지)
         busStopMarkers={selectedBusStation ? BUS_STOPS : []}
         // 장소 핀이 떠 있으면(검색·딥링크로 연 장소) 건물 번호 핀을 숨겨 찾은 위치만 눈에 띄게 한다 (지금은 번호 대신 건물 이름 라벨)
@@ -1330,10 +1338,17 @@ export default function MapsScreen() {
         />
       )}
 
-      <View
-        className="absolute right-4 flex-row items-center gap-2"
-        style={{ bottom: insets.bottom + 64 }}
-      >
+      <View className="absolute right-4 items-center gap-2" style={{ bottom: insets.bottom + 64 }}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="학교로 돌아가기"
+          onPress={onCampusPress}
+          className="h-12 w-12 items-center justify-center rounded-full bg-white active:bg-grey-02 active:opacity-80"
+          style={MAP_CONTROL_SHADOW}
+        >
+          <CampusIcon size={20} className="text-grey-80" />
+          <Text className="-mt-0.5 text-grey-80 text-caption05">학교</Text>
+        </Pressable>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="현재 위치로 이동"
