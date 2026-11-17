@@ -11,6 +11,7 @@ import {
 } from '@/api/maps';
 import { SearchIcon, ThingoLogoSmall } from '@/components/icons';
 import MapQuickTooltipArrow from '@/assets/images/map-quick-tooltip-arrow.svg';
+import { getFloorPlanLabels } from '@/assets/map-floors';
 import { NaverMap, NaverMapHandle, UserLocationData } from '@/components/naver-map';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
@@ -712,6 +713,19 @@ export default function MapsScreen() {
   function onBuildingMarkerPress(id: string) {
     const building = buildings.find((b) => String(b.id) === id);
     if (!building) return;
+
+    // 지도에서 건물 이름을 누르면 시트 대신 그 건물 1층 안내도로 바로 들어간다 (건물 안으로 들어간 느낌).
+    // 1층 도면이 없으면 있는 층 중 첫 층, 도면이 하나도 없는 건물(미래관·생활관)은 아래처럼 건물 시트를 연다
+    const floorLabels = getFloorPlanLabels(id);
+    if (floorLabels.length > 0) {
+      hideQuickTooltips();
+      router.push({
+        pathname: '/maps/floor',
+        params: { buildingId: id, floorLabel: floorLabels.includes('F1') ? 'F1' : floorLabels[0] },
+      });
+      return;
+    }
+
     // 이미 선택돼있는 건물 핀을 또 클릭한 경우 - 아무 동작도 하지 않는다
     if (selectedBuildingId === building.id) return;
 
