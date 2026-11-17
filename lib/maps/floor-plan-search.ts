@@ -17,6 +17,10 @@ export function normalizeFloorPlanQuery(query: string) {
   return query.replace(/\s+/g, '').toLowerCase();
 }
 
+export type BuildingFloorPlans = { buildingId: string; floors: FloorTargets; floorOrder: string[] };
+
+export type BuildingFloorPlanSearchResult = FloorPlanSearchResult & { buildingId: string };
+
 // 같은 층의 같은 이름(출입문·화장실 등)은 한 번만. 검색어로 시작하는 것 → 아래층부터 순서로
 export function searchFloorPlanTexts(
   floors: FloorTargets,
@@ -24,6 +28,27 @@ export function searchFloorPlanTexts(
   query: string,
   limit = 20
 ): FloorPlanSearchResult[] {
+  return withoutRank(rankFloorPlanTexts(floors, floorOrder, query).slice(0, limit));
+}
+
+// 여러 건물 도면에서 한 번에 찾는다. 건물 시트에서 다른 건물 호실(학생회관에서 '1353')을 쳤을 때 어느 건물인지 알려 주려고 쓴다.
+// 순위는 건물을 가리지 않고 매기고, 순위가 같으면 넘긴 건물 순서대로
+export function searchBuildingsFloorPlanTexts(
+  buildings: BuildingFloorPlans[],
+  query: string,
+  limit = 20
+): BuildingFloorPlanSearchResult[] {
+  const ranked = buildings.flatMap(({ buildingId, floors, floorOrder }) =>
+    rankFloorPlanTexts(floors, floorOrder, query).map((result) => ({ ...result, buildingId }))
+  );
+  return withoutRank(ranked.sort((a, b) => a.rank - b.rank).slice(0, limit));
+}
+
+function withoutRank<T extends { rank: number }>(results: T[]): Omit<T, 'rank'>[] {
+  return results.map(({ rank: _rank, ...result }) => result);
+}
+
+function rankFloorPlanTexts(floors: FloorTargets, floorOrder: string[], query: string) {
   const normalized = normalizeFloorPlanQuery(query);
   if (!normalized) return [];
 
@@ -42,10 +67,7 @@ export function searchFloorPlanTexts(
       results.push({ floorLabel, key, text, rank: (startsWith ? 0 : 1000) + floorIndex });
     }
   });
-  return results
-    .sort((a, b) => a.rank - b.rank)
-    .slice(0, limit)
-    .map(({ rank: _rank, ...result }) => result);
+  return results.sort((a, b) => a.rank - b.rank);
 }
 
 // 'B2','B1','F1','F2'... 아래층부터 (도면 파일 순서는 F10이 F1 다음에 오는 등 뒤섞여 있다)

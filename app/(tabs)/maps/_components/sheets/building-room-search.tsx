@@ -1,63 +1,96 @@
-import { getFloorPlanLabels, getFloorPlanLayout } from '@/assets/map-floors';
+import { getFloorPlanLabels, getFloorPlanLayout, MAP_FLOOR_PLANS } from '@/assets/map-floors';
 import { ArrowRightIcon, SearchIcon, XThinIcon } from '@/components/icons';
 import { Text } from '@/components/ui/text';
-import { searchFloorPlanTexts, sortFloorLabels } from '@/lib/maps/floor-plan-search';
+import {
+  type BuildingFloorPlans,
+  searchBuildingsFloorPlanTexts,
+  searchFloorPlanTexts,
+  sortFloorLabels,
+} from '@/lib/maps/floor-plan-search';
 import { formatFloorPlanLabel } from '@/lib/maps/format';
 import { BottomSheetTextInput } from '@gorhom/bottom-sheet';
 import * as React from 'react';
-import { Pressable, TouchableOpacity, View } from 'react-native';
+import { Pressable, type TextStyle, TouchableOpacity, View } from 'react-native';
 
 // 한 번에 보여줄 결과 수 (시트가 너무 길어지지 않게)
 const MAX_RESULTS = 8;
+const MAX_OTHER_BUILDING_RESULTS = 5;
+// 웹에서 입력하면 브라우저 포커스 테두리(:focus-visible, outline auto)가 검게 그려진다. auto는 굵기 0도 무시해서 none으로 꺼야 하는데
+// RN 타입에는 'none'이 없다 (react-native-web은 그대로 CSS로 넘긴다). className은 BottomSheetTextInput에 적용되지 않는다
+const WEB_NO_OUTLINE = { outlineStyle: 'none' } as unknown as TextStyle;
 
-// 건물 시트의 호실·시설 검색. 이 건물 층별 안내도에 적힌 글자에서 찾고(서버를 거치지 않음),
-// 누르면 그 층 안내도를 열어 찾은 글자를 강조한다. 도면이 없는 건물은 그리지 않는다
+function loadBuildingFloorPlans(buildingId: string): BuildingFloorPlans {
+  const floorOrder = sortFloorLabels(getFloorPlanLabels(buildingId));
+  const floors: BuildingFloorPlans['floors'] = {};
+  for (const label of floorOrder) {
+    const layout = getFloorPlanLayout(buildingId, label);
+    if (layout) floors[label] = layout;
+  }
+  return { buildingId, floors, floorOrder };
+}
+
+// 건물 시트의 호실·시설 검색. 층별 안내도 카드 맨 위에 붙어 있다. 이 건물 층별 안내도에 적힌 글자에서 찾고(서버를 거치지 않음),
+// 누르면 그 층 안내도를 열어 찾은 글자를 강조한다. 도면이 없는 건물은 그리지 않는다.
+// 이 건물에 없으면 다른 건물 도면에서 찾아 어느 건물 몇 층인지 같이 보여준다
 export default function BuildingRoomSearch({
   buildingId,
+  buildingNames,
   onOpenRoom,
 }: {
   buildingId: string;
-  onOpenRoom: (floorLabel: string, target: string) => void;
+  // 다른 건물 결과에 붙일 이름 (건물 id → 이름)
+  buildingNames: Record<string, string>;
+  onOpenRoom: (buildingId: string, floorLabel: string, target: string) => void;
 }) {
   const [query, setQuery] = React.useState('');
 
-  const floorLabels = React.useMemo(
-    () => sortFloorLabels(getFloorPlanLabels(buildingId)),
+  const current = React.useMemo(() => loadBuildingFloorPlans(buildingId), [buildingId]);
+  const others = React.useMemo(
+    () =>
+      Object.keys(MAP_FLOOR_PLANS)
+        .filter((id) => id !== buildingId)
+        .map(loadBuildingFloorPlans),
     [buildingId]
   );
-  const floors = React.useMemo(
-    () =>
-      Object.fromEntries(
-        floorLabels.flatMap((label) => {
-          const layout = getFloorPlanLayout(buildingId, label);
-          return layout ? [[label, layout]] : [];
-        })
-      ),
-    [buildingId, floorLabels]
-  );
   const results = React.useMemo(
-    () => searchFloorPlanTexts(floors, floorLabels, query, MAX_RESULTS),
-    [floors, floorLabels, query]
+    () => searchFloorPlanTexts(current.floors, current.floorOrder, query, MAX_RESULTS),
+    [current, query]
+  );
+  // 이 건물에서 하나라도 찾으면 다른 건물은 보지 않는다 ('화장실'처럼 어느 건물에나 있는 이름이 섞이지 않게)
+  const otherResults = React.useMemo(
+    () =>
+      results.length > 0
+        ? []
+        : searchBuildingsFloorPlanTexts(others, query, MAX_OTHER_BUILDING_RESULTS),
+    [others, query, results.length]
   );
 
-  if (floorLabels.length === 0) return null;
+  if (current.floorOrder.length === 0) return null;
 
   const hasQuery = query.trim().length > 0;
 
   return (
-    <View className="mx-4 gap-1">
-      <View className="h-11 flex-row items-center gap-2 rounded-xl bg-grey-02 px-3">
-        <SearchIcon size={18} className="text-grey-40" />
+    <View className="gap-1.5 px-2.5 pt-2.5">
+      <View
+        className="h-11 flex-row items-center gap-2 rounded-xl border border-blue-10 bg-white px-3"
+        style={{
+          shadowColor: '#2587ff',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.08,
+          shadowRadius: 6,
+          elevation: 1,
+        }}
+      >
+        <SearchIcon size={18} className="text-blue-35" />
         <BottomSheetTextInput
           value={query}
           onChangeText={setQuery}
-          placeholder="호실·시설 검색 (예: 1353)"
+          placeholder="강의실·시설 찾기 (예: 1353)"
           placeholderTextColor="#909499"
           returnKeyType="search"
           autoCorrect={false}
           autoCapitalize="none"
-          className="outline-none"
-          style={{ flex: 1, fontSize: 14, color: '#0B1215', paddingVertical: 0 }}
+          style={[{ flex: 1, fontSize: 14, color: '#0B1215', paddingVertical: 0 }, WEB_NO_OUTLINE]}
         />
         {hasQuery && (
           <Pressable
@@ -71,33 +104,66 @@ export default function BuildingRoomSearch({
         )}
       </View>
 
-      {hasQuery &&
-        (results.length > 0 ? (
-          <View>
-            {results.map((result) => (
-              <TouchableOpacity
-                key={`${result.floorLabel}:${result.key}`}
-                accessibilityRole="button"
-                accessibilityLabel={`${formatFloorPlanLabel(result.floorLabel)} ${result.text} 안내도에서 보기`}
-                activeOpacity={0.7}
-                onPress={() => onOpenRoom(result.floorLabel, result.key)}
-                className="flex-row items-center gap-3 border-b border-grey-02 py-3"
-              >
-                <View className="min-w-[36px] items-center rounded-md bg-blue-05 px-1.5 py-0.5">
-                  <Text className="text-blue-35 text-caption01">
-                    {formatFloorPlanLabel(result.floorLabel)}
-                  </Text>
-                </View>
-                <Text className="flex-1 text-black text-body05" numberOfLines={1}>
-                  {result.text}
-                </Text>
-                <ArrowRightIcon size={16} className="text-grey-30" />
-              </TouchableOpacity>
-            ))}
-          </View>
-        ) : (
-          <Text className="py-3 text-grey-40 text-caption02">이 건물 안내도에서 찾지 못했어요</Text>
-        ))}
+      {hasQuery && (
+        <View className="rounded-xl bg-white px-3">
+          {results.map((result) => (
+            <TouchableOpacity
+              key={`${result.floorLabel}:${result.key}`}
+              accessibilityRole="button"
+              accessibilityLabel={`${formatFloorPlanLabel(result.floorLabel)} ${result.text} 안내도에서 보기`}
+              activeOpacity={0.7}
+              onPress={() => onOpenRoom(buildingId, result.floorLabel, result.key)}
+              className="flex-row items-center gap-3 border-b border-grey-02 py-3"
+            >
+              <FloorBadge floorLabel={result.floorLabel} />
+              <Text className="flex-1 text-black text-body05" numberOfLines={1}>
+                {result.text}
+              </Text>
+              <ArrowRightIcon size={16} className="text-grey-30" />
+            </TouchableOpacity>
+          ))}
+
+          {results.length === 0 && otherResults.length > 0 && (
+            <>
+              <Text className="pt-3 text-grey-60 text-caption02">
+                이 건물에는 없어요. 다른 건물에서 찾았어요
+              </Text>
+              {otherResults.map((result) => {
+                const buildingName = buildingNames[result.buildingId] ?? '다른 건물';
+                return (
+                  <TouchableOpacity
+                    key={`${result.buildingId}:${result.floorLabel}:${result.key}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${buildingName} ${formatFloorPlanLabel(result.floorLabel)} ${result.text} 안내도에서 보기`}
+                    activeOpacity={0.7}
+                    onPress={() => onOpenRoom(result.buildingId, result.floorLabel, result.key)}
+                    className="flex-row items-center gap-2 border-b border-grey-02 py-3"
+                  >
+                    <Text className="text-black text-body04">{buildingName}</Text>
+                    <FloorBadge floorLabel={result.floorLabel} />
+                    <Text className="flex-1 text-black text-body05" numberOfLines={1}>
+                      {result.text}
+                    </Text>
+                    <ArrowRightIcon size={16} className="text-grey-30" />
+                  </TouchableOpacity>
+                );
+              })}
+            </>
+          )}
+
+          {results.length === 0 && otherResults.length === 0 && (
+            <Text className="py-3 text-grey-40 text-caption02">층별 안내도에서 찾지 못했어요</Text>
+          )}
+        </View>
+      )}
+    </View>
+  );
+}
+
+function FloorBadge({ floorLabel }: { floorLabel: string }) {
+  return (
+    <View className="min-w-[36px] items-center rounded-md bg-blue-05 px-1.5 py-0.5">
+      <Text className="text-blue-35 text-caption01">{formatFloorPlanLabel(floorLabel)}</Text>
     </View>
   );
 }

@@ -33,10 +33,13 @@ const RENDER_RANGE = 1;
 export default function FloorPlanCarousel({
   buildingId,
   buildingName,
+  header,
   onOpenFloor,
 }: {
   buildingId: string;
   buildingName: string;
+  // 카드 맨 위(도면 위)에 붙일 내용. 호실 검색창을 도면과 한 카드로 묶어 눈에 띄게 한다
+  header?: React.ReactNode;
   onOpenFloor: (floorLabel: string) => void;
 }) {
   const floorLabels = React.useMemo(
@@ -79,81 +82,85 @@ export default function FloorPlanCarousel({
 
   return (
     <View className="mx-4 overflow-hidden rounded-2xl border border-grey-10 bg-grey-02">
-      {/* 페이지 폭은 테두리 안쪽 폭이어야 넘길 때 한 장씩 정확히 맞는다 */}
-      <View onLayout={onLayout} style={{ minHeight: height }}>
-        {pageWidth > 0 && (
-          <NativeViewGestureHandler disallowInterruption>
-            <ScrollView
-              ref={scrollRef}
-              horizontal
-              pagingEnabled
-              nestedScrollEnabled
-              directionalLockEnabled
-              showsHorizontalScrollIndicator={false}
-              contentOffset={{ x: startIndex * pageWidth, y: 0 }}
-              // contentOffset을 무시하는 플랫폼(웹)에서도 1층에서 시작하도록 처음 한 번만 맞춘다
-              onLayout={() => {
-                if (didScrollToStartRef.current) return;
-                didScrollToStartRef.current = true;
-                scrollRef.current?.scrollTo({ x: startIndex * pageWidth, animated: false });
-              }}
-              onScroll={onScroll}
-              scrollEventThrottle={16}
-            >
-              {floorLabels.map((label, index) => {
-                const FloorPlan = getFloorPlan(buildingId, label);
-                const viewBox = getFloorPlanContentViewBox(buildingId, label);
-                const isNear = Math.abs(index - pageIndex) <= RENDER_RANGE;
-                return (
-                  <Pressable
-                    key={label}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${buildingName} ${formatFloorPlanLabel(label)} 층별 안내도 크게 보기`}
-                    onPress={() => onOpenFloor(label)}
-                    style={{ width: pageWidth, height, padding: PAGE_PADDING }}
-                  >
-                    {/* viewBox를 undefined로 넘기면 도면 원래 viewBox가 지워지므로 있을 때만 넘긴다 */}
-                    {FloorPlan && isNear && (
-                      <FloorPlan width="100%" height="100%" {...(viewBox ? { viewBox } : {})} />
-                    )}
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </NativeViewGestureHandler>
-        )}
-      </View>
+      {header}
+      {/* 아래 표시들을 도면 영역 기준으로 놓으려고 한 번 더 감싼다 */}
+      <View>
+        {/* 페이지 폭은 테두리 안쪽 폭이어야 넘길 때 한 장씩 정확히 맞는다 */}
+        <View onLayout={onLayout} style={{ minHeight: height }}>
+          {pageWidth > 0 && (
+            <NativeViewGestureHandler disallowInterruption>
+              <ScrollView
+                ref={scrollRef}
+                horizontal
+                pagingEnabled
+                nestedScrollEnabled
+                directionalLockEnabled
+                showsHorizontalScrollIndicator={false}
+                contentOffset={{ x: startIndex * pageWidth, y: 0 }}
+                // contentOffset을 무시하는 플랫폼(웹)에서도 1층에서 시작하도록 처음 한 번만 맞춘다
+                onLayout={() => {
+                  if (didScrollToStartRef.current) return;
+                  didScrollToStartRef.current = true;
+                  scrollRef.current?.scrollTo({ x: startIndex * pageWidth, animated: false });
+                }}
+                onScroll={onScroll}
+                scrollEventThrottle={16}
+              >
+                {floorLabels.map((label, index) => {
+                  const FloorPlan = getFloorPlan(buildingId, label);
+                  const viewBox = getFloorPlanContentViewBox(buildingId, label);
+                  const isNear = Math.abs(index - pageIndex) <= RENDER_RANGE;
+                  return (
+                    <Pressable
+                      key={label}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${buildingName} ${formatFloorPlanLabel(label)} 층별 안내도 크게 보기`}
+                      onPress={() => onOpenFloor(label)}
+                      style={{ width: pageWidth, height, padding: PAGE_PADDING }}
+                    >
+                      {/* viewBox를 undefined로 넘기면 도면 원래 viewBox가 지워지므로 있을 때만 넘긴다 */}
+                      {FloorPlan && isNear && (
+                        <FloorPlan width="100%" height="100%" {...(viewBox ? { viewBox } : {})} />
+                      )}
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </NativeViewGestureHandler>
+          )}
+        </View>
 
-      {/* 도면 위에 얹는 표시. 누르기는 아래 도면 페이지가 받는다 */}
-      <View
-        className="absolute left-3 top-3 rounded-full bg-blue-35 px-2.5 py-1"
-        pointerEvents="none"
-      >
-        <Text className="text-white text-caption01">{formatFloorPlanLabel(currentLabel)}</Text>
-      </View>
-      <View
-        className="absolute right-3 top-3 flex-row items-center gap-0.5 rounded-full bg-white/90 py-1 pl-2.5 pr-1.5"
-        pointerEvents="none"
-      >
-        <Text className="text-grey-80 text-caption01">크게 보기</Text>
-        <ArrowRightIcon size={14} className="text-grey-60" />
-      </View>
-      {floorLabels.length > 1 && (
+        {/* 도면 위에 얹는 표시. 누르기는 아래 도면 페이지가 받는다 */}
         <View
-          className="absolute bottom-2.5 left-0 right-0 flex-row justify-center gap-1"
+          className="absolute left-3 top-3 rounded-full bg-blue-35 px-2.5 py-1"
           pointerEvents="none"
         >
-          {floorLabels.map((label, index) => (
-            <View
-              key={label}
-              className={cn(
-                'h-1.5 rounded-full',
-                index === pageIndex ? 'w-3.5 bg-blue-35' : 'w-1.5 bg-grey-20'
-              )}
-            />
-          ))}
+          <Text className="text-white text-caption01">{formatFloorPlanLabel(currentLabel)}</Text>
         </View>
-      )}
+        <View
+          className="absolute right-3 top-3 flex-row items-center gap-0.5 rounded-full bg-white/90 py-1 pl-2.5 pr-1.5"
+          pointerEvents="none"
+        >
+          <Text className="text-grey-80 text-caption01">크게 보기</Text>
+          <ArrowRightIcon size={14} className="text-grey-60" />
+        </View>
+        {floorLabels.length > 1 && (
+          <View
+            className="absolute bottom-2.5 left-0 right-0 flex-row justify-center gap-1"
+            pointerEvents="none"
+          >
+            {floorLabels.map((label, index) => (
+              <View
+                key={label}
+                className={cn(
+                  'h-1.5 rounded-full',
+                  index === pageIndex ? 'w-3.5 bg-blue-35' : 'w-1.5 bg-grey-20'
+                )}
+              />
+            ))}
+          </View>
+        )}
+      </View>
     </View>
   );
 }

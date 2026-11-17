@@ -57,7 +57,7 @@
 
 ### 건물 시트의 호실 검색 (`sheets/building-room-search.tsx`)
 
-사진과 층별 안내도 카드 사이에 검색창이 있다. 서버를 거치지 않고 이 건물 도면에 적힌 글자(`targets.json`)에서 찾는다 (`lib/maps/floor-plan-search.ts`, 확인: `node lib/maps/floor-plan-search.check.mjs`). 두 줄 라벨('S2111 / 소강당')은 한 키('s2111소강당')라서 키에 검색어가 들어 있는지로 찾고, '1353'처럼 앞의 S를 빼고 쳐도 찾는다. 결과를 누르면 `/maps/floor?target=<키>`로 열어 그 글자를 강조한다.
+검색창은 층별 안내도 카드 맨 위(도면 위)에 붙어 있다 (`FloorPlanCarousel`의 `header`). 따로 떨어져 있으면 눈에 잘 안 띈다. 서버를 거치지 않고 이 건물 도면에 적힌 글자(`targets.json`)에서 찾는다 (`lib/maps/floor-plan-search.ts`, 확인: `node lib/maps/floor-plan-search.check.mjs`). 두 줄 라벨('S2111 / 소강당')은 한 키('s2111소강당')라서 키에 검색어가 들어 있는지로 찾고, '1353'처럼 앞의 S를 빼고 쳐도 찾는다. 결과를 누르면 `/maps/floor?target=<키>`로 열어 그 글자를 강조한다. 이 건물에서 하나도 못 찾으면 다른 건물 도면에서 찾아 "종합관 3F S1353"처럼 건물 이름을 붙여 보여준다(`searchBuildingsFloorPlanTexts`). 이 건물에서 찾은 게 있으면 다른 건물은 보지 않는다 ('화장실'처럼 어디에나 있는 이름이 섞이지 않게). 웹 입력창 포커스 테두리는 `outlineStyle: 'none'`으로 끈다 (`className`은 `BottomSheetTextInput`에 적용되지 않는다).
 
 호실 이름(예: S10134 코이노니아홀)을 도면에 넣을 때는 SVG의 두 줄 라벨 형식(코드 줄 끝 `&#10;`, 다음 줄 y+10)을 따르고 `node scripts/generate-floor-plan-targets.mjs`로 다시 생성한다. 명지도 통합 검색은 서버 장소 이름(`name`)·호실 코드(`indoorCode`)로 찾으므로 서버 데이터(시트 `서버-장소`)도 같이 바꿔야 한다.
 
@@ -98,6 +98,7 @@
 - **주의**: `close()`는 index가 -1에 도달하면 항상 `onClose`를 발생시키는데(`node_modules/@gorhom/bottom-sheet/src/components/bottomSheet/BottomSheet.tsx`의 `animateToPositionCompleted`), `pushSheet`가 아래 레이어를 가리려고 호출하는 `close()`도 똑같이 `onClose`를 발생시킨다. 이게 실제 pop과 구분 없이 `handleLayerClosed`를 타면 "덮여서 숨겨진 것"이 스택에서 제거돼버리므로, `suppressCloseRef`에 "덮여서 닫힌" 키를 표시해두고 `handleLayerClosed`가 그 키를 보면 무시하도록 한다.
 - `resetStack()`: 스택을 통째로 즉시 언마운트(애니메이션 없음, `close()`도 호출하지 않으므로 `onClose`/`suppressCloseRef`와 무관). bus/칩 재선택처럼 완전히 다른 컨텍스트로 전환할 때 사용.
 - `BuildingDetailSheet`/`PlaceDetailSheet`/`PlaceListSheet`/`DaedongPlaceListSheet`/`CategoryListSheet`의 닫기(X) 버튼은 전부 `onClose={popSheet}`로 연결돼 있다 — "한 단계 뒤로"와 "닫기"가 스택 모델에서는 같은 동작이라 별도 back 버튼이 필요 없다 (places 목록에서 들어온 상세는 popSheet 시 목록으로, 지도에서 바로 들어온 상세는 popSheet 시 base(건물 목록)로 돌아감 — 스택 깊이가 자동으로 그 차이를 반영함).
+- 시트를 10%로 내려 둔 채 지도에서 같은 핀이나 다른 핀을 누르면 그 레이어를 절반(index 1)까지 다시 올린다 (`raiseLayer`). 더 올려 둔 경우는 그대로 둔다
 - `selectCategoryPin`(장소/건물 마커 클릭·목록 항목 클릭 공용)은 항상 `pushSheet`만 호출한다 — 이미 상세가 열려 있는 상태에서 다른 핀을 클릭하면 그 위에 새 레이어가 또 쌓인다(뒤로가기 시 이전에 보던 핀으로 돌아감).
 
 ### 딥링크 진입
