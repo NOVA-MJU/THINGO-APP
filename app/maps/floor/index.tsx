@@ -27,6 +27,13 @@ import FloorSelector from './_components/floor-selector';
 
 const MIN_SCALE = 1;
 const MAX_SCALE = 4;
+// 층을 처음 열 때 배율. 배율 1은 층 전체가 화면 폭에 맞는 크기라 건물 시트의 미리보기 카드와 거의 같아서 글자를 읽기 어렵다
+// (도면이 모두 가로로 길어 폭에 맞춰진다). 확대한 채로 열고, 층 전체는 더블탭이나 - 버튼으로 본다.
+// 얇고 긴 층(종합관)은 크게, 세로로도 큰 층(학생회관·MCC관)은 덜 확대해 층 모양이 너무 잘리지 않게
+// 도면 높이가 화면 높이의 INITIAL_CONTENT_HEIGHT 만큼 차도록 하되 MIN~MAX 사이로 둔다
+const INITIAL_SCALE_MIN = 1.5;
+const INITIAL_SCALE_MAX = 2;
+const INITIAL_CONTENT_HEIGHT = 0.6;
 // +/- 버튼 한 번에 바뀌는 배율
 const ZOOM_STEP = 1.5;
 // 대상 핀은 명지도 지도의 선택(active) 마커와 같은 PNG·크기를 쓴다 (components/naver-map의 ACTIVE_MARKER_WIDTH/HEIGHT)
@@ -116,7 +123,7 @@ export default function MapFloorScreen() {
   }, [buildingId, floorLabel, selectedFloorLabel, target]);
 
   // 첫 번째 대상의 핀 위치 (확대 전 뷰포트 좌표). 도면 좌표(viewBox)를 SVG 기본 preserveAspectRatio(xMidYMid meet)와
-  // 같은 방식으로 뷰포트에 맞춘다. 층 전체가 보여야 건물 안 위치를 바로 알 수 있어 자동 확대는 하지 않는다
+  // 같은 방식으로 뷰포트에 맞춘다. 처음 열 때 이 핀을 화면 가운데에 두고 확대한다(initialView)
   const targetMarker = React.useMemo(() => {
     const [firstText] = targetTexts;
     if (!firstText || !floorLayout || viewportSize.width === 0) return null;
@@ -132,6 +139,47 @@ export default function MapFloorScreen() {
       top: offsetY + firstText.top * fit,
     };
   }, [floorLayout, targetTexts, viewportSize]);
+
+  // 층을 처음 열 때(층을 바꿀 때 포함) 화면: 위 INITIAL_SCALE_* 기준으로 확대하고, 찾은 장소가 있으면 그 핀을,
+  // 없으면 도면이 그려진 영역(targets.json의 content) 가운데를 화면 가운데에 둔다.
+  // 확대 레이어의 점 p는 화면에서 c + t + (p - c) * s 에 그려지므로 p를 가운데(c)에 두려면 t = -(p - c) * s
+  const initialView = React.useMemo(() => {
+    if (!floorLayout || viewportSize.width === 0) return null;
+    const { width, height } = viewportSize;
+    const fit = Math.min(width / floorLayout.width, height / floorLayout.height);
+    const offsetX = (width - floorLayout.width * fit) / 2;
+    const offsetY = (height - floorLayout.height * fit) / 2;
+    const [minX, minY, maxX, maxY] = floorLayout.content;
+    const focusX = targetMarker?.x ?? offsetX + ((minX + maxX) / 2) * fit;
+    const focusY = targetMarker?.top ?? offsetY + ((minY + maxY) / 2) * fit;
+    const nextScale = clampValue(
+      (height * INITIAL_CONTENT_HEIGHT) / ((maxY - minY) * fit),
+      INITIAL_SCALE_MIN,
+      INITIAL_SCALE_MAX
+    );
+    // 처음엔 여유 갭(PAN_GAP) 없이 도면 끝이 화면 끝에 맞도록 한다 (핀이 가장자리 호실이면 옆이 비어 보여서)
+    const bounds = getPanBounds(nextScale, width, height);
+    const maxTranslateX = bounds.maxX - PAN_GAP_X;
+    const maxTranslateY = bounds.maxY - PAN_GAP_Y;
+    return {
+      scale: nextScale,
+      x: clampValue(-(focusX - width / 2) * nextScale, -maxTranslateX, maxTranslateX),
+      y: clampValue(-(focusY - height / 2) * nextScale, -maxTranslateY, maxTranslateY),
+    };
+  }, [floorLayout, targetMarker, viewportSize]);
+
+  React.useEffect(() => {
+    if (!initialView) return;
+    scale.value = initialView.scale;
+    translateX.value = initialView.x;
+    translateY.value = initialView.y;
+    savedScale.value = initialView.scale;
+    savedTranslateX.value = initialView.x;
+    savedTranslateY.value = initialView.y;
+    setSharpView(initialView);
+    // 공유 값(scale 등)은 바뀌지 않는 ref라 initialView가 바뀔 때만 다시 맞춘다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialView]);
 
   function onViewportLayout({ nativeEvent }: LayoutChangeEvent) {
     const { width, height } = nativeEvent.layout;
@@ -295,10 +343,10 @@ export default function MapFloorScreen() {
     };
   }, [targetMarker]);
 
-  // 층을 바꾸면 확대/이동 상태 초기화 (이전 층에서 확대해둔 채로 열리면 어색함)
+  // 층을 바꾸면 확대/이동 상태 초기화 (이전 층에서 확대해둔 채로 열리면 어색함).
+  // 새 층의 도면 영역이 바뀌면 initialView가 다시 계산돼 처음 열 때와 같은 화면으로 맞춰진다
   function onSelectFloor(nextFloorLabel: string) {
     setSelectedFloorLabel(nextFloorLabel);
-    resetViewport();
   }
 
   // 뒤로가기: 이전 화면(건물 상세 시트 등)으로 복귀
