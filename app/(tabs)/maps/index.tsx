@@ -245,6 +245,12 @@ export default function MapsScreen() {
     layerIndexRef.current.set(key, index);
   }
 
+  // 지도에서 핀을 다시 누르면 내려 둔 시트(10%)를 절반까지 올려 내용이 보이게 한다 (더 올려 둔 경우는 그대로)
+  function raiseLayer(key: string) {
+    if ((layerIndexRef.current.get(key) ?? 1) >= 1) return;
+    getLayerRef(key).current?.snapToIndex(1);
+  }
+
   const hideQuickTooltips = React.useCallback(
     (animated = false) => {
       if (quickTooltipDismissedRef.current) return;
@@ -684,6 +690,12 @@ export default function MapsScreen() {
     [buildings]
   );
 
+  // 건물 시트 호실 검색이 다른 건물에서 찾았을 때 붙일 이름
+  const buildingNames = React.useMemo(
+    () => Object.fromEntries(buildings.map((building) => [String(building.id), building.name])),
+    [buildings]
+  );
+
   // 칩 조회 결과 마커
   const categoryMarkers = React.useMemo(
     () =>
@@ -757,8 +769,12 @@ export default function MapsScreen() {
   function onBuildingMarkerPress(id: string) {
     const building = buildings.find((b) => String(b.id) === id);
     if (!building) return;
-    // 이미 선택돼있는 건물 핀을 또 클릭한 경우 - 아무 동작도 하지 않는다
-    if (selectedBuildingId === building.id) return;
+    const top = sheetStack[sheetStack.length - 1] as SheetScreen | undefined;
+    // 이미 선택돼있는 건물 핀을 또 클릭한 경우 - 내려 둔 시트만 다시 올린다
+    if (selectedBuildingId === building.id) {
+      if (top?.kind === 'building') raiseLayer(top.key);
+      return;
+    }
 
     hideQuickTooltips();
     clearSearchResult();
@@ -768,12 +784,12 @@ export default function MapsScreen() {
     // resetStack()으로 스택을 지우면 base가 close()된 상태 그대로 복귀 index 정보(restoreIndexRef)가
     // 유실돼 나중에 스택을 닫을 때 base가 엉뚱한 위치로 스냅되는 버그가 있었다.
     // selectCategoryPin과 동일하게 top을 새 내용으로 교체만 해서 base를 건드리지 않는다.
-    const top = sheetStack[sheetStack.length - 1] as SheetScreen | undefined;
     if (top && top.kind === 'building') {
       setSheetStack((prev) => [
         ...prev.slice(0, -1),
         { kind: 'building', buildingId: building.id, key: top.key, initialIndex: top.initialIndex },
       ]);
+      raiseLayer(top.key);
       return;
     }
 
@@ -795,8 +811,11 @@ export default function MapsScreen() {
         nextScreen.kind === 'building' &&
         top.buildingId === nextScreen.buildingId) ||
       (top?.kind === 'place' && nextScreen.kind === 'place' && top.placeId === nextScreen.placeId);
-    // 이미 선택돼있는 핀을 또 클릭한 경우 - 아무 동작도 하지 않는다
-    if (isSameAsTop) return;
+    // 이미 선택돼있는 핀을 또 클릭한 경우 - 내려 둔 시트만 다시 올린다
+    if (isSameAsTop) {
+      if (top) raiseLayer(top.key);
+      return;
+    }
 
     hideQuickTooltips();
     clearSearchResult();
@@ -809,6 +828,7 @@ export default function MapsScreen() {
         ...prev.slice(0, -1),
         { ...nextScreen, key: top.key, initialIndex: top.initialIndex },
       ]);
+      raiseLayer(top.key);
       return;
     }
 
@@ -1077,7 +1097,13 @@ export default function MapsScreen() {
           </View>
         );
       }
-      return <BuildingDetailSheet building={selectedBuildingDetail} onClose={popSheet} />;
+      return (
+        <BuildingDetailSheet
+          building={selectedBuildingDetail}
+          buildingNames={buildingNames}
+          onClose={popSheet}
+        />
+      );
     }
 
     if (screen.kind === 'bus') {
