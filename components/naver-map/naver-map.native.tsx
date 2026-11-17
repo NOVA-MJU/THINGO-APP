@@ -13,6 +13,7 @@ import {
   buildingLabelWidth,
   REVIEW_PIN_BODY_HEIGHT,
   REVIEW_PIN_COLOR,
+  REVIEW_PIN_FONT_SIZE,
   REVIEW_PIN_TAIL_HEIGHT,
   reviewPinCountText,
   reviewPinWidth,
@@ -290,7 +291,7 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
             caption={{
               text: `${marker.name}  ${reviewPinCountText(marker.photoCount)}`,
               align: 'Center',
-              textSize: BUILDING_LABEL_FONT_SIZE,
+              textSize: REVIEW_PIN_FONT_SIZE,
               color: '#FFFFFF',
             }}
           >

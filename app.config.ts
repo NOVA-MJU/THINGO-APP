@@ -20,7 +20,7 @@ const PHOTOS_PERMISSION =
 const config: ExpoConfig = {
   name: 'Thingo',
   slug: 'thingo-app',
-  version: '1.0.10',
+  version: '1.0.11',
   locales: { ko: './locales/ko.json' },
   orientation: 'portrait',
   icon: './assets/images/icon.png',
