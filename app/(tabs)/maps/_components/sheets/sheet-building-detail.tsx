@@ -43,8 +43,8 @@ import {
   TruckIcon,
 } from '@/components/icons/map';
 import type { MapBuildingDetail } from '@/api/maps';
-import { getFloorPlan } from '@/assets/map-floors';
-import { formatMapFloorLabel } from '@/lib/maps/format';
+import { getFloorPlan, getFloorPlanLabels } from '@/assets/map-floors';
+import { formatFloorPlanLabel, formatMapFloorLabel } from '@/lib/maps/format';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
 import { useLoginRequiredModal } from '@/context/login-required-modal-context';
@@ -141,6 +141,8 @@ export default function BuildingDetailSheet({
     });
   }
 
+  const floorPlanLabels = sortFloorLabels(getFloorPlanLabels(String(building.id)));
+
   const HeaderIcon = resolveMapIcon(building.iconKey);
   const statusLabel = building.operatingStatus ?? '운영 정보가 없습니다';
   const statusColor = building.operatingStatus ? 'text-blue-35' : 'text-grey-40';
@@ -196,6 +198,39 @@ export default function BuildingDetailSheet({
               </View>
             )}
           </View>
+
+          {/* 층별 안내도 바로가기. 도면이 있는 층만 아래층부터 칩으로 보여주고, 누르면 그 층 도면이 열린다 */}
+          {floorPlanLabels.length > 0 && (
+            <View className="mt-4 gap-2">
+              <Text className="px-4 text-black text-body04">층별 안내도</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 16, gap: 6 }}
+              >
+                {floorPlanLabels.map((label) => {
+                  const isGround = label === 'F1';
+                  return (
+                    <TouchableOpacity
+                      key={label}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${formatFloorPlanLabel(label)} 층별 안내도 보기`}
+                      activeOpacity={0.7}
+                      onPress={() => onFloorPress(label)}
+                      className={cn(
+                        'h-9 min-w-[48px] items-center justify-center rounded-full px-3.5',
+                        isGround ? 'bg-blue-35' : 'bg-blue-05'
+                      )}
+                    >
+                      <Text className={cn('text-body04', isGround ? 'text-white' : 'text-blue-35')}>
+                        {formatFloorPlanLabel(label)}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
 
           {/* 썸네일 (사진이 없으면 로딩 중처럼 보이는 회색 빈 칸을 두지 않고 영역을 뺀다) */}
           {building.imageUrl ? (
@@ -304,4 +339,13 @@ export default function BuildingDetailSheet({
       <FavoriteSaveSheet ref={favoriteSaveSheetRef} />
     </>
   );
+}
+
+// 'B2','B1','F1','F2'... 아래층부터 (도면 파일 순서는 F10이 F1 다음에 오는 등 뒤섞여 있다)
+function sortFloorLabels(labels: string[]) {
+  const level = (label: string) => {
+    const number = Number(label.slice(1));
+    return label.startsWith('B') ? -number : number;
+  };
+  return [...labels].sort((a, b) => level(a) - level(b));
 }
