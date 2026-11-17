@@ -274,7 +274,8 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
       })}
       {reviewSuggestionMarkers.map((marker) => {
         const width = reviewPinWidth(marker.name, marker.photoCount);
-        const height = REVIEW_PIN_BODY_HEIGHT + REVIEW_PIN_TAIL_HEIGHT;
+        // SDK 캡션(가운데 정렬)은 마커 전체 높이의 가운데에 놓인다. 꼬리만큼 위에 빈칸을 둬서 글자가 알약 상하 가운데에 오게 한다
+        const height = REVIEW_PIN_TAIL_HEIGHT + REVIEW_PIN_BODY_HEIGHT + REVIEW_PIN_TAIL_HEIGHT;
         return (
           <NaverMapMarkerOverlay
             key={`review-${marker.id}`}
@@ -296,7 +297,7 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
             <View
               key={`${marker.name}/${marker.photoCount}/${width}`}
               collapsable={false}
-              style={{ width, height, alignItems: 'center' }}
+              style={{ width, height, alignItems: 'center', paddingTop: REVIEW_PIN_TAIL_HEIGHT }}
             >
               <View style={[styles.reviewPinBody, { width }]} />
               <View style={styles.reviewPinTail} />

@@ -1,4 +1,8 @@
-import { fetchReviewablePlaces, usePhotoPermission } from '@/hooks/use-place-photos';
+import {
+  fetchReviewablePlaces,
+  PLACE_PHOTOS_SUPPORTED,
+  usePhotoPermission,
+} from '@/hooks/use-place-photos';
 import { getReviewedPlaceIds } from '@/lib/maps/reviewed-places';
 import {
   boundsAroundAll,
@@ -6,6 +10,7 @@ import {
   groupVisitedPlaces,
 } from '@/lib/photo-location';
 import PhotoLocationScan from '@/modules/photo-location-scan';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { type QueryClient, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as MediaLibrary from 'expo-media-library';
 import * as React from 'react';
@@ -14,6 +19,10 @@ import * as React from 'react';
 const MAX_VISITED_PLACES = 20;
 
 export const VISITED_PLACES_QUERY_KEY = ['visited-places'] as const;
+
+// 지도에서 "다녀온 곳" 핀을 끈 상태를 이 기기에 기억한다
+const VISITED_PINS_HIDDEN_KEY = 'thingo.visitedPinsHidden';
+const VISITED_PINS_HIDDEN_QUERY_KEY = ['visited-pins-hidden'] as const;
 
 export type VisitedPlaceCandidate = {
   id: number;
@@ -47,6 +56,21 @@ export function useVisitedPlaces() {
   });
   const { refetch } = query;
 
+  const { data: hiddenSetting } = useQuery({
+    queryKey: VISITED_PINS_HIDDEN_QUERY_KEY,
+    queryFn: async () => (await AsyncStorage.getItem(VISITED_PINS_HIDDEN_KEY)) === 'true',
+    enabled: PLACE_PHOTOS_SUPPORTED,
+    staleTime: Infinity,
+  });
+  const setPinsHidden = React.useCallback(
+    (hidden: boolean) => {
+      queryClient.setQueryData(VISITED_PINS_HIDDEN_QUERY_KEY, hidden);
+      // 저장에 실패해도 이번 실행 동안은 바꾼 대로 보인다
+      AsyncStorage.setItem(VISITED_PINS_HIDDEN_KEY, String(hidden)).catch(() => {});
+    },
+    [queryClient]
+  );
+
   // 사진을 새로 찍거나 허용 범위가 바뀌면 다시 찾는다
   React.useEffect(() => {
     if (!permission.granted) return;
@@ -59,6 +83,9 @@ export function useVisitedPlaces() {
     requestPermission: permission.requestPermission,
     places: permission.granted ? (query.data ?? []) : [],
     isFetching: query.isFetching,
+    // 저장된 설정을 읽기 전에는 핀이 잠깐 떴다 사라지지 않게 숨김으로 본다
+    pinsHidden: hiddenSetting !== false,
+    setPinsHidden,
   };
 }
 
