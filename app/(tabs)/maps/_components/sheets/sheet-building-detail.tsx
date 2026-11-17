@@ -43,8 +43,9 @@ import {
   TruckIcon,
 } from '@/components/icons/map';
 import type { MapBuildingDetail } from '@/api/maps';
-import { getFloorPlan, getFloorPlanContentViewBox, getFloorPlanLabels } from '@/assets/map-floors';
-import { formatFloorPlanLabel, formatMapFloorLabel } from '@/lib/maps/format';
+import { getFloorPlan } from '@/assets/map-floors';
+import { formatMapFloorLabel } from '@/lib/maps/format';
+import FloorPlanCarousel from './floor-plan-carousel';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
 import { useLoginRequiredModal } from '@/context/login-required-modal-context';
@@ -141,15 +142,6 @@ export default function BuildingDetailSheet({
     });
   }
 
-  const floorPlanLabels = sortFloorLabels(getFloorPlanLabels(String(building.id)));
-  const previewFloorLabel = floorPlanLabels.includes('F1') ? 'F1' : floorPlanLabels[0];
-  const previewViewBox = previewFloorLabel
-    ? getFloorPlanContentViewBox(String(building.id), previewFloorLabel)
-    : undefined;
-  const PreviewFloorPlan = previewFloorLabel
-    ? getFloorPlan(String(building.id), previewFloorLabel)
-    : undefined;
-
   const HeaderIcon = resolveMapIcon(building.iconKey);
   const statusLabel = building.operatingStatus ?? '운영 정보가 없습니다';
   const statusColor = building.operatingStatus ? 'text-blue-35' : 'text-grey-40';
@@ -206,73 +198,6 @@ export default function BuildingDetailSheet({
             )}
           </View>
 
-          {/* 층별 안내도 바로가기. 1층(없으면 첫 층) 도면을 배경 없이 층 모양만 꽉 차게 미리 보여줘 "건물 안으로 들어가는" 느낌을 주고,
-              미리보기를 누르면 그 층, 아래 엘리베이터 버튼 같은 층 버튼을 누르면 그 층 도면이 바로 열린다. 도면이 없는 건물은 이 영역이 없다 */}
-          {PreviewFloorPlan && previewFloorLabel && (
-            <View className="mx-4 mt-4 overflow-hidden rounded-2xl border border-grey-10">
-              <TouchableOpacity
-                accessibilityRole="button"
-                accessibilityLabel={`${building.name} ${formatFloorPlanLabel(previewFloorLabel)} 층별 안내도 보기`}
-                activeOpacity={0.85}
-                onPress={() => onFloorPress(previewFloorLabel)}
-                className="bg-grey-02"
-              >
-                <View className="flex-row items-center px-4 pt-3">
-                  <Text className="flex-1 text-black text-body04">층별 안내도</Text>
-                  <View className="flex-row items-center gap-0.5 rounded-full bg-blue-35 py-1 pl-3 pr-2">
-                    <Text className="text-white text-caption01">
-                      {formatFloorPlanLabel(previewFloorLabel)} 들어가기
-                    </Text>
-                    <ArrowRightIcon size={14} className="text-white" />
-                  </View>
-                </View>
-                {/* viewBox를 undefined로 넘기면 도면 원래 viewBox가 지워지므로 있을 때만 넘긴다 */}
-                <View className="h-[150px] px-4 pb-4 pt-3" pointerEvents="none">
-                  <PreviewFloorPlan
-                    width="100%"
-                    height="100%"
-                    {...(previewViewBox ? { viewBox: previewViewBox } : {})}
-                  />
-                </View>
-              </TouchableOpacity>
-              {floorPlanLabels.length > 1 && (
-                <View className="border-t border-grey-10 bg-white py-3">
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{ paddingHorizontal: 12, gap: 6 }}
-                  >
-                    {floorPlanLabels.map((label) => {
-                      const isPreview = label === previewFloorLabel;
-                      return (
-                        <TouchableOpacity
-                          key={label}
-                          accessibilityRole="button"
-                          accessibilityLabel={`${formatFloorPlanLabel(label)} 층별 안내도 보기`}
-                          activeOpacity={0.7}
-                          onPress={() => onFloorPress(label)}
-                          className={cn(
-                            'h-10 min-w-[44px] items-center justify-center rounded-xl border px-2.5',
-                            isPreview ? 'border-blue-10 bg-blue-02' : 'border-grey-10 bg-white'
-                          )}
-                        >
-                          <Text
-                            className={cn(
-                              'text-body04',
-                              isPreview ? 'text-blue-35' : 'text-grey-80'
-                            )}
-                          >
-                            {formatFloorPlanLabel(label)}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
-                </View>
-              )}
-            </View>
-          )}
-
           {/* 썸네일 (사진이 없으면 로딩 중처럼 보이는 회색 빈 칸을 두지 않고 영역을 뺀다) */}
           {building.imageUrl ? (
             <View className="mt-2 px-4">
@@ -282,6 +207,16 @@ export default function BuildingDetailSheet({
               />
             </View>
           ) : null}
+
+          {/* 층별 안내도. 건물 사진(가장 먼저 보여줄 정보) 바로 아래에서 층을 좌우로 넘겨 보고, 누르면 그 층 안내도 화면이 열린다.
+              층 번호 버튼은 아래 층별 시설 목록과 겹쳐서 두지 않는다. 도면이 없는 건물(미래관·생활관)은 아무것도 그리지 않는다 */}
+          <View className="mt-3">
+            <FloorPlanCarousel
+              buildingId={String(building.id)}
+              buildingName={building.name}
+              onOpenFloor={onFloorPress}
+            />
+          </View>
 
           {/* 시설 필터 버튼 */}
           <ScrollView
@@ -380,13 +315,4 @@ export default function BuildingDetailSheet({
       <FavoriteSaveSheet ref={favoriteSaveSheetRef} />
     </>
   );
-}
-
-// 'B2','B1','F1','F2'... 아래층부터 (도면 파일 순서는 F10이 F1 다음에 오는 등 뒤섞여 있다)
-function sortFloorLabels(labels: string[]) {
-  const level = (label: string) => {
-    const number = Number(label.slice(1));
-    return label.startsWith('B') ? -number : number;
-  };
-  return [...labels].sort((a, b) => level(a) - level(b));
 }
