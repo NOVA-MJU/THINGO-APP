@@ -41,6 +41,9 @@
   - 라벨은 `CustomOverlay`(React portal 기반)로 마커 좌표 바로 아래에 렌더링, `pointerEvents: 'none'`으로 클릭 방해 방지
   - 텍스트 스타일: `12px`, `font-weight 600`, 색상 `#0b1215`, 4방향 1px `text-shadow`로 `#ffffff` 외곽선(halo) 구현 (`-webkit-text-stroke`는 브라우저 호환성이 불안정해 사용 안 함). native `caption`의 `color`/`haloColor`도 동일한 값으로 맞춰뒀다.
   - 캔버스 측정 폭과 실제 DOM 렌더링 폭은 미세하게 다를 수 있어, 겹침 판정에 여유 폭(`CAPTION_PADDING_X`)을 더해둔 상태
+  - 건물 이름 라벨은 겹쳐도 마커를 숨기지 않고 투명도만 0으로 바꾼다(`transition: opacity`, 눌리지 않게 `clickable=false`). 그래서 확대·축소할 때 네이버 지도 글자처럼 서서히 나타나고 사라진다. 다시 계산은 지도가 멈출 때(`onIdle`)뿐 아니라 줌 단계가 바뀔 때(`onZoomChanged`)마다 한다
+  - 건물 라벨 겹침 여유(`BUILDING_LABEL_GAP`)는 0이다. 국제관과 도서관은 기본 줌에서 2px 떨어져 있어 여유를 두면 도서관이 늘 숨는다
+  - 웹 JS SDK에는 네이버 기본 글자(심벌)를 숨기는 기능이 없어 우리 라벨 옆에 네이버 글자("도서관")가 같이 보일 수 있다 (native는 `isHideCollidedSymbols`로 숨긴다)
 
 ### 건물 시트의 층별 안내도 (`sheets/floor-plan-carousel.tsx`)
 
@@ -51,6 +54,12 @@
 - 페이지 폭은 카드 테두리 안쪽 폭으로 잰다 (바깥 폭을 쓰면 한 장 넘길 때마다 2px씩 밀린다)
 - 도면 영역은 `scripts/generate-floor-plan-targets.mjs`가 경로·사각형·선 좌표로 계산해 `targets.json`의 `content`에 넣는다. viewBox를 undefined로 넘기면 원래 viewBox가 지워지므로 있을 때만 넘긴다
 - 도면 SVG에서 캔버스 전체 배경 사각형(`fill="#F5F7F9"`)을 지웠다 (남아 있으면 생성 스크립트가 에러를 낸다). 배경은 화면 쪽에서 `grey-02`(#F5F7F9)로 칠한다. 층별 안내도 화면의 확대 선명 레이어도 같은 배경색을 직접 칠한다 (안 칠하면 아래 흐린 레이어가 비친다)
+
+### 건물 시트의 호실 검색 (`sheets/building-room-search.tsx`)
+
+사진과 층별 안내도 카드 사이에 검색창이 있다. 서버를 거치지 않고 이 건물 도면에 적힌 글자(`targets.json`)에서 찾는다 (`lib/maps/floor-plan-search.ts`, 확인: `node lib/maps/floor-plan-search.check.mjs`). 두 줄 라벨('S2111 / 소강당')은 한 키('s2111소강당')라서 키에 검색어가 들어 있는지로 찾고, '1353'처럼 앞의 S를 빼고 쳐도 찾는다. 결과를 누르면 `/maps/floor?target=<키>`로 열어 그 글자를 강조한다.
+
+호실 이름(예: S10134 코이노니아홀)을 도면에 넣을 때는 SVG의 두 줄 라벨 형식(코드 줄 끝 `&#10;`, 다음 줄 y+10)을 따르고 `node scripts/generate-floor-plan-targets.mjs`로 다시 생성한다. 명지도 통합 검색은 서버 장소 이름(`name`)·호실 코드(`indoorCode`)로 찾으므로 서버 데이터(시트 `서버-장소`)도 같이 바꿔야 한다.
 
 ### 시트 닫기와 뒤로가기
 

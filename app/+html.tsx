@@ -15,7 +15,17 @@ export default function Root({ children }: PropsWithChildren) {
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        {/*
+          앱처럼 쓰는 화면이라 모바일 브라우저가 페이지 자체를 확대하지 않게 한다.
+          - maximum-scale=1: iOS Safari는 글자 16px 미만 입력창(명지도 검색 등)을 누르면 페이지를 110~120%로 확대한다
+          - touch-action(아래 style): 지도 위에서 두 손가락으로 벌리면 지도 대신 페이지가 확대된다. 지도는 터치 이벤트로
+            직접 확대하므로 브라우저의 페이지 확대만 막는다 (스크롤은 그대로)
+        */}
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, maximum-scale=1, shrink-to-fit=no"
+        />
+        <style>{'html, body { touch-action: pan-x pan-y; }'}</style>
 
         {/*
           페이지마다 값이 달라져야 하는 태그는 여기서 넣지 않는다.
