@@ -14,9 +14,11 @@ import {
   type LayoutChangeEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
+  Platform,
   Pressable,
   ScrollView,
   View,
+  type ViewStyle,
 } from 'react-native';
 import { NativeViewGestureHandler } from 'react-native-gesture-handler';
 
@@ -27,6 +29,13 @@ const MIN_HEIGHT = 170;
 const MAX_HEIGHT = 380;
 // 넘기는 동안 그려 둘 앞뒤 층 수 (도면 SVG가 무거워 모든 층을 한 번에 그리지 않는다)
 const RENDER_RANGE = 1;
+// 웹은 pagingEnabled가 CSS scroll-snap(mandatory)이라 한 번 세게 밀면 관성으로 여러 층을 건너뛴다.
+// 페이지마다 멈추게(scroll-snap-stop: always) 해서 앱처럼 한 번에 한 층씩 넘어가게 한다.
+// RN 타입에는 없는 CSS 속성이라 react-native-web이 그대로 넘기도록 웹에서만 붙인다
+const WEB_SNAP_STOP =
+  Platform.OS === 'web'
+    ? ({ scrollSnapAlign: 'start', scrollSnapStop: 'always' } as unknown as ViewStyle)
+    : undefined;
 
 // 건물 시트의 층별 안내도 카드. 층마다 한 장씩 좌우로 넘겨 보고, 도면은 잘리지 않게 층 모양 전체를 카드에 꽉 맞춰 그린다.
 // 처음엔 1층(없으면 가장 아래층)을 보여주고, 누르면 그 층 안내도 화면이 열린다. 도면이 없는 건물은 아무것도 그리지 않는다
@@ -116,7 +125,7 @@ export default function FloorPlanCarousel({
                       accessibilityRole="button"
                       accessibilityLabel={`${buildingName} ${formatFloorPlanLabel(label)} 층별 안내도 크게 보기`}
                       onPress={() => onOpenFloor(label)}
-                      style={{ width: pageWidth, height, padding: PAGE_PADDING }}
+                      style={[{ width: pageWidth, height, padding: PAGE_PADDING }, WEB_SNAP_STOP]}
                     >
                       {/* viewBox를 undefined로 넘기면 도면 원래 viewBox가 지워지므로 있을 때만 넘긴다 */}
                       {FloorPlan && isNear && (
