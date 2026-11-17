@@ -205,6 +205,7 @@ const CAPTION_HALO_COLOR = '#ffffff';
 const CAPTION_GAP = 8; // 마커 좌표에서 캡션까지의 세로 간격
 const CAPTION_HEIGHT = 14; // 겹침 판정에 사용할 캡션 한 줄 높이(대략치)
 const CAPTION_PADDING_X = 4; // 겹침 판정 시 캡션 좌우 여유폭
+const BUILDING_LABEL_GAP = 2; // 건물 라벨끼리 이만큼은 떨어져 있어야 겹치지 않은 것으로 본다
 
 let captionMeasureCtx: CanvasRenderingContext2D | null | undefined;
 
@@ -224,6 +225,10 @@ type CaptionRect = { left: number; right: number; top: number; bottom: number };
 
 function rectsOverlap(a: CaptionRect, b: CaptionRect) {
   return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+}
+
+function sameIds(a: Set<string>, b: Set<string>) {
+  return a.size === b.size && [...a].every((id) => b.has(id));
 }
 
 const MapContent = React.forwardRef<NaverMapHandle, MapContentProps>(function MapContent(
@@ -342,6 +347,8 @@ const MapContent = React.forwardRef<NaverMapHandle, MapContentProps>(function Ma
 
   // 상점 이름 라벨(캡션) 겹침 회피: 화면 픽셀 좌표로 변환해 겹치는 라벨만 숨긴다 (아이콘은 항상 표시)
   const [visibleCaptionIds, setVisibleCaptionIds] = React.useState<Set<string>>(new Set());
+  // 건물 이름 라벨도 겹치면 숨긴다 (native는 SDK의 isHideCollidedMarkers). 계산 전에는 전부 보인다
+  const [hiddenBuildingIds, setHiddenBuildingIds] = React.useState<Set<string>>(new Set());
 
   const recomputeCaptionVisibility = React.useCallback(() => {
     const map = mapRef.current;
@@ -349,6 +356,34 @@ const MapContent = React.forwardRef<NaverMapHandle, MapContentProps>(function Ma
     if (!map || !ctx) return;
 
     const projection = map.getProjection();
+
+    // 선택한 건물 > 목록 앞쪽(건물 번호순) 순으로 남긴다 (native zIndex 순서와 같다)
+    const acceptedBuildings: CaptionRect[] = [];
+    const nextHiddenBuildings = new Set<string>();
+    const orderedBuildings = [...buildingMarkers].sort(
+      (a, b) => Number(b.id === selectedBuildingId) - Number(a.id === selectedBuildingId)
+    );
+    for (const marker of orderedBuildings) {
+      const point = projection.fromCoordToOffset(
+        new navermaps.LatLng(marker.latitude, marker.longitude)
+      );
+      const width = buildingLabelWidth(marker.name);
+      const rect: CaptionRect = {
+        left: point.x - width / 2 - BUILDING_LABEL_GAP,
+        right: point.x + width / 2 + BUILDING_LABEL_GAP,
+        top: point.y - BUILDING_LABEL_HEIGHT / 2,
+        bottom: point.y + BUILDING_LABEL_HEIGHT / 2,
+      };
+      if (acceptedBuildings.some((other) => rectsOverlap(rect, other))) {
+        nextHiddenBuildings.add(marker.id);
+      } else {
+        acceptedBuildings.push(rect);
+      }
+    }
+    setHiddenBuildingIds((prev) =>
+      sameIds(prev, nextHiddenBuildings) ? prev : nextHiddenBuildings
+    );
+
     const accepted: CaptionRect[] = [];
     const nextVisible = new Set<string>();
 
@@ -372,13 +407,8 @@ const MapContent = React.forwardRef<NaverMapHandle, MapContentProps>(function Ma
       nextVisible.add(marker.id);
     }
 
-    setVisibleCaptionIds((prev) => {
-      if (prev.size === nextVisible.size && [...prev].every((id) => nextVisible.has(id))) {
-        return prev;
-      }
-      return nextVisible;
-    });
-  }, [navermaps, placeMarkers]);
+    setVisibleCaptionIds((prev) => (sameIds(prev, nextVisible) ? prev : nextVisible));
+  }, [navermaps, placeMarkers, buildingMarkers, selectedBuildingId]);
 
   React.useEffect(() => {
     recomputeCaptionVisibility();
@@ -441,6 +471,7 @@ const MapContent = React.forwardRef<NaverMapHandle, MapContentProps>(function Ma
             key={marker.id}
             position={new navermaps.LatLng(marker.latitude, marker.longitude)}
             zIndex={isActive ? 2 : 1}
+            visible={!hiddenBuildingIds.has(marker.id)}
             icon={{
               content: buildingLabelHtml(marker.name, width, isActive),
               size: new navermaps.Size(width, BUILDING_LABEL_HEIGHT),
