@@ -8,6 +8,7 @@ import {
   MAP_CATEGORY_PINS_PAGE_SIZE,
   MAP_THEMES_QUERY_KEY,
   type MapCategoryPin,
+  type MapTheme,
 } from '@/api/maps';
 import { SearchIcon, ThingoLogoSmall } from '@/components/icons';
 import MapQuickTooltipArrow from '@/assets/images/map-quick-tooltip-arrow.svg';
@@ -37,6 +38,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BuildingDetailSheet from './_components/sheets/sheet-building-detail';
 import BuildingListSheet from './_components/sheets/sheet-building-list';
+import ThemeMapChips from './_components/sheets/theme-map-chips';
 import BusInfoSheet from './_components/sheets/bus-info';
 import CategoryList from './_components/sheets/sheet-category';
 import DaedongPlaceListSheet from './_components/sheets/sheet-daedong-place-list';
@@ -707,6 +709,14 @@ export default function MapsScreen() {
     return 'BuildingIcon';
   }, [selectedCategoryCode]);
 
+  // 테마지도 카드(첫 화면 시트)를 누르면 테마 장소 목록 레이어를 연다 (검색 화면에서 들어온 경우와 같은 동작)
+  function openTheme(item: MapTheme) {
+    hideQuickTooltips();
+    clearSearchResult();
+    resetStack();
+    pushSheet({ kind: 'theme', themeId: item.id });
+  }
+
   // 검색 화면의 테마지도 카드로 진입한 경우: 테마 장소 목록 레이어를 바로 push
   const rawThemeId = Array.isArray(theme) ? theme[0] : theme;
   React.useEffect(() => {
@@ -1329,6 +1339,10 @@ export default function MapsScreen() {
         onChange={(index) => updateLayerIndex(BASE_LAYER_KEY, index)}
       >
         <BottomSheetScrollView>
+          {/* 첫 화면 시트: 맨 위에 테마지도 바로가기 한 줄(시트가 가장 낮아도 보임), 그 아래 캠퍼스 건물 목록
+              (건물은 지도에 이름 칩이 다 떠 있어 목록은 보조 경로다) */}
+          <ThemeMapChips onPress={openTheme} />
+          <Text className="mb-3 mt-6 px-4 text-black text-body02">캠퍼스 건물</Text>
           <BuildingListSheet
             buildings={buildings}
             isLoading={isBuildingsPending}
