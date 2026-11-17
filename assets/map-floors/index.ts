@@ -128,6 +128,8 @@ export type FloorPlanText = {
 type FloorPlanLayout = {
   width: number;
   height: number;
+  // 도면에 실제로 그려진 영역 [minX, minY, maxX, maxY] (캔버스 배경을 뺀 층 모양)
+  content: [number, number, number, number];
   // 공백 제거·소문자로 정규화한 라벨 -> 그 이름의 라벨들 (같은 이름이 여러 곳에 있을 수 있음)
   targets: Record<string, FloorPlanText[]>;
 };
@@ -153,21 +155,19 @@ export function getFloorPlanLayout(buildingId: string, floorLabel: string) {
 }
 
 // 도면 SVG는 세로로 긴 캔버스 가운데에 층 모양이 얇게 그려져 있어, 작은 미리보기에서는 그림이 점처럼 작아진다.
-// 도면에 적힌 글자(방 이름·출입문) 위치로 층 모양이 있는 영역을 어림해 그 부분만 보이는 viewBox를 만든다
-const CONTENT_BOX_PADDING = 24;
+// 실제로 그려진 영역(targets.json의 content, 생성 스크립트가 경로·사각형 좌표로 계산)만 보이는 viewBox를 만든다
+const CONTENT_BOX_PADDING = 6;
 
 export function getFloorPlanContentViewBox(buildingId: string, floorLabel: string) {
   const layout = getFloorPlanLayout(buildingId, floorLabel);
-  const texts = layout ? Object.values(layout.targets).flat() : [];
-  if (!layout || texts.length === 0) return undefined;
-
-  const xs = texts.map((text) => text.center[0]);
-  const ys = texts.flatMap((text) => [text.center[1], text.top]);
-  const minX = Math.max(0, Math.min(...xs) - CONTENT_BOX_PADDING);
-  const minY = Math.max(0, Math.min(...ys) - CONTENT_BOX_PADDING);
-  const maxX = Math.min(layout.width, Math.max(...xs) + CONTENT_BOX_PADDING);
-  const maxY = Math.min(layout.height, Math.max(...ys) + CONTENT_BOX_PADDING);
-  return `${minX} ${minY} ${maxX - minX} ${maxY - minY}`;
+  if (!layout) return undefined;
+  const [minX, minY, maxX, maxY] = layout.content;
+  return [
+    minX - CONTENT_BOX_PADDING,
+    minY - CONTENT_BOX_PADDING,
+    maxX - minX + CONTENT_BOX_PADDING * 2,
+    maxY - minY + CONTENT_BOX_PADDING * 2,
+  ].join(' ');
 }
 
 // 검색 링크의 target(호실 코드 또는 장소명)이 도면에 적힌 위치. 띄어쓰기·대소문자가 달라도 찾도록 정규화해서 비교한다

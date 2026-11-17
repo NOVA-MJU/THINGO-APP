@@ -206,60 +206,69 @@ export default function BuildingDetailSheet({
             )}
           </View>
 
-          {/* 층별 안내도 바로가기. 카드 배경은 도면 SVG 배경색(#F5F7F9, grey-02)과 같게 해 도면이 카드에 이어져 보이게 한다.
-              1층(없으면 첫 층) 도면을 미리 보여주는 카드로 "건물 안으로 들어가는" 느낌을 주고,
-              카드를 누르면 그 층, 아래 칩을 누르면 다른 층 도면이 바로 열린다. 도면이 없는 건물은 이 영역이 없다 */}
+          {/* 층별 안내도 바로가기. 1층(없으면 첫 층) 도면을 배경 없이 층 모양만 꽉 차게 미리 보여줘 "건물 안으로 들어가는" 느낌을 주고,
+              미리보기를 누르면 그 층, 아래 엘리베이터 버튼 같은 층 버튼을 누르면 그 층 도면이 바로 열린다. 도면이 없는 건물은 이 영역이 없다 */}
           {PreviewFloorPlan && previewFloorLabel && (
-            <View className="mt-4 gap-2.5">
+            <View className="mx-4 mt-4 overflow-hidden rounded-2xl border border-grey-10">
               <TouchableOpacity
                 accessibilityRole="button"
                 accessibilityLabel={`${building.name} ${formatFloorPlanLabel(previewFloorLabel)} 층별 안내도 보기`}
                 activeOpacity={0.85}
                 onPress={() => onFloorPress(previewFloorLabel)}
-                className="mx-4 overflow-hidden rounded-2xl border border-grey-10 bg-grey-02"
+                className="bg-grey-02"
               >
-                <View className="flex-row items-center px-4 pt-3.5">
+                <View className="flex-row items-center px-4 pt-3">
                   <Text className="flex-1 text-black text-body04">층별 안내도</Text>
-                  <Text className="text-blue-35 text-caption01">
-                    {formatFloorPlanLabel(previewFloorLabel)} 들어가기
-                  </Text>
-                  <ArrowRightIcon size={16} className="text-blue-35" />
+                  <View className="flex-row items-center gap-0.5 rounded-full bg-blue-35 py-1 pl-3 pr-2">
+                    <Text className="text-white text-caption01">
+                      {formatFloorPlanLabel(previewFloorLabel)} 들어가기
+                    </Text>
+                    <ArrowRightIcon size={14} className="text-white" />
+                  </View>
                 </View>
-                <View className="h-[132px] px-3 pb-3 pt-2" pointerEvents="none">
-                  {/* viewBox를 undefined로 넘기면 도면 원래 viewBox가 지워지므로 있을 때만 넘긴다 */}
+                {/* viewBox를 undefined로 넘기면 도면 원래 viewBox가 지워지므로 있을 때만 넘긴다 */}
+                <View className="h-[150px] px-4 pb-4 pt-3" pointerEvents="none">
                   <PreviewFloorPlan
                     width="100%"
                     height="100%"
                     {...(previewViewBox ? { viewBox: previewViewBox } : {})}
                   />
                 </View>
-                <View className="absolute bottom-3 left-3 rounded-full bg-blue-35 px-2.5 py-1">
-                  <Text className="text-white text-caption01">
-                    {formatFloorPlanLabel(previewFloorLabel)}
-                  </Text>
-                </View>
               </TouchableOpacity>
               {floorPlanLabels.length > 1 && (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ paddingHorizontal: 16, gap: 6 }}
-                >
-                  {floorPlanLabels.map((label) => (
-                    <TouchableOpacity
-                      key={label}
-                      accessibilityRole="button"
-                      accessibilityLabel={`${formatFloorPlanLabel(label)} 층별 안내도 보기`}
-                      activeOpacity={0.7}
-                      onPress={() => onFloorPress(label)}
-                      className="h-8 min-w-[44px] items-center justify-center rounded-full bg-grey-02 px-3"
-                    >
-                      <Text className="text-grey-80 text-caption01">
-                        {formatFloorPlanLabel(label)}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
+                <View className="border-t border-grey-10 bg-white py-3">
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ paddingHorizontal: 12, gap: 6 }}
+                  >
+                    {floorPlanLabels.map((label) => {
+                      const isPreview = label === previewFloorLabel;
+                      return (
+                        <TouchableOpacity
+                          key={label}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${formatFloorPlanLabel(label)} 층별 안내도 보기`}
+                          activeOpacity={0.7}
+                          onPress={() => onFloorPress(label)}
+                          className={cn(
+                            'h-10 min-w-[44px] items-center justify-center rounded-xl border px-2.5',
+                            isPreview ? 'border-blue-10 bg-blue-02' : 'border-grey-10 bg-white'
+                          )}
+                        >
+                          <Text
+                            className={cn(
+                              'text-body04',
+                              isPreview ? 'text-blue-35' : 'text-grey-80'
+                            )}
+                          >
+                            {formatFloorPlanLabel(label)}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
               )}
             </View>
           )}
