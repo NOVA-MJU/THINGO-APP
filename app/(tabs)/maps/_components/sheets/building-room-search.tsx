@@ -8,6 +8,7 @@ import {
   sortFloorLabels,
 } from '@/lib/maps/floor-plan-search';
 import { formatFloorPlanLabel } from '@/lib/maps/format';
+import { cn } from '@/lib/utils';
 import { BottomSheetTextInput } from '@gorhom/bottom-sheet';
 import * as React from 'react';
 import { Pressable, type TextStyle, TouchableOpacity, View } from 'react-native';
@@ -68,20 +69,13 @@ export default function BuildingRoomSearch({
   if (current.floorOrder.length === 0) return null;
 
   const hasQuery = query.trim().length > 0;
+  const isEmpty = hasQuery && results.length === 0 && otherResults.length === 0;
 
+  // 카드 안의 "크게 보기" 알약과 같은 흰 알약 모양으로 작게 둔다. 결과가 없을 때도 줄을 늘리지 않고 입력창 안에 짧게 알린다
   return (
-    <View className="gap-1.5 px-2.5 pt-2.5">
-      <View
-        className="h-11 flex-row items-center gap-2 rounded-xl border border-blue-10 bg-white px-3"
-        style={{
-          shadowColor: '#2587ff',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.08,
-          shadowRadius: 6,
-          elevation: 1,
-        }}
-      >
-        <SearchIcon size={18} className="text-blue-35" />
+    <View className="gap-1.5 px-2 pt-2">
+      <View className="h-9 flex-row items-center gap-1.5 rounded-full border border-grey-10 bg-white pl-3 pr-2.5">
+        <SearchIcon size={16} className="text-grey-40" />
         <BottomSheetTextInput
           value={query}
           onChangeText={setQuery}
@@ -90,8 +84,9 @@ export default function BuildingRoomSearch({
           returnKeyType="search"
           autoCorrect={false}
           autoCapitalize="none"
-          style={[{ flex: 1, fontSize: 14, color: '#0B1215', paddingVertical: 0 }, WEB_NO_OUTLINE]}
+          style={[{ flex: 1, fontSize: 13, color: '#0B1215', paddingVertical: 0 }, WEB_NO_OUTLINE]}
         />
+        {isEmpty && <Text className="text-grey-40 text-caption02">결과 없음</Text>}
         {hasQuery && (
           <Pressable
             accessibilityRole="button"
@@ -99,61 +94,61 @@ export default function BuildingRoomSearch({
             hitSlop={8}
             onPress={() => setQuery('')}
           >
-            <XThinIcon size={16} className="text-grey-40" />
+            <XThinIcon size={14} className="text-grey-40" />
           </Pressable>
         )}
       </View>
 
-      {hasQuery && (
-        <View className="rounded-xl bg-white px-3">
-          {results.map((result) => (
+      {(results.length > 0 || otherResults.length > 0) && (
+        <View className="rounded-xl bg-white px-3 py-1">
+          {results.map((result, index) => (
             <TouchableOpacity
               key={`${result.floorLabel}:${result.key}`}
               accessibilityRole="button"
               accessibilityLabel={`${formatFloorPlanLabel(result.floorLabel)} ${result.text} 안내도에서 보기`}
               activeOpacity={0.7}
               onPress={() => onOpenRoom(buildingId, result.floorLabel, result.key)}
-              className="flex-row items-center gap-3 border-b border-grey-02 py-3"
+              className={cn(
+                'flex-row items-center gap-2.5 py-2',
+                index > 0 && 'border-t border-grey-02'
+              )}
             >
               <FloorBadge floorLabel={result.floorLabel} />
               <Text className="flex-1 text-black text-body05" numberOfLines={1}>
                 {result.text}
               </Text>
-              <ArrowRightIcon size={16} className="text-grey-30" />
+              <ArrowRightIcon size={14} className="text-grey-30" />
             </TouchableOpacity>
           ))}
 
-          {results.length === 0 && otherResults.length > 0 && (
-            <>
-              <Text className="pt-3 text-grey-60 text-caption02">
-                이 건물에는 없어요. 다른 건물에서 찾았어요
-              </Text>
-              {otherResults.map((result) => {
-                const buildingName = buildingNames[result.buildingId] ?? '다른 건물';
-                return (
-                  <TouchableOpacity
-                    key={`${result.buildingId}:${result.floorLabel}:${result.key}`}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${buildingName} ${formatFloorPlanLabel(result.floorLabel)} ${result.text} 안내도에서 보기`}
-                    activeOpacity={0.7}
-                    onPress={() => onOpenRoom(result.buildingId, result.floorLabel, result.key)}
-                    className="flex-row items-center gap-2 border-b border-grey-02 py-3"
-                  >
-                    <Text className="text-black text-body04">{buildingName}</Text>
-                    <FloorBadge floorLabel={result.floorLabel} />
-                    <Text className="flex-1 text-black text-body05" numberOfLines={1}>
-                      {result.text}
-                    </Text>
-                    <ArrowRightIcon size={16} className="text-grey-30" />
-                  </TouchableOpacity>
-                );
-              })}
-            </>
+          {otherResults.length > 0 && (
+            <Text className="pt-1.5 text-grey-40 text-caption03">
+              이 건물엔 없고 다른 건물에 있어요
+            </Text>
           )}
-
-          {results.length === 0 && otherResults.length === 0 && (
-            <Text className="py-3 text-grey-40 text-caption02">층별 안내도에서 찾지 못했어요</Text>
-          )}
+          {otherResults.map((result, index) => {
+            const buildingName = buildingNames[result.buildingId] ?? '다른 건물';
+            return (
+              <TouchableOpacity
+                key={`${result.buildingId}:${result.floorLabel}:${result.key}`}
+                accessibilityRole="button"
+                accessibilityLabel={`${buildingName} ${formatFloorPlanLabel(result.floorLabel)} ${result.text} 안내도에서 보기`}
+                activeOpacity={0.7}
+                onPress={() => onOpenRoom(result.buildingId, result.floorLabel, result.key)}
+                className={cn(
+                  'flex-row items-center gap-2 py-2',
+                  index > 0 && 'border-t border-grey-02'
+                )}
+              >
+                <Text className="text-black text-body04">{buildingName}</Text>
+                <FloorBadge floorLabel={result.floorLabel} />
+                <Text className="flex-1 text-black text-body05" numberOfLines={1}>
+                  {result.text}
+                </Text>
+                <ArrowRightIcon size={14} className="text-grey-30" />
+              </TouchableOpacity>
+            );
+          })}
         </View>
       )}
     </View>
