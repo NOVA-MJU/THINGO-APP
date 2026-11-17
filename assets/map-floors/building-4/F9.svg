@@ -39,7 +39,7 @@
 <rect x="263.406" y="302.469" width="10.625" height="3.1875" stroke="#8BC7FF" stroke-width="1.0625"/>
 <rect x="263.406" y="305.656" width="10.625" height="3.1875" stroke="#8BC7FF" stroke-width="1.0625"/>
 <path d="M367 386.938V295.297H297.938V286H228.609V295.297H27V386.938H46.3906H228.609H274.828H367Z" stroke="#5DABFF" stroke-width="2.65625"/>
-<text fill="#6D7073" stroke="#EDF6FF" style="white-space: pre" stroke-width="0.85" stroke-linejoin="round" xml:space="preserve" font-family="Pretendard" font-size="7" letter-spacing="0em"><tspan x="280.812" y="294.051">S4926</tspan></text>
+<text fill="#6D7073" style="white-space: pre" xml:space="preserve" font-family="Pretendard" font-size="7" letter-spacing="0em"><tspan x="280.812" y="294.051">S4926</tspan></text>
 <rect x="256" y="295" width="15" height="15" rx="1.5" fill="#909499"/>
 <path d="M268.75 298.75H266.125V301.375H263.5V304H260.875V306.625H258.25" stroke="white" stroke-width="0.8025" stroke-linecap="round" stroke-linejoin="round"/>
 <rect x="233.5" y="318.4" width="15" height="15" rx="1.5" fill="#909499"/>

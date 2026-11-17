@@ -70,7 +70,7 @@
 <text fill="#6D7073" style="white-space: pre" xml:space="preserve" font-family="Pretendard" font-size="8" letter-spacing="0em"><tspan x="153.164" y="216.609">&#xc790;&#xc720;&#xc5f4;&#xb78c;&#xc2e4;</tspan></text>
 <line x1="124.258" y1="372.763" x2="140.013" y2="372.763" stroke="#5DABFF" stroke-width="1.21188" stroke-linecap="square" stroke-dasharray="2.42 2.42"/>
 <path d="M30 244L27.4019 239.5L32.5981 239.5L30 244Z" fill="#3B96FF"/>
-<text transform="translate(11.5 218)" fill="#3B96FF" stroke="#F5F7F9" style="white-space: pre" stroke-width="0.8" stroke-linejoin="round" xml:space="preserve" font-family="Pretendard" font-size="7" letter-spacing="0em"><tspan x="7.01221" y="6.98828">1&#xce35; &#xc678;&#xbd80;&#10;</tspan><tspan x="0.111328" y="15.9883">(&#xad6d;&#xc81c;&#xad00; &#xbc29;&#xd5a5;)</tspan></text>
+<text transform="translate(11.5 218)" fill="#3B96FF" style="white-space: pre" xml:space="preserve" font-family="Pretendard" font-size="7" letter-spacing="0em"><tspan x="7.01221" y="6.98828">1&#xce35; &#xc678;&#xbd80;&#10;</tspan><tspan x="0.111328" y="15.9883">(&#xad6d;&#xc81c;&#xad00; &#xbc29;&#xd5a5;)</tspan></text>
 <rect x="50" y="289" width="15" height="15" rx="1.5" fill="#FF8282"/>
 <path d="M57.5403 293.59C58.145 293.59 58.6352 293.1 58.6352 292.495C58.6352 291.89 58.145 291.4 57.5403 291.4C56.9355 291.4 56.4453 291.89 56.4453 292.495C56.4453 293.1 56.9355 293.59 57.5403 293.59Z" stroke="white" stroke-width="0.8025" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M56.1725 295.232H58.9099L59.4574 298.244H58.6361L58.3624 301.255H56.72L56.4462 298.244H55.625L56.1725 295.232Z" stroke="white" stroke-width="0.8025" stroke-linecap="round" stroke-linejoin="round"/>
