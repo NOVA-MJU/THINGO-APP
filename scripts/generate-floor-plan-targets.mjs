@@ -4,6 +4,7 @@
 // 도면이 react-native-svg-transformer로 컴포넌트가 되어 런타임에는 SVG 원문을 읽을 수 없어서 미리 계산해 둔다.
 // 도면 SVG를 추가하거나 다시 export하면 `node scripts/generate-floor-plan-targets.mjs`로 다시 생성한다.
 // (export한 SVG의 첫 줄 캔버스 전체 배경 사각형 `<rect width=".." height=".." fill="#F5F7F9"/>`은 지우고 넣는다)
+// (글자 테두리 `<text stroke=".." stroke-width="..">`도 지우고 넣는다. 테두리가 글자를 덮어 하얗게 보인다)
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -189,6 +190,11 @@ function buildFloor(svg) {
   // 캔버스 전체를 덮는 배경 사각형이 남아 있으면 그려진 영역이 캔버스 전체가 되므로 막는다 (배경은 화면 쪽 배경색으로 칠한다)
   if (new RegExp(`<rect width="${width}" height="${height}"`).test(svg)) {
     throw new Error('도면 SVG에서 캔버스 전체 배경 사각형을 지워야 한다');
+  }
+  // Figma가 글자 테두리(외곽선 효과)를 <text stroke>로 내보내면 테두리가 글자 위에 덮여 글자가 하얗게 보인다
+  // (react-native-svg·브라우저 모두 채움 다음 테두리 순으로 그린다). 테두리 없이 넣는다
+  if (/<text [^>]*stroke=/.test(svg)) {
+    throw new Error('도면 SVG의 글자(<text>)에서 stroke 속성을 지워야 한다');
   }
   const labels = parseLabels(svg);
   const targets = {};
