@@ -16,7 +16,7 @@
 <text fill="#6D7073" style="white-space: pre" xml:space="preserve" font-family="Pretendard" font-size="7" letter-spacing="0em"><tspan x="66.8101" y="323.488">S1135</tspan></text>
 <rect x="102.261" y="308.55" width="35.19" height="24.9003" fill="#EDF6FF"/>
 <rect x="102.261" y="308.55" width="35.19" height="24.9003" stroke="#8BC7FF" stroke-width="1.09969"/>
-<text transform="translate(98.8555 313)" fill="#6D7073" stroke="#EDF6FF" style="white-space: pre" stroke-width="0.879751" stroke-linejoin="round" xml:space="preserve" font-family="Pretendard" font-size="6" letter-spacing="0em"><tspan x="0.257812" y="6.13281">&#xbc29;&#xbaa9;&#xae30;&#xcd08;&#xad50;&#xc721;&#xb300;&#xd559;&#10;</tspan><tspan x="5.44336" y="14.1328">&#xc789;&#xae00;&#xb9ac;&#xc26c;&#xce74;&#xd398;</tspan></text>
+<text transform="translate(98.8555 313)" fill="#6D7073" style="white-space: pre" xml:space="preserve" font-family="Pretendard" font-size="6" letter-spacing="0em"><tspan x="0.257812" y="6.13281">&#xbc29;&#xbaa9;&#xae30;&#xcd08;&#xad50;&#xc721;&#xb300;&#xd559;&#10;</tspan><tspan x="5.44336" y="14.1328">&#xc789;&#xae00;&#xb9ac;&#xc26c;&#xce74;&#xd398;</tspan></text>
 <rect x="50.2413" y="351.327" width="18.6947" height="25.2928" fill="#EDF6FF"/>
 <rect x="50.2413" y="351.327" width="18.6947" height="25.2928" stroke="#8BC7FF" stroke-width="1.09969"/>
 <text transform="translate(55.5879 372.474) rotate(-90)" fill="#6D7073" style="white-space: pre" xml:space="preserve" font-family="Pretendard" font-size="6" letter-spacing="0em"><tspan x="0.466797" y="6.13281">S1128</tspan></text>
@@ -110,7 +110,7 @@
 <rect x="211.347" y="312.837" width="9.34735" height="3.29907" stroke="#8BC7FF" stroke-width="1.09969"/>
 <rect x="211.347" y="316.136" width="9.34735" height="3.29907" stroke="#8BC7FF" stroke-width="1.09969"/>
 <path d="M373 382.667V307.888H221.518V304.039M183.304 403.011V377.168H51.0662V382.667M219.044 403.011V377.168H352.931V382.667M30.722 382.667V370.57H20L20 332.906H30.9969V307.888H182.479V304.039H201.449H203.648" stroke="#5DABFF" stroke-width="2.74922"/>
-<text fill="#6D7073" stroke="#EDF6FF" style="white-space: pre" stroke-width="0.879751" stroke-linejoin="round" xml:space="preserve" font-family="Pretendard" font-size="6" letter-spacing="0em"><tspan x="261.961" y="356.91">&#xbc29;&#xbaa9;&#xae30;&#xcd08;&#10;</tspan><tspan x="261.961" y="364.91">&#xad50;&#xc721;&#xb300;&#xd559;&#10;</tspan><tspan x="264.554" y="372.91">&#xad50;&#xd559;&#xd300;</tspan></text>
+<text fill="#6D7073" style="white-space: pre" xml:space="preserve" font-family="Pretendard" font-size="6" letter-spacing="0em"><tspan x="261.961" y="356.91">&#xbc29;&#xbaa9;&#xae30;&#xcd08;&#10;</tspan><tspan x="261.961" y="364.91">&#xad50;&#xc721;&#xb300;&#xd559;&#10;</tspan><tspan x="264.554" y="372.91">&#xad50;&#xd559;&#xd300;</tspan></text>
 <rect x="204" y="308" width="15" height="15" rx="1.5" fill="#909499"/>
 <path d="M216.75 311.75H214.125V314.375H211.5V317H208.875V319.625H206.25" stroke="white" stroke-width="0.8025" stroke-linecap="round" stroke-linejoin="round"/>
 <rect x="194" y="379.5" width="15" height="15" rx="1.5" fill="#909499"/>

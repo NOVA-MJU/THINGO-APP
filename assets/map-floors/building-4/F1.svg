@@ -102,7 +102,7 @@
 <rect x="36.5625" y="394.703" width="9.03125" height="3.1875" stroke="#8BC7FF" stroke-width="1.0625"/>
 <rect x="36.5625" y="397.891" width="9.03125" height="3.1875" stroke="#8BC7FF" stroke-width="1.0625"/>
 <rect x="36.5625" y="401.078" width="9.03125" height="3.1875" stroke="#8BC7FF" stroke-width="1.0625"/>
-<text fill="#6D7073" stroke="#EDF6FF" style="white-space: pre" stroke-width="0.85" stroke-linejoin="round" xml:space="preserve" font-family="Pretendard" font-size="7" letter-spacing="0em"><tspan x="273.389" y="357.129">S4104&#10;</tspan><tspan x="280.42" y="366.129">-1</tspan></text>
+<text fill="#6D7073" style="white-space: pre" xml:space="preserve" font-family="Pretendard" font-size="7" letter-spacing="0em"><tspan x="273.389" y="357.129">S4104&#10;</tspan><tspan x="280.42" y="366.129">-1</tspan></text>
 <rect x="294.531" y="349.531" width="20.9375" height="36.9375" fill="#EDF6FF"/>
 <rect x="294.531" y="349.531" width="20.9375" height="36.9375" stroke="#8BC7FF" stroke-width="1.0625"/>
 <text fill="#6D7073" style="white-space: pre" xml:space="preserve" font-family="Pretendard" font-size="7" letter-spacing="0em"><tspan x="298.95" y="356.988">&#xc7a5;&#xc560;&#10;</tspan><tspan x="298.95" y="365.988">&#xd559;&#xc0dd;&#10;</tspan><tspan x="298.95" y="374.988">&#xc9c0;&#xc6d0;&#10;</tspan><tspan x="298.95" y="383.988">&#xc13c;&#xd130;</tspan></text>

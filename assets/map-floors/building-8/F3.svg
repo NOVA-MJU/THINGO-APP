@@ -274,7 +274,7 @@
 <rect x="128.185" y="295.523" width="15" height="15" rx="1.5" fill="#909499"/>
 <path d="M135.623 300.861H138.248C138.557 300.861 138.854 300.984 139.073 301.203C139.291 301.422 139.414 301.719 139.414 302.028V307.107C139.414 307.416 139.291 307.713 139.073 307.931C138.854 308.15 138.557 308.273 138.248 308.273H135.623M135.623 300.861H132.998C132.688 300.861 132.392 300.984 132.173 301.203C131.954 301.422 131.831 301.719 131.831 302.028V307.107C131.831 307.416 131.954 307.713 132.173 307.931C132.392 308.15 132.688 308.273 132.998 308.273H135.623M135.623 300.861V308.273M132.779 298.7L133.727 297.773L134.675 298.7M136.571 297.773L137.519 298.7L138.466 297.773" stroke="white" stroke-width="0.8025" stroke-linecap="round" stroke-linejoin="round"/>
 <text transform="translate(209.852 597.943) rotate(-90)" fill="#6D7073" style="white-space: pre" xml:space="preserve" font-family="Pretendard" font-size="7" letter-spacing="0em"><tspan x="0.287598" y="6.98828">S10348</tspan></text>
-<text transform="translate(192.895 597.943) rotate(-90)" fill="#6D7073" stroke="#EDF6FF" style="white-space: pre" stroke-width="0.8486" stroke-linejoin="round" xml:space="preserve" font-family="Pretendard" font-size="7" letter-spacing="0em"><tspan x="0.479004" y="6.98828">S10347</tspan></text>
+<text transform="translate(192.895 597.943) rotate(-90)" fill="#6D7073" style="white-space: pre" xml:space="preserve" font-family="Pretendard" font-size="7" letter-spacing="0em"><tspan x="0.479004" y="6.98828">S10347</tspan></text>
 <rect x="155.349" y="520.863" width="8.47843" height="3.63361" transform="rotate(90 155.349 520.863)" stroke="#8BC7FF" stroke-width="1.2112"/>
 <rect x="151.715" y="520.863" width="8.47843" height="3.63361" transform="rotate(90 151.715 520.863)" stroke="#8BC7FF" stroke-width="1.2112"/>
 <rect x="148.081" y="520.863" width="8.47843" height="3.63361" transform="rotate(90 148.081 520.863)" stroke="#8BC7FF" stroke-width="1.2112"/>
@@ -322,5 +322,5 @@
 <rect x="138.337" y="527.902" width="15.9112" height="15.9112" rx="1.59112" fill="#909499"/>
 <path d="M151.375 531.394H148.591V534.178H145.806V536.963H143.022V539.747H140.238" stroke="white" stroke-width="0.851251" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M176.39 560.375L179.537 565.826H173.243L176.39 560.375Z" fill="#3B96FF"/>
-<text transform="translate(163.89 570.065)" fill="#3B96FF" stroke="white" style="white-space: pre" stroke-width="0.968963" stroke-linejoin="round" xml:space="preserve" font-family="Pretendard" font-size="7" letter-spacing="0em"><tspan x="0.386719" y="6.98828">3&#xce35; &#xc678;&#xbd80;&#10;</tspan><tspan x="1.03955" y="15.9883">(&#xd14c;&#xb77c;&#xc2a4;)</tspan></text>
+<text transform="translate(163.89 570.065)" fill="#3B96FF" style="white-space: pre" xml:space="preserve" font-family="Pretendard" font-size="7" letter-spacing="0em"><tspan x="0.386719" y="6.98828">3&#xce35; &#xc678;&#xbd80;&#10;</tspan><tspan x="1.03955" y="15.9883">(&#xd14c;&#xb77c;&#xc2a4;)</tspan></text>
 </svg>
