@@ -351,7 +351,8 @@ export default function MapFloorScreen() {
       </View>
 
       {/* 도면 뷰포트 - 이 영역 안에서만 확대/이동되고 헤더·층 선택 UI는 영향받지 않는다
-          (bg-grey-02 = #f5f7f9 로, 도면 SVG가 갖고 있는 자체 배경색과 동일해 여백이 이어져 보인다) */}
+          (bg-grey-02 = #f5f7f9 로, 도면 SVG가 갖고 있는 자체 배경색과 동일해 여백이 이어져 보인다.
+          지금은 도면 SVG에서 배경 사각형을 지워서 이 배경색이 도면 배경 역할을 한다) */}
       <View className="flex-1 overflow-hidden bg-grey-02" onLayout={onViewportLayout}>
         {FloorPlan ? (
           <GestureDetector gesture={viewportGesture}>
@@ -381,6 +382,8 @@ export default function MapFloorScreen() {
                       left: -viewportSize.width * SHARP_MARGIN,
                       top: -viewportSize.height * SHARP_MARGIN,
                       pointerEvents: 'none',
+                      // 도면 SVG에 배경이 없어서, 칠하지 않으면 아래 흐린 레이어가 비쳐 선이 번져 보인다
+                      backgroundColor: '#F5F7F9',
                     },
                     sharpStyle,
                   ]}
