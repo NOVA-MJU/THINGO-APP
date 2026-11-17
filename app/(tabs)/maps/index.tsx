@@ -1088,7 +1088,9 @@ export default function MapsScreen() {
         // 장소 핀이 떠 있으면(검색·딥링크로 연 장소) 건물 번호 핀을 숨겨 찾은 위치만 눈에 띄게 한다 (지금은 번호 대신 건물 이름 라벨)
         buildingMarkers={isMapOverlayFree ? buildingMarkers : []}
         // 다녀온 곳 핀도 건물 라벨과 같이, 검색·칩·테마·버스로 다른 핀을 볼 때는 숨긴다
-        reviewSuggestionMarkers={isMapOverlayFree ? reviewSuggestionMarkers : []}
+        reviewSuggestionMarkers={
+          isMapOverlayFree && !visitedPlaces.pinsHidden ? reviewSuggestionMarkers : []
+        }
         onReviewSuggestionMarkerPress={openVisitedPlace}
         placeMarkers={
           selectedSearchResult
@@ -1244,6 +1246,8 @@ export default function MapsScreen() {
           status={visitedPlaces.status}
           count={visitedPlaces.places.length}
           isFetching={visitedPlaces.isFetching}
+          pinsHidden={visitedPlaces.pinsHidden}
+          onTogglePins={() => visitedPlaces.setPinsHidden(!visitedPlaces.pinsHidden)}
           bottom={insets.bottom + 64}
           onFind={() => void visitedPlaces.requestPermission()}
           onOpen={() => {
