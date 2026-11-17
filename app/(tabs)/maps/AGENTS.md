@@ -52,6 +52,7 @@
 - 도면은 잘리지 않게 실제 그려진 영역(`getFloorPlanContentViewBox`) 전체를 카드에 맞춰 그린다. 카드 높이는 그 건물에서 가장 세로로 긴 층에 맞춘다 (170~380, 넘길 때 높이가 출렁이지 않게)
 - 도면 SVG가 무거워 지금 보는 층과 앞뒤 한 층만 그린다
 - 웹은 pagingEnabled가 CSS scroll-snap이라 세게 밀면 여러 층을 건너뛰어서 페이지마다 `scroll-snap-stop: always`를 붙인다
+- 층별 안내도 화면 왼쪽 아래 층 선택(`floor-selector.tsx`)은 엘리베이터처럼 지금 층 표시가 가운데에 고정되고 목록이 위아래로 굴러간다. 굴려서 멈추면(140ms) 가운데 층이 선택되고, 층을 누르면 그 층이 가운데로 온다. 앱은 `snapToInterval`, 웹은 CSS scroll-snap(center)으로 칸에 맞춰 멈춘다
 - 층별 안내도 화면(`app/maps/floor`)은 배율 1(폭 맞춤)이 이 카드와 크기가 비슷해 글자가 작으므로 1.5~2배로 확대해 연다 (찾은 호실이 있으면 그 핀, 없으면 도면 가운데). 층 전체는 더블탭이나 - 버튼
 - 페이지 폭은 카드 테두리 안쪽 폭으로 잰다 (바깥 폭을 쓰면 한 장 넘길 때마다 2px씩 밀린다)
 - 도면 영역은 `scripts/generate-floor-plan-targets.mjs`가 경로·사각형·선 좌표로 계산해 `targets.json`의 `content`에 넣는다. viewBox를 undefined로 넘기면 원래 viewBox가 지워지므로 있을 때만 넘긴다
