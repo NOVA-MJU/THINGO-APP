@@ -20,6 +20,8 @@ const PHOTOS_PERMISSION =
 const config: ExpoConfig = {
   name: 'Thingo',
   slug: 'thingo-app',
+  // EAS 프로젝트 소유 Expo 계정. 빌드·서명 인증서가 이 계정의 프로젝트(extra.eas.projectId)에 묶인다
+  owner: 'thingo_mju',
   version: '1.0.12',
   locales: { ko: './locales/ko.json' },
   orientation: 'portrait',
@@ -137,7 +139,7 @@ const config: ExpoConfig = {
   },
   extra: {
     eas: {
-      projectId: '8d706b08-8345-411a-a29a-99ec2ffb93c4',
+      projectId: '053311cf-ac45-4701-b485-efb167de8fe5',
     },
   },
 };
