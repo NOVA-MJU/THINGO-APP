@@ -20,7 +20,9 @@ const PHOTOS_PERMISSION =
 const config: ExpoConfig = {
   name: 'Thingo',
   slug: 'thingo-app',
-  version: '1.0.11',
+  // EAS 프로젝트 소유 Expo 계정. 빌드·서명 인증서가 이 계정의 프로젝트(extra.eas.projectId)에 묶인다
+  owner: 'thingo_mju',
+  version: '1.0.12',
   locales: { ko: './locales/ko.json' },
   orientation: 'portrait',
   icon: './assets/images/icon.png',
@@ -39,6 +41,8 @@ const config: ExpoConfig = {
     infoPlist: {
       CFBundleDevelopmentRegion: 'ko',
       CFBundleLocalizations: ['ko'],
+      // HTTPS 같은 표준 암호화만 쓴다. 비워 두면 빌드 때마다 묻고, 답을 app.config.ts(동적 설정)에 쓰지 못해 빌드가 실패한다
+      ITSAppUsesNonExemptEncryption: false,
     },
   },
   android: {
@@ -137,7 +141,7 @@ const config: ExpoConfig = {
   },
   extra: {
     eas: {
-      projectId: '8d706b08-8345-411a-a29a-99ec2ffb93c4',
+      projectId: '053311cf-ac45-4701-b485-efb167de8fe5',
     },
   },
 };
