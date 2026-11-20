@@ -41,6 +41,8 @@ const config: ExpoConfig = {
     infoPlist: {
       CFBundleDevelopmentRegion: 'ko',
       CFBundleLocalizations: ['ko'],
+      // HTTPS 같은 표준 암호화만 쓴다. 비워 두면 빌드 때마다 묻고, 답을 app.config.ts(동적 설정)에 쓰지 못해 빌드가 실패한다
+      ITSAppUsesNonExemptEncryption: false,
     },
   },
   android: {
