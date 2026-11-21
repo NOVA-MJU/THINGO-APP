@@ -12,6 +12,8 @@ import { ReviewVideoThumbnail } from '@/components/maps/review-video-thumbnail';
 import PlacePhotoSuggestions from './_components/place-photo-suggestions';
 import { VISITED_PLACES_QUERY_KEY } from '@/hooks/use-visited-places';
 import { markPlaceReviewed } from '@/lib/maps/reviewed-places';
+import { dismissPlacePhotos, markReviewImagesChecked } from '@/lib/maps/dismissed-place-photos';
+import { PLACE_PHOTOS_QUERY_KEY } from '@/hooks/use-place-photos';
 import { useQueryClient } from '@tanstack/react-query';
 import { useMediaUpload } from '@/hooks/useImageUpload';
 import { ArrowLeftIcon, InfoOutlineIcon, PlusIcon, XIcon } from '@/components/icons';
@@ -248,6 +250,7 @@ export default function PlaceReviewWriteScreen() {
             url: uploadedMedia.url,
             type: uploadedMedia.type,
             thumbnailUrl: uploadedMedia.thumbnailUrl ?? null,
+            libraryPhotoId: uploadedMedia.libraryPhotoId ?? null,
           },
         ].slice(0, MAX_MEDIA_COUNT)
       );
@@ -285,8 +288,21 @@ export default function PlaceReviewWriteScreen() {
         });
         // 지도의 "리뷰 남길 곳" 핀에서 이 장소를 뺀다
         await markPlaceReviewed(numericPlaceId).catch(() => undefined);
-        void queryClient.invalidateQueries({ queryKey: VISITED_PLACES_QUERY_KEY });
       }
+      // 리뷰에 올린 내 사진은 "여기서 찍은 내 사진"과 다녀온 곳 핀에서 뺀다 (이미 올린 사진을 다시 권하지 않게).
+      // 숨긴 사진과 같은 목록에 기억하고, 기억하지 못해도 리뷰는 이미 올라갔으니 실패는 넘어간다
+      const uploadedPhotoIds = mediaItems.flatMap((item) =>
+        item.libraryPhotoId ? [item.libraryPhotoId] : []
+      );
+      const uploadedPhotoUrls = mediaItems.flatMap((item) =>
+        item.libraryPhotoId ? [item.url] : []
+      );
+      await Promise.all([
+        dismissPlacePhotos([numericPlaceId], uploadedPhotoIds),
+        markReviewImagesChecked(uploadedPhotoUrls),
+      ]).catch(() => undefined);
+      void queryClient.invalidateQueries({ queryKey: PLACE_PHOTOS_QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: VISITED_PLACES_QUERY_KEY });
       router.back();
     } catch (error) {
       if (isLoginRequiredError(error)) {

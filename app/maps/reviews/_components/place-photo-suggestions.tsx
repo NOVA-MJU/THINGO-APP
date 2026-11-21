@@ -71,7 +71,7 @@ function PlacePhotoSuggestionsIos({
     onSuccess: (url, photo) => {
       const id = `${Date.now()}-${photo.id}`;
       setPickedIds((previous) => ({ ...previous, [photo.id]: id }));
-      onAdd({ id, url, type: 'image' });
+      onAdd({ id, url, type: 'image', libraryPhotoId: photo.id });
     },
     onError: (error) =>
       showAlert(

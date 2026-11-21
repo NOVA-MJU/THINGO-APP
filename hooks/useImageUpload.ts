@@ -20,6 +20,8 @@ export type UploadedMedia = {
   url: string;
   type: 'image' | 'video';
   thumbnailUrl?: string | null;
+  // 사진첩 id (iOS·안드로이드 앱에서 사진 접근이 허용됐을 때만 있다. 웹은 없다)
+  libraryPhotoId?: string | null;
 };
 
 const MAX_VIDEO_UPLOAD_BYTES = 50 * 1024 * 1024;
@@ -125,7 +127,7 @@ export function useMediaUpload(domain: UploadDomain) {
         });
         const thumbnailUrl = await createAndUploadVideoThumbnail(asset, domain);
         setState({ isLoading: false, url: cdnUrl, error: null });
-        return { url: cdnUrl, type: 'video', thumbnailUrl };
+        return { url: cdnUrl, type: 'video', thumbnailUrl, libraryPhotoId: asset.assetId };
       }
 
       const { uri } = await compressImageToJpeg(asset.uri, {
@@ -134,7 +136,7 @@ export function useMediaUpload(domain: UploadDomain) {
       });
       const cdnUrl = await uploadImage(uri, domain);
       setState({ isLoading: false, url: cdnUrl, error: null });
-      return { url: cdnUrl, type: 'image' };
+      return { url: cdnUrl, type: 'image', libraryPhotoId: asset.assetId };
     } catch (err) {
       const message =
         err instanceof Error ? getUploadErrorMessage(err) : '사진/영상 업로드에 실패했습니다.';
