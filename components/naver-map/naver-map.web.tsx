@@ -161,6 +161,8 @@ interface Props {
   placeMarkers?: PlaceMarkerData[];
   // 내 사진첩 기준 "다녀온 곳" 핀. 사진첩은 iOS 앱에서만 읽으므로 웹에서는 항상 비어 있어 그리지 않는다
   reviewSuggestionMarkers?: ReviewSuggestionMarkerData[];
+  // 내가 리뷰를 남긴 곳. 다녀온 곳 핀과 같이 앱에서만 띄워서 웹에서는 그리지 않는다
+  myReviewMarkers?: { id: string; latitude: number; longitude: number }[];
   // assets/map-markers의 CATEGORY_MARKER_IMAGES 조회용 키
   placeMarkerIcon?: string;
   userLocation?: UserLocationData | null;
@@ -173,6 +175,7 @@ interface Props {
   onBuildingMarkerPress?: (id: string) => void;
   onPlaceMarkerPress?: (id: string) => void;
   onReviewSuggestionMarkerPress?: (id: string) => void;
+  onMyReviewMarkerPress?: (id: string) => void;
 }
 
 export interface NaverMapHandle {

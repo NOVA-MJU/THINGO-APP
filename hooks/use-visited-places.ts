@@ -6,6 +6,7 @@ import {
 } from '@/hooks/use-place-photos';
 import { dismissPlacePhotos, getDismissedPlacePhotos } from '@/lib/maps/dismissed-place-photos';
 import { getUploadedPhotoIds } from '@/lib/maps/uploaded-review-photos';
+import { MY_PLACE_REVIEWS_QUERY_KEY } from '@/hooks/use-my-place-reviews';
 import { showAlert } from '@/lib/alert';
 import { getReviewedPlaceIds } from '@/lib/maps/reviewed-places';
 import { categoryHints, isFoodPhoto, narrowCandidatesByFood } from '@/lib/photo-food';
@@ -232,8 +233,10 @@ export function useDismissPlacePhotos() {
   });
 }
 
-// 내 사진 제안(장소의 "여기서 찍은 내 사진", 다녀온 곳 핀)을 다시 찾는다. 사진을 숨기거나 리뷰를 쓰고·고치고·지운 뒤 부른다
+// 내 사진 제안(장소의 "여기서 찍은 내 사진", 다녀온 곳 핀)과 내가 쓴 리뷰 목록을 다시 찾는다.
+// 사진을 숨기거나 리뷰를 쓰고·고치고·지운 뒤 부른다
 export function refreshMyPhotoSuggestions(queryClient: QueryClient) {
+  void queryClient.invalidateQueries({ queryKey: MY_PLACE_REVIEWS_QUERY_KEY });
   void queryClient.invalidateQueries({ queryKey: PLACE_PHOTOS_QUERY_KEY });
   void queryClient.invalidateQueries({ queryKey: VISITED_PLACES_QUERY_KEY });
 }

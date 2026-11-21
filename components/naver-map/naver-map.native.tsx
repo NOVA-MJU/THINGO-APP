@@ -74,6 +74,13 @@ export interface ReviewSuggestionMarkerData {
   photoCount: number;
 }
 
+// 내가 리뷰를 남긴 곳 (가는 파란 핀, 글자 없음)
+export interface MyReviewMarkerData {
+  id: string;
+  latitude: number;
+  longitude: number;
+}
+
 export interface PlaceMarkerData {
   id: string;
   latitude: number;
@@ -101,6 +108,8 @@ interface Props {
   placeMarkers?: PlaceMarkerData[];
   // 내 사진첩 기준 "다녀온 곳" 핀 (리뷰를 남길 수 있는 가게)
   reviewSuggestionMarkers?: ReviewSuggestionMarkerData[];
+  // 내가 리뷰를 남긴 곳. 다녀온 곳 핀을 켰을 때 같이 띄워 어디에 리뷰를 남겼는지 보여준다
+  myReviewMarkers?: MyReviewMarkerData[];
   // assets/map-markers의 CATEGORY_MARKER_IMAGES 조회용 키
   placeMarkerIcon?: string;
   userLocation?: UserLocationData | null;
@@ -114,6 +123,7 @@ interface Props {
   onBuildingMarkerPress?: (id: string) => void;
   onPlaceMarkerPress?: (id: string) => void;
   onReviewSuggestionMarkerPress?: (id: string) => void;
+  onMyReviewMarkerPress?: (id: string) => void;
   // 네이버 기본 글자(가게·건물 등 심벌)를 눌렀을 때. 앱 전용이다 (웹 JS SDK는 심벌 터치를 알려주지 않는다)
   onSymbolPress?: (symbol: { caption: string; latitude: number; longitude: number }) => void;
   // 지도 이동·확대가 끝났을 때 화면 가운데와 줌. 다녀온 곳 핀 묶음과 목록 순서를 다시 계산하는 데 쓴다
@@ -140,6 +150,7 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
     buildingMarkers = [],
     placeMarkers = [],
     reviewSuggestionMarkers = [],
+    myReviewMarkers = [],
     placeMarkerIcon,
     userLocation,
     selectedBusStopId,
@@ -151,6 +162,7 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
     onBuildingMarkerPress,
     onPlaceMarkerPress,
     onReviewSuggestionMarkerPress,
+    onMyReviewMarkerPress,
     onSymbolPress,
     onCameraSettle,
   },
@@ -353,6 +365,28 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
           </NaverMapMarkerOverlay>
         );
       })}
+      {/* 내가 리뷰한 곳: 눈에 띄지 않게 가는 파란 핀(머리 점 + 얇은 기둥)만 그리고 글자는 두지 않는다.
+          다녀온 곳 핀·건물 라벨보다 아래에 깔고 겹쳐도 숨기지 않는다 */}
+      {myReviewMarkers.map((marker) => (
+        <NaverMapMarkerOverlay
+          key={`my-review-${marker.id}`}
+          latitude={marker.latitude}
+          longitude={marker.longitude}
+          width={MY_REVIEW_PIN_WIDTH}
+          height={MY_REVIEW_PIN_HEIGHT}
+          anchor={ACTIVE_MARKER_ANCHOR}
+          zIndex={1}
+          onTap={() => {
+            tapFeedback();
+            onMyReviewMarkerPress?.(marker.id);
+          }}
+        >
+          <View collapsable={false} style={styles.myReviewPin}>
+            <View style={styles.myReviewPinHead} />
+            <View style={styles.myReviewPinStem} />
+          </View>
+        </NaverMapMarkerOverlay>
+      ))}
       {placeMarkerIcon &&
         placeMarkers.map((marker) => {
           const isActive = marker.id === selectedPlaceId;
@@ -388,7 +422,33 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
   );
 });
 
+// 내가 리뷰한 곳 핀 크기 (머리 10pt 원 + 기둥 2pt x 12pt)
+const MY_REVIEW_PIN_WIDTH = 12;
+const MY_REVIEW_PIN_HEIGHT = 24;
+const MY_REVIEW_PIN_COLOR = '#1778FF';
+
 const styles = StyleSheet.create({
+  myReviewPin: {
+    width: MY_REVIEW_PIN_WIDTH,
+    height: MY_REVIEW_PIN_HEIGHT,
+    alignItems: 'center',
+  },
+  myReviewPinHead: {
+    width: 11,
+    height: 11,
+    borderRadius: 5.5,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+    backgroundColor: MY_REVIEW_PIN_COLOR,
+  },
+  myReviewPinStem: {
+    width: 2,
+    height: 13,
+    marginTop: -1,
+    borderBottomLeftRadius: 1,
+    borderBottomRightRadius: 1,
+    backgroundColor: MY_REVIEW_PIN_COLOR,
+  },
   buildingLabel: {
     height: BUILDING_LABEL_HEIGHT,
     borderRadius: BUILDING_LABEL_HEIGHT / 2,

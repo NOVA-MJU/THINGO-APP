@@ -23,6 +23,7 @@ import PlaceCommunitySection from './place-community-section';
 import { EmptyPlaceMedia, MyPlacePhotosCard, MyPlacePhotosNudge } from './place-my-photos';
 import PlacePhotoGallery from './place-photo-gallery';
 import { usePlacePhotos } from '@/hooks/use-place-photos';
+import { useMyPlaceReviews } from '@/hooks/use-my-place-reviews';
 import { useDismissPlacePhotos } from '@/hooks/use-visited-places';
 
 // 명지도 장소(비건물) 상세보기 시트 - 건물 상세와 달리 강의실 코드는 없고 위치·추가정보(infoText)를 제공
@@ -44,6 +45,18 @@ export default function PlaceDetailSheet({
   const { showLoginRequiredModal } = useLoginRequiredModal();
   const favoriteSaveSheetRef = React.useRef<FavoriteSaveSheetHandle>(null);
   const [reviews, setReviews] = React.useState<PlaceReview[]>([]);
+  // 리뷰 목록은 첫 페이지만 받아서 내 리뷰가 빠질 수 있다. 내가 쓴 리뷰(GET /reviews/me) 중 이 장소 것을 더해
+  // 목록 맨 위에 둔다 (순서는 place-community-section.tsx sortReviews). 목록에 이미 있으면 목록 쪽(좋아요 반영)을 쓴다
+  const myReviews = useMyPlaceReviews();
+  const reviewsWithMine = React.useMemo(() => {
+    const myReviewsHere = myReviews
+      .filter((item) => item.placeId === place.id)
+      .map((item) => reviews.find((review) => review.id === item.review.id) ?? item.review);
+    return [
+      ...myReviewsHere,
+      ...reviews.filter((review) => !myReviewsHere.some((mine) => mine.id === review.id)),
+    ];
+  }, [myReviews, place.id, reviews]);
   const [reviewMediaItems, setReviewMediaItems] = React.useState<PlaceReviewMediaStripItem[]>([]);
   // 첫 응답 전에 "사진 없음" 안내가 잠깐 보였다가 사라지지 않도록 받아왔는지 따로 기억한다
   const [isReviewMediaLoaded, setIsReviewMediaLoaded] = React.useState(false);
@@ -230,7 +243,7 @@ export default function PlaceDetailSheet({
               onReviewSectionTopChange={onReviewSectionTopChange}
               placeName={place.name}
               categoryCode={place.categoryCode}
-              reviews={reviews}
+              reviews={reviewsWithMine}
               reviewMediaItems={reviewMediaItems}
               onReviewsChange={setReviews}
               onReviewDeleted={(reviewId) => {
