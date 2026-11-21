@@ -1,5 +1,6 @@
 import ExpoModulesCore
 import Photos
+import UIKit
 import Vision
 
 // 사진첩 전체에서 좌표 범위 안에서 찍힌 사진만 골라준다.
@@ -64,5 +65,59 @@ public class PhotoLocationScanModule: Module {
       }
       return labelsById
     }
+
+    // 사진첩 사진 중 이미 리뷰에 올린 사진(서버 이미지 주소)과 같은 사진을 찾는다 (Apple Vision 특징값, 기기 안에서 비교).
+    // 올린 사진은 압축·축소돼 파일이 달라서, 그림의 특징값이 가장 가까운 사진을 고른다.
+    // 특징값 거리의 크기가 iOS 버전(Vision 리비전)마다 달라 고정 기준 대신, 가장 가까운 사진이 두 번째보다
+    // 확실히 가까울 때만 같은 사진으로 본다 (비슷한 연속 사진뿐이면 고르지 않는다)
+    AsyncFunction("findPhotosMatchingImages") { (ids: [String], imageUrls: [String]) -> [String] in
+      let uploadedPrints = imageUrls.compactMap { urlString -> VNFeaturePrintObservation? in
+        guard let url = URL(string: urlString), let data = try? Data(contentsOf: url),
+              let cgImage = UIImage(data: data)?.cgImage
+        else { return nil }
+        return PhotoLocationScanModule.featurePrint(of: cgImage)
+      }
+      if uploadedPrints.isEmpty { return [] }
+
+      let assets = PHAsset.fetchAssets(withLocalIdentifiers: ids, options: nil)
+      let options = PHImageRequestOptions()
+      options.isSynchronous = true
+      options.deliveryMode = .highQualityFormat
+      options.resizeMode = .fast
+      options.isNetworkAccessAllowed = false
+
+      var libraryPrints: [(id: String, print: VNFeaturePrintObservation)] = []
+      assets.enumerateObjects { asset, _, _ in
+        var cgImage: CGImage?
+        // 서버 사진은 자르지 않은 원본 비율이라 여기서도 자르지 않고(aspectFit) 읽는다
+        PHImageManager.default().requestImage(
+          for: asset, targetSize: CGSize(width: 512, height: 512), contentMode: .aspectFit, options: options
+        ) { image, _ in
+          cgImage = image?.cgImage
+        }
+        guard let cgImage, let print = PhotoLocationScanModule.featurePrint(of: cgImage) else { return }
+        libraryPrints.append((asset.localIdentifier, print))
+      }
+
+      let matchedIds = uploadedPrints.compactMap { uploaded -> String? in
+        let ranked = libraryPrints
+          .compactMap { library -> (id: String, distance: Float)? in
+            var distance: Float = 0
+            guard (try? uploaded.computeDistance(&distance, to: library.print)) != nil else { return nil }
+            return (library.id, distance)
+          }
+          .sorted { $0.distance < $1.distance }
+        guard let nearest = ranked.first else { return nil }
+        guard ranked.count > 1 else { return nearest.id }
+        return nearest.distance <= ranked[1].distance * 0.5 ? nearest.id : nil
+      }
+      return Array(Set(matchedIds))
+    }
+  }
+
+  private static func featurePrint(of cgImage: CGImage) -> VNFeaturePrintObservation? {
+    let request = VNGenerateImageFeaturePrintRequest()
+    guard (try? VNImageRequestHandler(cgImage: cgImage, options: [:]).perform([request])) != nil else { return nil }
+    return request.results?.first as? VNFeaturePrintObservation
   }
 }
