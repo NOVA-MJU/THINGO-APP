@@ -5,9 +5,10 @@
 // 256px 타일 기준 줌 0에서 적도의 1px이 몇 m인지 (웹 메르카토르)
 const METERS_PER_PIXEL_AT_ZOOM_ZERO = 156543.03392;
 const METERS_PER_DEGREE = 111320;
-// 이름 알약 하나가 화면에서 차지하는 대략의 크기(pt). 두 핀이 이만큼 안에 있으면 겹친다고 본다
-const PILL_WIDTH = 110;
-const PILL_HEIGHT = 36;
+// 두 핀이 화면에서 이만큼(pt) 안에 있으면 하나로 묶는다. 알약 실제 크기(대략 130x34)보다 조금 작게 잡아 너무 크게 묶이지 않게 한다.
+// 조금 겹치는 알약은 지도 SDK가 뒤쪽(오래된 곳)을 숨긴다 (naver-map.native.tsx의 isHideCollidedMarkers)
+const PILL_WIDTH = 90;
+const PILL_HEIGHT = 30;
 
 export type ClusterablePoint = { latitude: number; longitude: number };
 export type PointCluster<T> = { representative: T; members: T[] };

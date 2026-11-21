@@ -68,6 +68,7 @@ import {
 } from '@/lib/maps/campus';
 import { getMapIconKey } from '@/lib/maps/icons';
 import { clusterOverlappingPoints } from '@/lib/maps/cluster-visits';
+import { distanceMeters } from '@/lib/photo-location';
 import { findSymbolMatch, type SymbolPoint } from '@/lib/maps/match-symbol';
 import { fetchReviewablePlaces } from '@/hooks/use-place-photos';
 import { cn } from '@/lib/utils';
@@ -136,6 +137,8 @@ type SheetScreenInit =
   | { kind: 'visit'; visitKey: string }
   // 지도에서 "대표 가게 외 N곳"으로 묶인 다녀온 곳 핀 (useVisitedPlaces 결과의 key 목록, 최근 순)
   | { kind: 'visit-group'; visitKeys: string[] }
+  // "다녀온 곳 N" 버튼으로 핀을 켰을 때 뜨는 전체 목록 (지도 가운데에서 가까운 순)
+  | { kind: 'visit-list' }
   // 네이버 기본 글자를 눌렀는데 우리 DB에 없는 곳
   | { kind: 'symbol'; caption: string }
   | { kind: 'category' };
@@ -657,21 +660,30 @@ export default function MapsScreen() {
   const [placePeekHeights, setPlacePeekHeights] = React.useState<Record<string, number>>({});
   // 다녀온 곳 핀은 기본으로 숨기고, 왼쪽 아래 버튼을 눌렀을 때만 띄운다 (앱을 다시 열면 다시 숨김)
   const [visitedPinsShown, setVisitedPinsShown] = React.useState(false);
-  // 지도 줌 (이동·확대가 끝났을 때). 다녀온 곳 핀을 화면에서 겹치는 것끼리 묶는 데 쓴다
-  const [mapZoom, setMapZoom] = React.useState(CAMPUS_ZOOM);
+  // 지도 가운데와 줌 (이동·확대가 끝났을 때). 다녀온 곳 핀 묶음과 목록 순서를 지금 보는 곳에 맞추는 데 쓴다
+  const [mapCamera, setMapCamera] = React.useState({
+    latitude: CAMPUS_LATITUDE,
+    longitude: CAMPUS_LONGITUDE,
+    zoom: CAMPUS_ZOOM,
+  });
+  // 다녀온 곳 목록에서 눌러 지도를 옮긴 곳. 그 핀을 진하게, 맨 위로 그린다
+  const [focusedVisitKey, setFocusedVisitKey] = React.useState<string | null>(null);
   // 지금 보고 있는 다녀온 곳 핀 (후보 고르기 시트, 또는 그 핀에서 연 가게 상세). 그 핀을 진하게, 맨 위로 그린다
   const selectedVisitKey = React.useMemo(() => {
     const visitScreen = sheetStack.find(
       (s): s is Extract<SheetScreen, { kind: 'visit' }> => s.kind === 'visit'
     );
     if (visitScreen) return visitScreen.visitKey;
+    if (focusedVisitKey) return focusedVisitKey;
     if (selectedPlaceId === null) return undefined;
     return visitedPlaces.places.find((visit) =>
       visit.candidates.some((candidate) => candidate.id === selectedPlaceId)
     )?.key;
-  }, [sheetStack, selectedPlaceId, visitedPlaces.places]);
+  }, [sheetStack, focusedVisitKey, selectedPlaceId, visitedPlaces.places]);
 
-  // 다녀온 곳 핀. 화면에서 겹치는 곳끼리 "대표 가게 외 N곳"으로 묶고(대표는 최근에 간 곳), 지금 보고 있는 곳은 묶지 않고 따로 띄운다
+  // 다녀온 곳 핀. 화면에서 겹치는 곳끼리 "대표 가게 외 N곳"으로 묶고, 지금 보고 있는 곳은 묶지 않고 따로 띄운다.
+  // 묶음은 지도 가운데에서 가까운 곳부터 잡아서, 지도를 옮기면 지금 보는 곳 주변이 더 잘게 나뉜다.
+  // 묶음 핀 위치는 가운데에서 가장 가까운 곳, 이름은 그중 최근에 간 곳이다
   const reviewSuggestionMarkers = React.useMemo(() => {
     const visitMarkers = visitedPlaces.places.map((visit) => {
       const [nearest, ...others] = visit.candidates;
@@ -686,21 +698,52 @@ export default function MapsScreen() {
       };
     });
     const selectedMarkers = visitMarkers.filter((marker) => marker.id === selectedVisitKey);
-    const groupedMarkers = clusterOverlappingPoints(
-      visitMarkers.filter((marker) => marker.id !== selectedVisitKey),
-      mapZoom
-    ).map(({ representative, members }) =>
-      members.length === 1
-        ? representative
-        : {
-            ...representative,
-            id: VISIT_GROUP_ID_PREFIX + members.map((member) => member.id).join(','),
-            name: `${representative.placeName} 외 ${members.length - 1}곳`,
-            photoCount: members.reduce((sum, member) => sum + member.photoCount, 0),
-          }
+    const nearCenterFirst = visitMarkers
+      .filter((marker) => marker.id !== selectedVisitKey)
+      .sort(
+        (first, second) => distanceMeters(first, mapCamera) - distanceMeters(second, mapCamera)
+      );
+    const groupedMarkers = clusterOverlappingPoints(nearCenterFirst, mapCamera.zoom).map(
+      ({ representative, members }) => {
+        if (members.length === 1) return representative;
+        // visitMarkers는 최근에 간 곳부터라, 그 순서로 처음 나오는 묶음 멤버가 가장 최근에 간 곳이다
+        const mostRecent =
+          visitMarkers.find((marker) => members.includes(marker)) ?? representative;
+        return {
+          ...representative,
+          id: VISIT_GROUP_ID_PREFIX + members.map((member) => member.id).join(','),
+          name: `${mostRecent.placeName} 외 ${members.length - 1}곳`,
+          photoCount: members.reduce((sum, member) => sum + member.photoCount, 0),
+        };
+      }
     );
     return [...selectedMarkers, ...groupedMarkers];
-  }, [visitedPlaces.places, selectedVisitKey, mapZoom]);
+  }, [visitedPlaces.places, selectedVisitKey, mapCamera]);
+
+  // "다녀온 곳 N" 버튼: 켜면 핀과 함께 전체 목록 시트를 띄우고, 끄면 둘 다 내린다
+  function showVisitedPins() {
+    setVisitedPinsShown(true);
+    pushSheet({ kind: 'visit-list' });
+  }
+
+  function hideVisitedPins() {
+    setVisitedPinsShown(false);
+    setFocusedVisitKey(null);
+    const top = sheetStack[sheetStack.length - 1] as SheetScreen | undefined;
+    if (top?.kind === 'visit-list') popSheet();
+  }
+
+  // 목록에서 고른 다녀온 곳 핀으로 지도를 옮기고 그 핀을 강조한다 (핀을 다시 누르면 그 곳 화면이 열린다)
+  function focusVisitedPlace(visitKey: string) {
+    const visit = visitedPlaces.places.find((item) => item.key === visitKey);
+    if (!visit) return;
+    setFocusedVisitKey(visitKey);
+    mapRef.current?.animateCameraTo(
+      visit.candidates[0].latitude,
+      visit.candidates[0].longitude,
+      18
+    );
+  }
 
   function onVisitedMarkerPress(markerId: string) {
     if (!markerId.startsWith(VISIT_GROUP_ID_PREFIX)) {
@@ -815,6 +858,22 @@ export default function MapsScreen() {
       type: 'FACILITY',
       latitude: candidate.latitude,
       longitude: candidate.longitude,
+    });
+  }
+
+  // "이 사진, 어디서 찍었나요?"에서 가게를 고르면 고른 사진이 붙은 리뷰 쓰기 화면으로 바로 간다
+  // (sheet-place-detail.tsx의 openWriteReview와 같은 경로·파라미터)
+  function writeVisitReview(candidate: VisitedPlaceCandidate, photoIds: string[]) {
+    router.push({
+      pathname: '/maps/reviews/write',
+      params: {
+        placeId: String(candidate.id),
+        placeName: candidate.name,
+        categoryCode: candidate.categoryCode,
+        latitude: String(candidate.latitude),
+        longitude: String(candidate.longitude),
+        ...(photoIds.length ? { photoIds: photoIds.join(',') } : {}),
+      },
     });
   }
 
@@ -1283,7 +1342,28 @@ export default function MapsScreen() {
 
     if (screen.kind === 'visit-group') {
       const visits = visitedPlaces.places.filter((visit) => screen.visitKeys.includes(visit.key));
-      return <VisitGroupSheet visits={visits} onSelect={openVisitedPlace} onClose={popSheet} />;
+      return (
+        <VisitGroupSheet
+          visits={visits}
+          title={`이 근처 다녀온 곳 ${visits.length}곳`}
+          description="내 사진으로 찾았어요. 고르면 그때 사진과 함께 리뷰를 쓸 수 있어요."
+          onSelect={openVisitedPlace}
+          onClose={popSheet}
+        />
+      );
+    }
+
+    if (screen.kind === 'visit-list') {
+      return (
+        <VisitGroupSheet
+          visits={visitedPlaces.places}
+          title={`다녀온 곳 ${visitedPlaces.places.length}곳`}
+          description="지도 가운데에서 가까운 순이에요. 누르면 그 핀으로 지도를 옮겨요."
+          center={mapCamera}
+          onSelect={focusVisitedPlace}
+          onClose={hideVisitedPins}
+        />
+      );
     }
 
     if (screen.kind === 'visit') {
@@ -1297,8 +1377,10 @@ export default function MapsScreen() {
       }
       return (
         <VisitCandidatesSheet
+          // 다른 다녀온 곳으로 바뀌면 고른 사진을 처음(모두 선택)으로 되돌린다
+          key={visit.key}
           visit={visit}
-          onSelect={openVisitCandidate}
+          onSelect={writeVisitReview}
           onClose={popSheet}
           onDismissPhotos={() => {
             dismissVisitPhotos.mutate({
@@ -1390,7 +1472,7 @@ export default function MapsScreen() {
         onBuildingMarkerPress={onBuildingMarkerPress}
         onPlaceMarkerPress={onPlaceMarkerPress}
         onSymbolPress={onSymbolPress}
-        onZoomChange={setMapZoom}
+        onCameraSettle={setMapCamera}
       />
 
       {/* 플로팅 헤더 */}
@@ -1520,11 +1602,11 @@ export default function MapsScreen() {
           count={visitedPlaces.places.length}
           isFetching={visitedPlaces.isFetching}
           pinsShown={visitedPinsShown}
-          onTogglePins={() => setVisitedPinsShown((shown) => !shown)}
+          onTogglePins={visitedPinsShown ? hideVisitedPins : showVisitedPins}
           bottom={insets.bottom + 64}
           onFind={async () => {
             const response = await visitedPlaces.requestPermission();
-            if (response.granted) setVisitedPinsShown(true);
+            if (response.granted) showVisitedPins();
           }}
         />
       )}
