@@ -526,9 +526,12 @@ function SearchResultItem({ item, onPress }: { item: MapSearchItem; onPress: () 
 
         <View className="min-w-0 flex-1 gap-1">
           <View className="flex-row items-center gap-1.5">
-            <View className="rounded bg-blue-05 p-1">
-              <Icon size={16} className={getMapIconClassName(item.categoryCode)} />
-            </View>
+            {/* 사진이 없으면 왼쪽 큰 칸이 이미 같은 아이콘이라, 이름 옆 작은 아이콘은 사진이 있을 때만 둔다 */}
+            {item.imageUrl && (
+              <View className="rounded bg-blue-05 p-1">
+                <Icon size={16} className={getMapIconClassName(item.categoryCode)} />
+              </View>
+            )}
             <Text className="flex-1 text-black text-body02" numberOfLines={1}>
               {item.name}
             </Text>
