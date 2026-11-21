@@ -120,6 +120,9 @@ const config: ExpoConfig = {
         ios: {
           // Firebase(Swift pod)는 static framework 형태로만 static 링크 가능 (SPM은 위에서 disableSPM으로 끔)
           useFrameworks: 'static',
+          // iOS 27 SDK(Xcode 27)는 UIAction.subtitle 등을 iOS 16 이상으로 표시해서, 15.x를 최소로 두면
+          // expo-router·react-native-ios-context-menu가 컴파일되지 않는다. 그래서 최소 지원 버전을 16으로 둔다
+          deploymentTarget: '16.0',
         },
       },
     ],
