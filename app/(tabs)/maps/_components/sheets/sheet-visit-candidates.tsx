@@ -3,6 +3,7 @@ import { RestaurantIcon } from '@/components/icons/map';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { useLibraryPhotoUri } from '@/hooks/use-place-photos';
+import { formatVisitDate } from '@/lib/maps/format';
 import type { VisitedPlace, VisitedPlaceCandidate } from '@/hooks/use-visited-places';
 import { ChevronRight, Lock } from 'lucide-react-native';
 import * as React from 'react';
@@ -118,10 +119,4 @@ function Thumbnail({ id }: { id: string }) {
       {uri && <Image source={{ uri }} className="h-full w-full" resizeMode="cover" />}
     </View>
   );
-}
-
-function formatVisitDate(ms: number) {
-  const date = new Date(ms);
-  const prefix = date.getFullYear() === new Date().getFullYear() ? '' : `${date.getFullYear()}년 `;
-  return `${prefix}${date.getMonth() + 1}월 ${date.getDate()}일`;
 }

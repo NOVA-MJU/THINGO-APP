@@ -48,11 +48,6 @@ const CAMERA_PIVOT = { x: 0.5, y: 2 / 5 };
 // 누른(선택한) 마커는 다른 마커 아래 깔려 있었어도 맨 위로 올린다
 const SELECTED_MARKER_Z_INDEX = 100000;
 
-// 다녀온 곳 핀은 이 줌부터 가게 이름 알약으로, 그보다 멀리서는 사진 수만 적힌 작은 점으로 그린다.
-// 학교 주변이 좁아 처음 줌(16)에서 이름까지 다 띄우면 서로 겹쳐 대부분 숨기 때문이다
-const REVIEW_PILL_MIN_ZOOM = 17;
-const REVIEW_DOT_SIZE = 24;
-
 // 핀을 누르면 가볍게 진동을 줘서 눌렸다는 느낌을 준다
 function tapFeedback() {
   void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -121,6 +116,8 @@ interface Props {
   onReviewSuggestionMarkerPress?: (id: string) => void;
   // 네이버 기본 글자(가게·건물 등 심벌)를 눌렀을 때. 앱 전용이다 (웹 JS SDK는 심벌 터치를 알려주지 않는다)
   onSymbolPress?: (symbol: { caption: string; latitude: number; longitude: number }) => void;
+  // 지도 이동·확대가 끝났을 때 줌. 다녀온 곳 핀 묶음을 다시 계산하는 데 쓴다
+  onZoomChange?: (zoom: number) => void;
 }
 
 export interface NaverMapHandle {
@@ -155,6 +152,7 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
     onPlaceMarkerPress,
     onReviewSuggestionMarkerPress,
     onSymbolPress,
+    onZoomChange,
   },
   ref
 ) {
@@ -222,6 +220,7 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
           onInteraction?.();
         }
       }}
+      onCameraIdle={onZoomChange ? ({ zoom }) => zoom != null && onZoomChange(zoom) : undefined}
       onInitialized={onInitialized}
       locationOverlay={{
         isVisible: !!userLocation,
@@ -314,68 +313,39 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
           onReviewSuggestionMarkerPress?.(marker.id);
         };
         return (
-          <React.Fragment key={`review-${marker.id}-${isActive}`}>
-            {/* 멀리서 보는 작은 점 (누른 핀은 줌과 상관없이 알약으로만 보인다) */}
-            {!isActive && (
-              <NaverMapMarkerOverlay
-                latitude={marker.latitude}
-                longitude={marker.longitude}
-                width={REVIEW_DOT_SIZE}
-                height={REVIEW_DOT_SIZE}
-                anchor={MARKER_ANCHOR}
-                maxZoom={REVIEW_PILL_MIN_ZOOM}
-                isMaxZoomInclusive={false}
-                zIndex={buildingMarkers.length + 2 + reviewSuggestionMarkers.length - index}
-                isHideCollidedSymbols
-                onTap={onTap}
-                caption={{
-                  text: String(marker.photoCount),
-                  align: 'Center',
-                  textSize: 11,
-                  color: '#FFFFFF',
-                }}
-              >
-                <View
-                  key={`dot/${marker.photoCount}`}
-                  collapsable={false}
-                  style={[styles.reviewDot, { backgroundColor: color }]}
-                />
-              </NaverMapMarkerOverlay>
-            )}
-            <NaverMapMarkerOverlay
-              latitude={marker.latitude}
-              longitude={marker.longitude}
-              width={width}
-              height={height}
-              anchor={ACTIVE_MARKER_ANCHOR}
-              // 다녀온 곳끼리 겹치면 최근에 간 곳(배열 앞쪽)만 남기고 숨긴다 (줌인하면 다시 보인다). 건물 라벨보다는 항상 위
-              zIndex={
-                isActive
-                  ? SELECTED_MARKER_Z_INDEX
-                  : buildingMarkers.length + 2 + reviewSuggestionMarkers.length - index
-              }
-              minZoom={isActive ? undefined : REVIEW_PILL_MIN_ZOOM}
-              isHideCollidedMarkers
-              isForceShowIcon={isActive}
-              isHideCollidedSymbols
-              onTap={onTap}
-              caption={{
-                text: `${marker.name}  ${reviewPinCountText(marker.photoCount)}`,
-                align: 'Center',
-                textSize: REVIEW_PIN_FONT_SIZE,
-                color: '#FFFFFF',
-              }}
+          <NaverMapMarkerOverlay
+            key={`review-${marker.id}-${isActive}`}
+            latitude={marker.latitude}
+            longitude={marker.longitude}
+            width={width}
+            height={height}
+            anchor={ACTIVE_MARKER_ANCHOR}
+            // 겹치는 다녀온 곳은 화면(index.tsx)에서 "대표 외 N곳"으로 미리 묶는다. 그래도 겹치면 앞쪽(최근)만 남긴다. 건물 라벨보다는 항상 위
+            zIndex={
+              isActive
+                ? SELECTED_MARKER_Z_INDEX
+                : buildingMarkers.length + 2 + reviewSuggestionMarkers.length - index
+            }
+            isHideCollidedMarkers
+            isForceShowIcon={isActive}
+            isHideCollidedSymbols
+            onTap={onTap}
+            caption={{
+              text: `${marker.name}  ${reviewPinCountText(marker.photoCount)}`,
+              align: 'Center',
+              textSize: REVIEW_PIN_FONT_SIZE,
+              color: '#FFFFFF',
+            }}
+          >
+            <View
+              key={`${marker.name}/${marker.photoCount}/${width}/${isActive}`}
+              collapsable={false}
+              style={{ width, height, alignItems: 'center', paddingTop: REVIEW_PIN_TAIL_HEIGHT }}
             >
-              <View
-                key={`${marker.name}/${marker.photoCount}/${width}/${isActive}`}
-                collapsable={false}
-                style={{ width, height, alignItems: 'center', paddingTop: REVIEW_PIN_TAIL_HEIGHT }}
-              >
-                <View style={[styles.reviewPinBody, { width, backgroundColor: color }]} />
-                <View style={[styles.reviewPinTail, { borderTopColor: color }]} />
-              </View>
-            </NaverMapMarkerOverlay>
-          </React.Fragment>
+              <View style={[styles.reviewPinBody, { width, backgroundColor: color }]} />
+              <View style={[styles.reviewPinTail, { borderTopColor: color }]} />
+            </View>
+          </NaverMapMarkerOverlay>
         );
       })}
       {placeMarkerIcon &&
@@ -420,13 +390,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  reviewDot: {
-    width: REVIEW_DOT_SIZE,
-    height: REVIEW_DOT_SIZE,
-    borderRadius: REVIEW_DOT_SIZE / 2,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
   },
   reviewPinBody: {
     height: REVIEW_PIN_BODY_HEIGHT,

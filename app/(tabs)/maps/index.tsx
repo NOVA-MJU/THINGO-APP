@@ -55,6 +55,7 @@ import SheetStackLayer from './_components/sheet-stack-layer';
 import VisitedPlacesButton from './_components/visited-places-button';
 import VisitCandidatesSheet from './_components/sheets/sheet-visit-candidates';
 import UnknownPlaceSheet from './_components/sheets/sheet-unknown-place';
+import VisitGroupSheet from './_components/sheets/sheet-visit-group';
 import CATEGORIES from './_constants/category-data';
 import { CampusIcon, CurrentLocationIcon, MoreIcon, StarIcon } from '@/components/icons/map';
 import { useMapSearchSelection } from '@/context/map-search-selection';
@@ -66,6 +67,7 @@ import {
   getDistanceFromCampusKm,
 } from '@/lib/maps/campus';
 import { getMapIconKey } from '@/lib/maps/icons';
+import { clusterOverlappingPoints } from '@/lib/maps/cluster-visits';
 import { findSymbolMatch, type SymbolPoint } from '@/lib/maps/match-symbol';
 import { fetchReviewablePlaces } from '@/hooks/use-place-photos';
 import { cn } from '@/lib/utils';
@@ -90,6 +92,8 @@ const SNAP_POINTS = ['10%', '50%', '100%'];
 // 그 위치에 리뷰 영역 위 여백(mt-5)이 포함돼 있어 내 사진 카드 아래가 살짝 남는다
 const SHEET_HANDLE_HEIGHT = 36;
 const PEEK_BOTTOM_MARGIN = 8;
+// 다녀온 곳 묶음 핀의 마커 id 앞에 붙인다 (뒤에 묶인 key들을 쉼표로 잇는다)
+const VISIT_GROUP_ID_PREFIX = 'group:';
 // 캠퍼스 건물 이름이 다 보이는 줌 (처음 열 때, 학교로 돌아가기 버튼). 웹(JS SDK)은 같은 줌 값이 앱보다 한 단계 멀리 보여서 1을 더한다
 const CAMPUS_ZOOM = Platform.OS === 'web' ? 17 : 16;
 const MAP_CONTROL_SHADOW = {
@@ -126,6 +130,8 @@ type SheetScreenInit =
   | { kind: 'bus'; station: BusStopStation }
   // 내 사진첩 "다녀온 곳" 핀의 후보 가게 고르기 (useVisitedPlaces 결과의 key)
   | { kind: 'visit'; visitKey: string }
+  // 지도에서 "대표 가게 외 N곳"으로 묶인 다녀온 곳 핀 (useVisitedPlaces 결과의 key 목록, 최근 순)
+  | { kind: 'visit-group'; visitKeys: string[] }
   // 네이버 기본 글자를 눌렀는데 우리 DB에 없는 곳
   | { kind: 'symbol'; caption: string }
   | { kind: 'category' };
@@ -646,22 +652,8 @@ export default function MapsScreen() {
   const [placePeekHeights, setPlacePeekHeights] = React.useState<Record<string, number>>({});
   // 다녀온 곳 핀은 기본으로 숨기고, 왼쪽 아래 버튼을 눌렀을 때만 띄운다 (앱을 다시 열면 다시 숨김)
   const [visitedPinsShown, setVisitedPinsShown] = React.useState(false);
-  const reviewSuggestionMarkers = React.useMemo(
-    () =>
-      visitedPlaces.places.map((visit) => {
-        const [nearest, ...others] = visit.candidates;
-        return {
-          id: visit.key,
-          latitude: nearest.latitude,
-          longitude: nearest.longitude,
-          // 붙어 있는 가게라 어느 곳인지 모르면 "OO 외 N곳"으로 띄우고, 누르면 고르게 한다
-          name: others.length ? `${nearest.name} 외 ${others.length}곳` : nearest.name,
-          photoCount: visit.photoIds.length,
-        };
-      }),
-    [visitedPlaces.places]
-  );
-
+  // 지도 줌 (이동·확대가 끝났을 때). 다녀온 곳 핀을 화면에서 겹치는 것끼리 묶는 데 쓴다
+  const [mapZoom, setMapZoom] = React.useState(CAMPUS_ZOOM);
   // 지금 보고 있는 다녀온 곳 핀 (후보 고르기 시트, 또는 그 핀에서 연 가게 상세). 그 핀을 진하게, 맨 위로 그린다
   const selectedVisitKey = React.useMemo(() => {
     const visitScreen = sheetStack.find(
@@ -673,6 +665,64 @@ export default function MapsScreen() {
       visit.candidates.some((candidate) => candidate.id === selectedPlaceId)
     )?.key;
   }, [sheetStack, selectedPlaceId, visitedPlaces.places]);
+
+  // 다녀온 곳 핀. 화면에서 겹치는 곳끼리 "대표 가게 외 N곳"으로 묶고(대표는 최근에 간 곳), 지금 보고 있는 곳은 묶지 않고 따로 띄운다
+  const reviewSuggestionMarkers = React.useMemo(() => {
+    const visitMarkers = visitedPlaces.places.map((visit) => {
+      const [nearest, ...others] = visit.candidates;
+      return {
+        id: visit.key,
+        latitude: nearest.latitude,
+        longitude: nearest.longitude,
+        placeName: nearest.name,
+        // 붙어 있는 가게라 어느 곳인지 모르면 "OO 외 N곳"으로 띄우고, 누르면 고르게 한다
+        name: others.length ? `${nearest.name} 외 ${others.length}곳` : nearest.name,
+        photoCount: visit.photoIds.length,
+      };
+    });
+    const selectedMarkers = visitMarkers.filter((marker) => marker.id === selectedVisitKey);
+    const groupedMarkers = clusterOverlappingPoints(
+      visitMarkers.filter((marker) => marker.id !== selectedVisitKey),
+      mapZoom
+    ).map(({ representative, members }) =>
+      members.length === 1
+        ? representative
+        : {
+            ...representative,
+            id: VISIT_GROUP_ID_PREFIX + members.map((member) => member.id).join(','),
+            name: `${representative.placeName} 외 ${members.length - 1}곳`,
+            photoCount: members.reduce((sum, member) => sum + member.photoCount, 0),
+          }
+    );
+    return [...selectedMarkers, ...groupedMarkers];
+  }, [visitedPlaces.places, selectedVisitKey, mapZoom]);
+
+  function onVisitedMarkerPress(markerId: string) {
+    if (!markerId.startsWith(VISIT_GROUP_ID_PREFIX)) {
+      openVisitedPlace(markerId);
+      return;
+    }
+    const visitKeys = markerId.slice(VISIT_GROUP_ID_PREFIX.length).split(',');
+    const [representative] = visitedPlaces.places.filter((visit) => visitKeys.includes(visit.key));
+    hideQuickTooltips();
+    clearSearchResult();
+    if (representative) {
+      mapRef.current?.animateCameraTo(
+        representative.candidates[0].latitude,
+        representative.candidates[0].longitude
+      );
+    }
+    const top = sheetStack[sheetStack.length - 1] as SheetScreen | undefined;
+    if (top?.kind === 'visit-group') {
+      setSheetStack((prev) => [
+        ...prev.slice(0, -1),
+        { kind: 'visit-group', visitKeys, key: top.key, initialIndex: top.initialIndex },
+      ]);
+      raiseLayer(top.key);
+      return;
+    }
+    pushSheet({ kind: 'visit-group', visitKeys });
+  }
 
   function openVisitedPlace(key: string) {
     const visit = visitedPlaces.places.find((item) => item.key === key);
@@ -1226,6 +1276,11 @@ export default function MapsScreen() {
       return <UnknownPlaceSheet caption={screen.caption} onClose={popSheet} />;
     }
 
+    if (screen.kind === 'visit-group') {
+      const visits = visitedPlaces.places.filter((visit) => screen.visitKeys.includes(visit.key));
+      return <VisitGroupSheet visits={visits} onSelect={openVisitedPlace} onClose={popSheet} />;
+    }
+
     if (screen.kind === 'visit') {
       const visit = visitedPlaces.places.find((item) => item.key === screen.visitKey);
       if (!visit) {
@@ -1290,7 +1345,7 @@ export default function MapsScreen() {
         reviewSuggestionMarkers={
           isMapOverlayFree && visitedPinsShown ? reviewSuggestionMarkers : []
         }
-        onReviewSuggestionMarkerPress={openVisitedPlace}
+        onReviewSuggestionMarkerPress={onVisitedMarkerPress}
         selectedReviewSuggestionId={selectedVisitKey}
         placeMarkers={
           selectedSearchResult
@@ -1319,6 +1374,7 @@ export default function MapsScreen() {
         onBuildingMarkerPress={onBuildingMarkerPress}
         onPlaceMarkerPress={onPlaceMarkerPress}
         onSymbolPress={onSymbolPress}
+        onZoomChange={setMapZoom}
       />
 
       {/* 플로팅 헤더 */}
