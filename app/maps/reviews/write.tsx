@@ -10,10 +10,9 @@ import {
 } from '@/lib/maps/place-reviews';
 import { ReviewVideoThumbnail } from '@/components/maps/review-video-thumbnail';
 import PlacePhotoSuggestions from './_components/place-photo-suggestions';
-import { VISITED_PLACES_QUERY_KEY } from '@/hooks/use-visited-places';
+import { refreshMyPhotoSuggestions } from '@/hooks/use-visited-places';
 import { markPlaceReviewed } from '@/lib/maps/reviewed-places';
-import { dismissPlacePhotos, markReviewImagesChecked } from '@/lib/maps/dismissed-place-photos';
-import { PLACE_PHOTOS_QUERY_KEY } from '@/hooks/use-place-photos';
+import { rememberReviewPhotos } from '@/lib/maps/uploaded-review-photos';
 import { useQueryClient } from '@tanstack/react-query';
 import { useMediaUpload } from '@/hooks/useImageUpload';
 import { ArrowLeftIcon, InfoOutlineIcon, PlusIcon, XIcon } from '@/components/icons';
@@ -267,6 +266,7 @@ export default function PlaceReviewWriteScreen() {
 
     setIsSubmitting(true);
     try {
+      let savedReviewId = resolvedReviewId;
       if (resolvedReviewId) {
         await updatePlaceReview(resolvedReviewId, {
           content: content.trim(),
@@ -275,7 +275,7 @@ export default function PlaceReviewWriteScreen() {
           keywordIds: selectedKeywordIds,
         });
       } else {
-        await createPlaceReview({
+        const createdReview = await createPlaceReview({
           placeId: numericPlaceId,
           placeName: resolvedPlaceName,
           authorUuid: user?.uuid ?? null,
@@ -286,23 +286,18 @@ export default function PlaceReviewWriteScreen() {
           mediaItems,
           keywordIds: selectedKeywordIds,
         });
-        // 지도의 "리뷰 남길 곳" 핀에서 이 장소를 뺀다
+        savedReviewId = createdReview.id;
+        // 이 기기에서 리뷰를 쓴 가게. 다녀온 곳 핀이 이 가게의 예전 리뷰 사진을 사진첩과 비교할 때 쓴다
         await markPlaceReviewed(numericPlaceId).catch(() => undefined);
       }
       // 리뷰에 올린 내 사진은 "여기서 찍은 내 사진"과 다녀온 곳 핀에서 뺀다 (이미 올린 사진을 다시 권하지 않게).
-      // 숨긴 사진과 같은 목록에 기억하고, 기억하지 못해도 리뷰는 이미 올라갔으니 실패는 넘어간다
-      const uploadedPhotoIds = mediaItems.flatMap((item) =>
-        item.libraryPhotoId ? [item.libraryPhotoId] : []
-      );
-      const uploadedPhotoUrls = mediaItems.flatMap((item) =>
-        item.libraryPhotoId ? [item.url] : []
-      );
-      await Promise.all([
-        dismissPlacePhotos([numericPlaceId], uploadedPhotoIds),
-        markReviewImagesChecked(uploadedPhotoUrls),
-      ]).catch(() => undefined);
-      void queryClient.invalidateQueries({ queryKey: PLACE_PHOTOS_QUERY_KEY });
-      void queryClient.invalidateQueries({ queryKey: VISITED_PLACES_QUERY_KEY });
+      // 리뷰별로 기억해서 고칠 때 뺀 사진은 다시 나온다. 기억하지 못해도 리뷰는 이미 올라갔으니 실패는 넘어간다
+      if (savedReviewId) {
+        await rememberReviewPhotos(savedReviewId, numericPlaceId, mediaItems).catch(
+          () => undefined
+        );
+      }
+      refreshMyPhotoSuggestions(queryClient);
       router.back();
     } catch (error) {
       if (isLoginRequiredError(error)) {

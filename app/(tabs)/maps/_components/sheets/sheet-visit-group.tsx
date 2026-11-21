@@ -10,9 +10,8 @@ import * as React from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
 
 // 다녀온 곳 목록. 붙어 있는 가게라 사진 한 묶음에 후보가 여러 곳이어도 "외 N곳"으로 접지 않고 가게마다 한 줄씩 보여줘서 바로 고르게 한다.
-// 두 곳에서 쓴다
-// - 지도에서 "대표 가게 외 N곳"으로 묶인 핀을 눌렀을 때: 묶인 곳을 최근 방문 순으로, 고르면 그 곳 화면으로 간다
-// - "다녀온 곳 N" 버튼으로 핀을 켰을 때: 전체를 지도 가운데에서 가까운 순으로, 고르면 그 핀으로 지도를 옮긴다
+// "다녀온 곳 N" 버튼으로 핀을 켰을 때 뜬다: 전체를 지도 가운데에서 가까운 순으로, 고르면 그 핀으로 지도를 옮긴다
+// (핀을 누르면 사진을 날짜별로 보고 가게를 고르는 sheet-visit-candidates.tsx가 뜬다)
 export default function VisitGroupSheet({
   visits,
   title,
@@ -87,7 +86,7 @@ export default function VisitGroupSheet({
                 <Text className="text-grey-40 text-caption02">
                   {[
                     formatVisitDate(visit.lastVisitAt),
-                    `사진 ${visit.photoIds.length}장`,
+                    `사진 ${visit.photos.length}장`,
                     center && formatMapDistance(distanceMeters(candidate, center)),
                   ]
                     .filter(Boolean)

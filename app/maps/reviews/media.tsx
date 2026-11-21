@@ -8,6 +8,8 @@ import {
 import { ZoomableMedia } from '@/components/maps/reviews/zoomable-media';
 import { Text } from '@/components/ui/text';
 import { isLoginRequiredError } from '@/api/client';
+import { refreshMyPhotoSuggestions } from '@/hooks/use-visited-places';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/context/auth-context';
 import { useLoginRequiredModal } from '@/context/login-required-modal-context';
 import OwnReviewActionsDialog from './_components/own-review-actions-dialog';
@@ -68,6 +70,7 @@ export default function PlaceReviewMediaScreen() {
   const { height: windowHeight } = useWindowDimensions();
   const { user } = useAuth();
   const { showLoginRequiredModal } = useLoginRequiredModal();
+  const queryClient = useQueryClient();
   const { imageUrl, reviewId, placeName, placeId, mediaIndex, mediaSource } = useLocalSearchParams<{
     imageUrl?: string | string[];
     reviewId?: string | string[];
@@ -511,7 +514,11 @@ export default function PlaceReviewMediaScreen() {
       '삭제한 리뷰와 사진은 되돌릴 수 없어요.',
       () => {
         deletePlaceReview(activeReview.id)
-          .then(() => router.back())
+          .then(() => {
+            // 지운 리뷰에 올렸던 내 사진을 다시 "여기서 찍은 내 사진"으로 보여준다
+            refreshMyPhotoSuggestions(queryClient);
+            router.back();
+          })
           .catch((error) => {
             if (isLoginRequiredError(error)) showLoginRequiredModal();
             else showAlert('리뷰 삭제 실패', '잠시 후 다시 시도해주세요.');

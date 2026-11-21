@@ -27,3 +27,13 @@ export function formatVisitDate(ms: number) {
   const prefix = date.getFullYear() === new Date().getFullYear() ? '' : `${date.getFullYear()}년 `;
   return `${prefix}${date.getMonth() + 1}월 ${date.getDate()}일`;
 }
+
+const WEEKDAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
+
+// 사진 찍은 날 ('YYYY-MM-DD' 기기 로컬 날짜): 올해면 '11월 12일 (수)', 지난해 이전이면 '2025년 11월 12일 (수)'
+export function formatPhotoDay(day: string) {
+  const [year, month, date] = day.split('-').map(Number);
+  const weekday = WEEKDAY_NAMES[new Date(year, month - 1, date).getDay()];
+  const prefix = year === new Date().getFullYear() ? '' : `${year}년 `;
+  return `${prefix}${month}월 ${date}일 (${weekday})`;
+}
