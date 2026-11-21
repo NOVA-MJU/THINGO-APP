@@ -83,7 +83,9 @@ pnpm expo run:android
 - 장소 상세(`sheet-place-detail.tsx`)와 리뷰 작성은 같은 훅 `hooks/use-place-photos.ts`(같은 react-query 캐시)를 쓴다
 - 사진 찾기는 기간·장수 제한 없이 사진첩 전체를 본다. 사진마다 위치를 따로 묻는 expo-media-library로는 수만 장이 너무 느려서, 로컬 네이티브 모듈 `modules/photo-location-scan`(iOS 전용, `./modules`는 Expo 자동 링크 대상)이 PHAsset 목록을 한 번 훑으며 좌표 상자 안 사진만 돌려준다. 이 모듈을 바꾸면 스토어 빌드가 새로 나가야 반영된다
 - 지도의 다홍색 "다녀온 곳" 핀(`hooks/use-visited-places.ts`)은 대동명지도 가게 전체(`/map/categories/daedong/markers`)와 내 사진 위치를 기기 안에서 비교해 만든다. 대동 상권은 가게가 몇 m 간격이라 GPS로 가릴 수 없어서, 가장 가까운 가게와 10m(`PLACE_AMBIGUITY_METERS`) 안 가게는 후보로 묶고 "이 사진, 어디서 찍었나요?" 시트에서 고르게 한다. 장소 상세의 사진 수도 같은 기준(`filterPhotosForPlace`)이라 핀과 맞는다
+- 장소 사진과 다녀온 곳은 음식·음료 사진만 쓴다. 같은 네이티브 모듈의 `classifyPhotos`(Apple Vision, 기기 안)로 라벨을 받아 `lib/photo-food.ts`가 음식인지 보고, 라벨은 AsyncStorage에 기억해 새 사진만 분류한다(`lib/photo-labels.ts`). 사진 음식으로 붙어 있는 가게 후보도 좁힌다(커피면 카페만, 맞는 곳이 없으면 그대로). 확인: `node lib/photo-food.check.mjs`
 - 이 기기에서 리뷰를 쓴 가게는 AsyncStorage(`lib/maps/reviewed-places.ts`)에 기억해 핀에서 뺀다. 서버에 "내가 쓴 리뷰" API가 생기면 그걸로 바꾼다
+- 학교 주변이 좁아 이름 알약을 다 띄우면 겹친다. 줌 17 미만은 사진 수만 적힌 작은 점, 17부터 가게 이름 알약으로 그린다(`REVIEW_PILL_MIN_ZOOM`). 누른 핀은 줌과 상관없이 알약이다
 - 핀은 기본으로 숨기고 지도 왼쪽 아래 "다녀온 곳 N" 버튼을 눌렀을 때만 띄운다(다시 누르면 숨김, 저장하지 않아 앱을 다시 열면 숨김). 핀 글자는 SDK 캡션이 마커 전체 높이 가운데에 놓여서, 꼬리 높이만큼 위에 빈칸을 둬 알약 가운데에 맞춘다
 - iOS 지도 마커의 자식 뷰는 이미지로 찍히는데 그 시점에 RN Text가 그려지지 않는다. 라벨 글자는 SDK `caption`(`align: 'Center'`)으로 얹고 뷰는 배경만 그린다 (`components/naver-map/naver-map.native.tsx`)
 

@@ -17,7 +17,12 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Text } from '@/components/ui/text';
 import { BUS_STOPS, type BusStopStation } from '@/lib/maps/bus-stops';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Head from 'expo-router/head';
@@ -32,6 +37,7 @@ import {
   Pressable,
   ScrollView,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -46,6 +52,7 @@ import SheetHandle from './_components/sheets/sheet-handle';
 import SheetStackLayer from './_components/sheet-stack-layer';
 import VisitedPlacesButton from './_components/visited-places-button';
 import VisitCandidatesSheet from './_components/sheets/sheet-visit-candidates';
+import UnknownPlaceSheet from './_components/sheets/sheet-unknown-place';
 import CATEGORIES from './_constants/category-data';
 import { CampusIcon, CurrentLocationIcon, MoreIcon, StarIcon } from '@/components/icons/map';
 import { useMapSearchSelection } from '@/context/map-search-selection';
@@ -57,6 +64,8 @@ import {
   getDistanceFromCampusKm,
 } from '@/lib/maps/campus';
 import { getMapIconKey } from '@/lib/maps/icons';
+import { findSymbolMatch, type SymbolPoint } from '@/lib/maps/match-symbol';
+import { fetchReviewablePlaces } from '@/hooks/use-place-photos';
 import { cn } from '@/lib/utils';
 import { useVisitedPlaces, type VisitedPlaceCandidate } from '@/hooks/use-visited-places';
 
@@ -75,6 +84,9 @@ const QUICK_CHIPS = ALL_CHIPS.filter((chip) => QUICK_CHIP_IDS.includes(chip.id))
 );
 
 const SNAP_POINTS = ['10%', '50%', '100%'];
+// 장소 시트는 중간 높이를 내용에 맞춘다: 핸들(sheet-handle.tsx의 py-4 + 막대 4px) + 리뷰 첫 칸까지 + 아래 여백
+const SHEET_HANDLE_HEIGHT = 36;
+const PEEK_BOTTOM_MARGIN = 16;
 // 캠퍼스 건물 이름이 다 보이는 줌 (처음 열 때, 학교로 돌아가기 버튼). 웹(JS SDK)은 같은 줌 값이 앱보다 한 단계 멀리 보여서 1을 더한다
 const CAMPUS_ZOOM = Platform.OS === 'web' ? 17 : 16;
 const MAP_CONTROL_SHADOW = {
@@ -111,6 +123,8 @@ type SheetScreenInit =
   | { kind: 'bus'; station: BusStopStation }
   // 내 사진첩 "다녀온 곳" 핀의 후보 가게 고르기 (useVisitedPlaces 결과의 key)
   | { kind: 'visit'; visitKey: string }
+  // 네이버 기본 글자를 눌렀는데 우리 DB에 없는 곳
+  | { kind: 'symbol'; caption: string }
   | { kind: 'category' };
 type SheetScreen = SheetScreenInit & { key: string; initialIndex: number };
 
@@ -623,6 +637,10 @@ export default function MapsScreen() {
 
   // 내 사진첩 기준 "다녀온 곳"(리뷰 남길 곳) 핀. iOS에서 사진 권한이 있을 때만 생긴다
   const visitedPlaces = useVisitedPlaces();
+  const queryClient = useQueryClient();
+  const { height: windowHeight } = useWindowDimensions();
+  // 장소 시트 레이어별로 잰 "리뷰 첫 칸까지" 높이 (layerSnapPoints)
+  const [placePeekHeights, setPlacePeekHeights] = React.useState<Record<string, number>>({});
   // 다녀온 곳 핀은 기본으로 숨기고, 왼쪽 아래 버튼을 눌렀을 때만 띄운다 (앱을 다시 열면 다시 숨김)
   const [visitedPinsShown, setVisitedPinsShown] = React.useState(false);
   const reviewSuggestionMarkers = React.useMemo(
@@ -641,6 +659,18 @@ export default function MapsScreen() {
     [visitedPlaces.places]
   );
 
+  // 지금 보고 있는 다녀온 곳 핀 (후보 고르기 시트, 또는 그 핀에서 연 가게 상세). 그 핀을 진하게, 맨 위로 그린다
+  const selectedVisitKey = React.useMemo(() => {
+    const visitScreen = sheetStack.find(
+      (s): s is Extract<SheetScreen, { kind: 'visit' }> => s.kind === 'visit'
+    );
+    if (visitScreen) return visitScreen.visitKey;
+    if (selectedPlaceId === null) return undefined;
+    return visitedPlaces.places.find((visit) =>
+      visit.candidates.some((candidate) => candidate.id === selectedPlaceId)
+    )?.key;
+  }, [sheetStack, selectedPlaceId, visitedPlaces.places]);
+
   function openVisitedPlace(key: string) {
     const visit = visitedPlaces.places.find((item) => item.key === key);
     if (!visit) return;
@@ -658,9 +688,48 @@ export default function MapsScreen() {
         ...prev.slice(0, -1),
         { kind: 'visit', visitKey: key, key: top.key, initialIndex: top.initialIndex },
       ]);
+      raiseLayer(top.key);
       return;
     }
     pushSheet({ kind: 'visit', visitKey: key });
+  }
+
+  // 네이버 기본 글자(심벌)를 누르면 이름·위치로 우리 건물·가게를 찾아 그 시트를 연다. 없으면 "띵고에 아직 없는 곳" 시트
+  async function onSymbolPress(symbol: SymbolPoint) {
+    const building = findSymbolMatch(symbol, buildings);
+    if (building) {
+      onBuildingMarkerPress(String(building.id));
+      return;
+    }
+    // 가게 목록은 다녀온 곳 찾기와 같은 캐시라 보통 이미 받아 둔 상태다. 실패하면 없는 곳으로 보여준다
+    const places = await fetchReviewablePlaces(queryClient).catch(() => []);
+    const place = findSymbolMatch(
+      symbol,
+      places.map((place) => ({ ...place, name: place.title }))
+    );
+    if (place) {
+      selectCategoryPin({
+        id: place.id,
+        type: 'FACILITY',
+        latitude: place.latitude,
+        longitude: place.longitude,
+      });
+      return;
+    }
+
+    hideQuickTooltips();
+    clearSearchResult();
+    mapRef.current?.animateCameraTo(symbol.latitude, symbol.longitude);
+    const top = sheetStack[sheetStack.length - 1] as SheetScreen | undefined;
+    if (top?.kind === 'symbol') {
+      setSheetStack((prev) => [
+        ...prev.slice(0, -1),
+        { kind: 'symbol', caption: symbol.caption, key: top.key, initialIndex: top.initialIndex },
+      ]);
+      raiseLayer(top.key);
+      return;
+    }
+    pushSheet({ kind: 'symbol', caption: symbol.caption });
   }
 
   function openVisitCandidate(candidate: VisitedPlaceCandidate) {
@@ -864,8 +933,12 @@ export default function MapsScreen() {
   function onBusStopMarkerPress(id: string) {
     const busStop = BUS_STOPS.find((s) => s.id === id);
     if (!busStop) return;
-    // 이미 선택돼있는 정류장 핀을 또 클릭한 경우 - 아무 동작도 하지 않는다
-    if (selectedBusStopId === id) return;
+    // 이미 선택돼있는 정류장 핀을 또 클릭한 경우 - 내려 둔 시트만 다시 올린다
+    if (selectedBusStopId === id) {
+      const top = sheetStack[sheetStack.length - 1];
+      if (top) raiseLayer(top.key);
+      return;
+    }
 
     hideQuickTooltips();
     clearSearchResult();
@@ -1057,6 +1130,14 @@ export default function MapsScreen() {
   }
 
   // 스택 레이어 하나의 콘텐츠 렌더링 (상세 데이터 로딩 중에는 스피너 표시)
+  // 레이어별 시트 높이. 장소 시트는 내용(리뷰 첫 칸까지)을 재서 중간 높이로 쓰고, 화면의 30~85% 안으로 맞춘다
+  function layerSnapPoints(screen: SheetScreen) {
+    const peek = screen.kind === 'place' ? placePeekHeights[screen.key] : undefined;
+    if (!peek) return SNAP_POINTS;
+    const height = SHEET_HANDLE_HEIGHT + peek + PEEK_BOTTOM_MARGIN;
+    return ['10%', Math.min(Math.max(height, windowHeight * 0.3), windowHeight * 0.85), '100%'];
+  }
+
   function renderStackScreenContent(screen: SheetScreen) {
     if (screen.kind === 'category') {
       return <CategoryList onChipPress={onQuickChipPress} onClose={popSheet} />;
@@ -1119,6 +1200,10 @@ export default function MapsScreen() {
       return <BusInfoSheet station={screen.station} onClose={popSheet} />;
     }
 
+    if (screen.kind === 'symbol') {
+      return <UnknownPlaceSheet caption={screen.caption} onClose={popSheet} />;
+    }
+
     if (screen.kind === 'visit') {
       const visit = visitedPlaces.places.find((item) => item.key === screen.visitKey);
       if (!visit) {
@@ -1140,7 +1225,17 @@ export default function MapsScreen() {
         </View>
       );
     }
-    return <PlaceDetailSheet place={selectedPlaceDetail} onClose={popSheet} />;
+    return (
+      <PlaceDetailSheet
+        place={selectedPlaceDetail}
+        onClose={popSheet}
+        onPeekHeightChange={(height) =>
+          setPlacePeekHeights((prev) =>
+            prev[screen.key] === height ? prev : { ...prev, [screen.key]: height }
+          )
+        }
+      />
+    );
   }
 
   return (
@@ -1174,6 +1269,7 @@ export default function MapsScreen() {
           isMapOverlayFree && visitedPinsShown ? reviewSuggestionMarkers : []
         }
         onReviewSuggestionMarkerPress={openVisitedPlace}
+        selectedReviewSuggestionId={selectedVisitKey}
         placeMarkers={
           selectedSearchResult
             ? searchResultMarkers
@@ -1200,6 +1296,7 @@ export default function MapsScreen() {
         onBusStopMarkerPress={onBusStopMarkerPress}
         onBuildingMarkerPress={onBuildingMarkerPress}
         onPlaceMarkerPress={onPlaceMarkerPress}
+        onSymbolPress={onSymbolPress}
       />
 
       {/* 플로팅 헤더 */}
@@ -1386,7 +1483,7 @@ export default function MapsScreen() {
             key={screen.key}
             sheetRef={getLayerRef(screen.key)}
             initialIndex={screen.initialIndex}
-            snapPoints={SNAP_POINTS}
+            snapPoints={layerSnapPoints(screen)}
             topInset={insets.top}
             onChange={(index) => updateLayerIndex(screen.key, index)}
             onClose={() => handleLayerClosed(screen.key, belowKey)}

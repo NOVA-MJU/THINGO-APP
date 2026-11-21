@@ -30,9 +30,12 @@ import { usePlacePhotos } from '@/hooks/use-place-photos';
 export default function PlaceDetailSheet({
   place,
   onClose,
+  onPeekHeightChange,
 }: {
   place: MapPlaceDetail;
   onClose?: () => void;
+  // 시트를 처음 열 높이(내용 위에서부터 리뷰 첫 칸 아래 끝까지, px). 지도 화면이 시트 중간 높이로 쓴다
+  onPeekHeightChange?: (height: number) => void;
 }) {
   const router = useRouter();
   const Icon = getMapIcon(place.iconKey ?? '', place.categoryCode);
@@ -48,6 +51,14 @@ export default function PlaceDetailSheet({
     [place.latitude, place.longitude]
   );
   const myPhotos = usePlacePhotos(place.id, placePoint);
+  // 리뷰 영역(PlaceCommunitySection)이 시트 내용 맨 위에서 떨어진 거리
+  const [communityY, setCommunityY] = React.useState<number | null>(null);
+  const onPeekBottomChange = React.useCallback(
+    (bottom: number) => {
+      if (communityY !== null) onPeekHeightChange?.(communityY + bottom);
+    },
+    [communityY, onPeekHeightChange]
+  );
   const myVisits = myPhotos.status === 'granted' ? (myPhotos.visits ?? []) : [];
   const hasMyPhotos = myVisits.length > 0;
   // 장소 대표 사진이 없으면 리뷰 사진으로 위쪽 큰 사진 자리를 채운다
@@ -187,64 +198,67 @@ export default function PlaceDetailSheet({
             </View>
           )}
 
-          <PlaceCommunitySection
-            placeName={place.name}
-            categoryCode={place.categoryCode}
-            reviews={reviews}
-            reviewMediaItems={reviewMediaItems}
-            onReviewsChange={setReviews}
-            onReviewDeleted={(reviewId) => {
-              setReviewMediaItems((previous) =>
-                previous.filter((item) => item.reviewId !== reviewId)
-              );
-            }}
-            onSortChange={(sort) => void loadReviews(sort)}
-            onWriteReview={() => openWriteReview()}
-            mediaEmptyContent={
-              !isReviewMediaLoaded ? null : hasMyPhotos ? (
-                <MyPlacePhotosCard
-                  key={place.id}
-                  visits={myVisits}
-                  photoCount={myPhotos.photoCount}
-                  onWriteReview={openWriteReview}
-                />
-              ) : (
-                <EmptyPlaceMedia
-                  searching={
-                    myPhotos.status === 'granted' && myPhotos.isFetching && !myPhotos.visits
-                  }
-                  onAddPhoto={() => openWriteReview()}
-                  onFindMine={
-                    myPhotos.status === 'undetermined'
-                      ? () => void myPhotos.requestPermission()
-                      : undefined
-                  }
-                />
-              )
-            }
-            mediaFooter={
-              hasMyPhotos ? (
-                <MyPlacePhotosNudge
-                  photos={myVisits[0].photos}
-                  photoCount={myPhotos.photoCount}
-                  onPress={() => openWriteReview()}
-                />
-              ) : null
-            }
-            showReviewPrompt={isReviewMediaLoaded && reviewMediaItems.length > 0 && !hasMyPhotos}
-            onOpenMedia={(reviewId, mediaIndex, source) =>
-              router.push({
-                pathname: '/maps/reviews/media',
-                params: {
-                  placeId: String(place.id),
-                  placeName: place.name,
-                  reviewId,
-                  mediaIndex: mediaIndex != null ? String(mediaIndex) : undefined,
-                  mediaSource: source,
-                },
-              })
-            }
-          />
+          <View onLayout={(event) => setCommunityY(event.nativeEvent.layout.y)}>
+            <PlaceCommunitySection
+              onPeekBottomChange={onPeekBottomChange}
+              placeName={place.name}
+              categoryCode={place.categoryCode}
+              reviews={reviews}
+              reviewMediaItems={reviewMediaItems}
+              onReviewsChange={setReviews}
+              onReviewDeleted={(reviewId) => {
+                setReviewMediaItems((previous) =>
+                  previous.filter((item) => item.reviewId !== reviewId)
+                );
+              }}
+              onSortChange={(sort) => void loadReviews(sort)}
+              onWriteReview={() => openWriteReview()}
+              mediaEmptyContent={
+                !isReviewMediaLoaded ? null : hasMyPhotos ? (
+                  <MyPlacePhotosCard
+                    key={place.id}
+                    visits={myVisits}
+                    photoCount={myPhotos.photoCount}
+                    onWriteReview={openWriteReview}
+                  />
+                ) : (
+                  <EmptyPlaceMedia
+                    searching={
+                      myPhotos.status === 'granted' && myPhotos.isFetching && !myPhotos.visits
+                    }
+                    onAddPhoto={() => openWriteReview()}
+                    onFindMine={
+                      myPhotos.status === 'undetermined'
+                        ? () => void myPhotos.requestPermission()
+                        : undefined
+                    }
+                  />
+                )
+              }
+              mediaFooter={
+                hasMyPhotos ? (
+                  <MyPlacePhotosNudge
+                    photos={myVisits[0].photos}
+                    photoCount={myPhotos.photoCount}
+                    onPress={() => openWriteReview()}
+                  />
+                ) : null
+              }
+              showReviewPrompt={isReviewMediaLoaded && reviewMediaItems.length > 0 && !hasMyPhotos}
+              onOpenMedia={(reviewId, mediaIndex, source) =>
+                router.push({
+                  pathname: '/maps/reviews/media',
+                  params: {
+                    placeId: String(place.id),
+                    placeName: place.name,
+                    reviewId,
+                    mediaIndex: mediaIndex != null ? String(mediaIndex) : undefined,
+                    mediaSource: source,
+                  },
+                })
+              }
+            />
+          </View>
         </View>
       </ScrollView>
 

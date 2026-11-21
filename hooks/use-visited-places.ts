@@ -1,5 +1,7 @@
 import { fetchReviewablePlaces, usePhotoPermission } from '@/hooks/use-place-photos';
 import { getReviewedPlaceIds } from '@/lib/maps/reviewed-places';
+import { categoryHints, isFoodPhoto, narrowCandidatesByFood } from '@/lib/photo-food';
+import { getPhotoLabels } from '@/lib/photo-labels';
 import {
   boundsAroundAll,
   DEFAULT_PLACE_RADIUS_METERS,
@@ -12,6 +14,9 @@ import * as React from 'react';
 
 // 지도에 띄울 최대 핀 수. 핀마다 라벨 뷰를 이미지로 그려서 너무 많으면 지도가 느려진다
 const MAX_VISITED_PLACES = 20;
+// 방문 하나에서 음식 사진인지 분류해 볼 최대 장수, 살펴볼 최대 방문 수 (처음 한 번만 분류하고 결과는 기기에 기억한다)
+const MAX_CLASSIFIED_PHOTOS_PER_VISIT = 12;
+const MAX_CHECKED_VISITS = 60;
 
 export const VISITED_PLACES_QUERY_KEY = ['visited-places'] as const;
 
@@ -87,27 +92,38 @@ async function findVisitedPlaces(queryClient: QueryClient): Promise<VisitedPlace
 
   const placeById = new Map(places.map((place) => [place.id, place]));
   const visited: VisitedPlace[] = [];
-  for (const group of groups) {
+  for (const group of groups.slice(0, MAX_CHECKED_VISITS)) {
+    // 가게 근처에서 찍었어도 음식·음료 사진이 없으면 다녀온 곳으로 보지 않는다 (지나가며 찍은 사진, 셀카 등)
+    const recentIds = group.photoIds.slice(0, MAX_CLASSIFIED_PHOTOS_PER_VISIT);
+    const labels = await getPhotoLabels(recentIds);
+    const foodIds = recentIds.filter((id) => isFoodPhoto(labels[id] ?? []));
+    if (!foodIds.length) continue;
+    // 사진 음식으로 붙어 있는 가게 후보를 좁힌다 (커피 사진이면 카페만)
+    const hints = categoryHints(foodIds.map((id) => labels[id]));
+
     // 이미 리뷰를 쓴 가게는 후보에서 뺀다 (후보가 다 빠지면 핀도 뺀다)
-    const candidates = group.candidates
-      .filter((candidate) => !reviewedIds.includes(candidate.placeId))
-      .map((candidate) => {
-        const place = placeById.get(candidate.placeId)!;
-        return {
-          id: place.id,
-          name: place.title,
-          categoryCode: place.categoryCode,
-          latitude: place.latitude,
-          longitude: place.longitude,
-          distanceMeters: candidate.distanceMeters,
-        };
-      });
+    const candidates = narrowCandidatesByFood(
+      group.candidates
+        .filter((candidate) => !reviewedIds.includes(candidate.placeId))
+        .map((candidate) => {
+          const place = placeById.get(candidate.placeId)!;
+          return {
+            id: place.id,
+            name: place.title,
+            categoryCode: place.categoryCode,
+            latitude: place.latitude,
+            longitude: place.longitude,
+            distanceMeters: candidate.distanceMeters,
+          };
+        }),
+      hints
+    );
     if (!candidates.length) continue;
     visited.push({
       // 묶음 기준 가게(리뷰해서 후보에서 빠졌어도)로 핀마다 다른 키를 만든다
       key: String(group.candidates[0].placeId),
       candidates,
-      photoIds: group.photoIds,
+      photoIds: foodIds,
       lastVisitAt: group.lastVisitAt,
     });
     if (visited.length >= MAX_VISITED_PLACES) break;

@@ -1,0 +1,207 @@
+diff --git a/android/src/main/java/com/mjstudio/reactnativenavermap/event/NaverMapSymbolTapEvent.kt b/android/src/main/java/com/mjstudio/reactnativenavermap/event/NaverMapSymbolTapEvent.kt
+new file mode 100644
+index 0000000000000000000000000000000000000000..8172014e08a68451d829aff5ac63d89dc7001501
+--- /dev/null
++++ b/android/src/main/java/com/mjstudio/reactnativenavermap/event/NaverMapSymbolTapEvent.kt
+@@ -0,0 +1,30 @@
++package com.mjstudio.reactnativenavermap.event
++
++import com.facebook.react.bridge.Arguments
++import com.facebook.react.bridge.WritableMap
++import com.facebook.react.uimanager.events.Event
++
++class NaverMapSymbolTapEvent(
++  surfaceId: Int,
++  viewId: Int,
++  private val caption: String,
++  private val latitude: Double,
++  private val longitude: Double,
++) : Event<NaverMapSymbolTapEvent>(surfaceId, viewId) {
++  override fun getEventName(): String = EVENT_NAME
++
++  override fun canCoalesce(): Boolean = false
++
++  override fun getCoalescingKey(): Short = 0
++
++  override fun getEventData(): WritableMap =
++    Arguments.createMap().apply {
++      putString("caption", caption)
++      putDouble("latitude", latitude)
++      putDouble("longitude", longitude)
++    }
++
++  companion object {
++    const val EVENT_NAME = "topTapSymbol"
++  }
++}
+diff --git a/android/src/main/java/com/mjstudio/reactnativenavermap/mapview/RNCNaverMapView.kt b/android/src/main/java/com/mjstudio/reactnativenavermap/mapview/RNCNaverMapView.kt
+index 3d45df965c0f362c0c368df8199d5bbe607d326e..a5dca8bd28bc34210384a8392ec69ac030b78d2e 100644
+--- a/android/src/main/java/com/mjstudio/reactnativenavermap/mapview/RNCNaverMapView.kt
++++ b/android/src/main/java/com/mjstudio/reactnativenavermap/mapview/RNCNaverMapView.kt
+@@ -10,6 +10,7 @@ import com.mjstudio.reactnativenavermap.event.NaverMapCameraChangeEvent
+ import com.mjstudio.reactnativenavermap.event.NaverMapCameraIdleEvent
+ import com.mjstudio.reactnativenavermap.event.NaverMapInitializeEvent
+ import com.mjstudio.reactnativenavermap.event.NaverMapOptionChangeEvent
++import com.mjstudio.reactnativenavermap.event.NaverMapSymbolTapEvent
+ import com.mjstudio.reactnativenavermap.event.NaverMapTapEvent
+ import com.mjstudio.reactnativenavermap.overlay.RNCNaverMapOverlay
+ import com.mjstudio.reactnativenavermap.overlay.marker.RNCNaverMapMarker
+@@ -112,6 +113,20 @@ class RNCNaverMapView(
+         }
+       }
+ 
++      // 기본 심벌을 누르면 true를 돌려 이 터치를 소비한다 (지도 클릭이 같이 오지 않게)
++      it.setOnSymbolClickListener { symbol ->
++        reactContext.emitEvent(reactTag) { surfaceId, reactTag ->
++          NaverMapSymbolTapEvent(
++            surfaceId,
++            reactTag,
++            symbol.caption,
++            symbol.position.latitude,
++            symbol.position.longitude,
++          )
++        }
++        true
++      }
++
+       it.setOnMapClickListener { pointF, latLng ->
+         reactContext.emitEvent(reactTag) { surfaceId, reactTag ->
+           NaverMapTapEvent(
+diff --git a/android/src/main/java/com/mjstudio/reactnativenavermap/mapview/RNCNaverMapViewManager.kt b/android/src/main/java/com/mjstudio/reactnativenavermap/mapview/RNCNaverMapViewManager.kt
+index e2f54f72702c182a1ad468ba575c6a33ed538f63..8b4d12123332929c0fb65939379ea7123ff717ec 100644
+--- a/android/src/main/java/com/mjstudio/reactnativenavermap/mapview/RNCNaverMapViewManager.kt
++++ b/android/src/main/java/com/mjstudio/reactnativenavermap/mapview/RNCNaverMapViewManager.kt
+@@ -20,6 +20,7 @@ import com.mjstudio.reactnativenavermap.event.NaverMapCustomStyleLoadedEvent
+ import com.mjstudio.reactnativenavermap.event.NaverMapInitializeEvent
+ import com.mjstudio.reactnativenavermap.event.NaverMapOptionChangeEvent
+ import com.mjstudio.reactnativenavermap.event.NaverMapScreenToCoordinateEvent
++import com.mjstudio.reactnativenavermap.event.NaverMapSymbolTapEvent
+ import com.mjstudio.reactnativenavermap.event.NaverMapTapEvent
+ import com.mjstudio.reactnativenavermap.overlay.marker.cluster.RNCNaverMapClusterDataHolder
+ import com.mjstudio.reactnativenavermap.overlay.marker.cluster.RNCNaverMapClusterKey
+@@ -120,6 +121,7 @@ class RNCNaverMapViewManager : RNCNaverMapViewManagerSpec<RNCNaverMapViewWrapper
+       registerDirectEvent(this, NaverMapCameraChangeEvent.EVENT_NAME)
+       registerDirectEvent(this, NaverMapCameraIdleEvent.EVENT_NAME)
+       registerDirectEvent(this, NaverMapTapEvent.EVENT_NAME)
++      registerDirectEvent(this, NaverMapSymbolTapEvent.EVENT_NAME)
+       registerDirectEvent(this, NaverMapScreenToCoordinateEvent.EVENT_NAME)
+       registerDirectEvent(this, NaverMapCoordinateToScreenEvent.EVENT_NAME)
+       registerDirectEvent(this, NaverMapClusterLeafTapEvent.EVENT_NAME)
+diff --git a/ios/RNCNaverMapViewImpl.mm b/ios/RNCNaverMapViewImpl.mm
+index 35add80aeba0598b2786260b1c2aacd69a31e1e3..305052639e732197659dad020e0c3532bb9cf657 100644
+--- a/ios/RNCNaverMapViewImpl.mm
++++ b/ios/RNCNaverMapViewImpl.mm
+@@ -378,6 +378,18 @@
+   });
+ }
+ 
++// 기본 심벌을 누르면 YES를 돌려 이 터치를 소비한다 (didTapMap이 같이 오지 않게)
++- (BOOL)mapView:(NMFMapView*)mapView didTapSymbol:(NMFSymbol*)symbol {
++  if (!_rncParent.emitter)
++    return NO;
++  _rncParent.emitter->onTapSymbol({
++      .caption = std::string(symbol.caption.UTF8String ?: ""),
++      .latitude = symbol.position.lat,
++      .longitude = symbol.position.lng,
++  });
++  return YES;
++}
++
+ - (void)mapView:(NMFMapView*)mapView
+     cameraWillChangeByReason:(NSInteger)reason
+                     animated:(BOOL)animated {
+diff --git a/lib/typescript/commonjs/src/component/NaverMapView.d.ts b/lib/typescript/commonjs/src/component/NaverMapView.d.ts
+index ece61a7eb91cf92cb031c5e6cc02ec56e224fae5..9354793e581ba2f37c94cf74b486edf159cbb69a 100644
+--- a/lib/typescript/commonjs/src/component/NaverMapView.d.ts
++++ b/lib/typescript/commonjs/src/component/NaverMapView.d.ts
+@@ -531,6 +531,9 @@ export interface NaverMapViewProps extends ViewProps {
+         x: number;
+         y: number;
+     }) => void;
++    onTapSymbol?: (params: Coord & {
++        caption: string;
++    }) => void;
+     /**
+      * 클러스터 Leaf 마커를 클릭했을 때 발생하는 이벤트입니다.
+      *
+diff --git a/lib/typescript/module/src/component/NaverMapView.d.ts b/lib/typescript/module/src/component/NaverMapView.d.ts
+index ece61a7eb91cf92cb031c5e6cc02ec56e224fae5..9354793e581ba2f37c94cf74b486edf159cbb69a 100644
+--- a/lib/typescript/module/src/component/NaverMapView.d.ts
++++ b/lib/typescript/module/src/component/NaverMapView.d.ts
+@@ -531,6 +531,9 @@ export interface NaverMapViewProps extends ViewProps {
+         x: number;
+         y: number;
+     }) => void;
++    onTapSymbol?: (params: Coord & {
++        caption: string;
++    }) => void;
+     /**
+      * 클러스터 Leaf 마커를 클릭했을 때 발생하는 이벤트입니다.
+      *
+diff --git a/src/component/NaverMapView.tsx b/src/component/NaverMapView.tsx
+index 7d013b2ea79d8cf951f4f91ed9b38f234163d0b7..b4d60c89b1af23f5cc52357b61dc3ab6b15f8b22 100644
+--- a/src/component/NaverMapView.tsx
++++ b/src/component/NaverMapView.tsx
+@@ -573,6 +573,13 @@ export interface NaverMapViewProps extends ViewProps {
+    */
+   onTapMap?: (params: Coord & { x: number; y: number }) => void;
+ 
++  /**
++   * 지도 기본 심벌(가게·지명 글자)을 눌렀을 때 발생하는 이벤트입니다. 이때는 onTapMap이 오지 않습니다.
++   *
++   * @event
++   */
++  onTapSymbol?: (params: Coord & { caption: string }) => void;
++
+   /**
+    * 클러스터 Leaf 마커를 클릭했을 때 발생하는 이벤트입니다.
+    *
+@@ -727,6 +734,7 @@ export const NaverMapView = forwardRef(
+       onCameraChanged: onCameraChangedProp,
+       onCameraIdle: onCameraIdleProp,
+       onTapMap: onTapMapProp,
++      onTapSymbol: onTapSymbolProp,
+       onInitialized,
+       onOptionChanged: onOptionChangedProp,
+       customStyleId,
+@@ -927,6 +935,14 @@ export const NaverMapView = forwardRef(
+       }
+     );
+ 
++    const onTapSymbol = useStableCallback(
++      ({
++        nativeEvent: { caption, longitude, latitude },
++      }: NativeSyntheticEvent<Coord & { caption: string }>) => {
++        onTapSymbolProp?.({ caption, longitude, latitude });
++      }
++    );
++
+     const screenToCoordinatePromise = useRef<{
+       resolve: (params: {
+         isValid: boolean;
+@@ -1175,6 +1191,7 @@ export const NaverMapView = forwardRef(
+         onCameraChanged={onCameraChangedProp ? onCameraChanged : undefined}
+         onCameraIdle={onCameraIdleProp ? onCameraIdle : undefined}
+         onTapMap={onTapMapProp ? onTapMap : undefined}
++        onTapSymbol={onTapSymbolProp ? onTapSymbol : undefined}
+         onOptionChanged={
+           onOptionChangedProp
+             ? ({ nativeEvent: { locationTrackingMode } }) =>
+diff --git a/src/spec/RNCNaverMapViewNativeComponent.ts b/src/spec/RNCNaverMapViewNativeComponent.ts
+index 6bcd681d7cd24fabe92ea9b7e0c2d8dfeeee9b54..d09f9d87e314af77b94def1fb17cddd9d9c9c1df 100644
+--- a/src/spec/RNCNaverMapViewNativeComponent.ts
++++ b/src/spec/RNCNaverMapViewNativeComponent.ts
+@@ -193,6 +193,13 @@ interface Props extends ViewProps {
+       y: Double;
+     }>
+   >;
++  onTapSymbol?: DirectEventHandler<
++    Readonly<{
++      caption: string;
++      latitude: Double;
++      longitude: Double;
++    }>
++  >;
+   onTapClusterLeaf?: DirectEventHandler<Readonly<{ markerIdentifier: string }>>;
+ 
+   onCustomStyleLoaded?: DirectEventHandler<Readonly<{}>>;

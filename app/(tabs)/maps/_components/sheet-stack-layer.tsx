@@ -10,7 +10,7 @@ const FLOATING_CLOSE_SCROLL_Y = 48;
 interface SheetStackLayerProps {
   sheetRef: React.RefObject<BottomSheet | null>;
   initialIndex: number;
-  snapPoints: string[];
+  snapPoints: (string | number)[];
   topInset: number;
   onChange: (index: number) => void;
   onClose: () => void;

@@ -78,12 +78,23 @@
 
 방목학술정보관은 국제관과 약 50m 거리라 긴 이름 라벨이 늘 겹쳐 숨고 네이버 기본 글자만 보였다. 지도 라벨만 `BUILDING_LABEL_SHORT_NAMES`(`index.tsx`)로 "도서관"으로 줄인다. 라벨이 덮는 네이버 기본 글자는 `isHideCollidedSymbols`로 숨는다. 시트·검색은 원래 이름을 쓴다.
 
+### 네이버 기본 글자(심벌) 누르기 (앱 전용)
+
+네이버 지도가 그리는 가게·건물 글자를 누르면 우리 시트를 연다 (`onSymbolPress` in `index.tsx`).
+
+- 라이브러리(`@mj-studio/react-native-naver-map` 2.8.0)가 심벌 터치를 꺼내 주지 않아 `patches/`의 pnpm 패치로 `onTapSymbol`을 추가했다 (iOS `didTapSymbol`, Android `setOnSymbolClickListener`). 터치를 소비해서 이때는 `onTapMap`이 오지 않는다. 네이티브 변경이라 스토어 빌드가 새로 나가야 반영된다
+- 심벌은 이름과 좌표만 준다. 이름이 비슷하고 80m 안이면 같은 곳으로 보고(`lib/maps/match-symbol.ts`, 확인: `node lib/maps/match-symbol.check.mjs`) 건물 → 대동 가게 순으로 찾아 그 시트를 연다. 기준은 전수조사 스크립트(`scripts/audit-places.mjs`)와 같다
+- 우리 DB에 없으면 "띵고에 아직 정보가 없는 곳" 시트(`sheet-unknown-place.tsx`)에서 네이버 지도 검색으로 넘긴다. 네이버 장소 정보는 약관상 가져와 보여주지 않는다
+- 웹 JS SDK는 심벌 터치를 알려주지 않아 웹에서는 동작하지 않는다
+
 ### 건물 이름 라벨 겹침
 
 건물 라벨(알약)은 겹치면 라벨 전체를 숨긴다 (줌인하면 다시 보인다). 우선순위는 선택한 건물 > `buildingMarkers` 배열 앞쪽(API 순서, 건물 번호순) 순이다.
 
-- **native**: `isHideCollidedMarkers` + `zIndex`(앞쪽일수록 큼). 선택한 건물은 `isForceShowIcon`으로 항상 보인다. 다녀온 곳 핀은 건물보다 zIndex가 커서 겹치면 건물 라벨이 숨는다
+- **native**: `isHideCollidedMarkers` + `zIndex`(앞쪽일수록 큼). 선택한 건물은 `isForceShowIcon`으로 항상 보인다. 다녀온 곳 핀은 건물보다 zIndex가 커서 겹치면 건물 라벨이 숨는다. 다녀온 곳 핀끼리도 `isHideCollidedMarkers`로 겹치면 최근에 간 곳(배열 앞쪽, zIndex 큼)만 남는다
 - **web**: 위 캡션과 같은 `recomputeCaptionVisibility`에서 `buildingLabelWidth`로 사각형을 만들어 판정하고 `visible`로 숨긴다
+- 누른(선택한) 핀은 종류와 상관없이 `SELECTED_MARKER_Z_INDEX`로 맨 위에 올리고 `isForceShowIcon`으로 숨지 않게 한다. 다른 핀 아래 깔린 핀을 눌러도 위로 올라와 눌린 게 보이게 하려는 것이다. 다녀온 곳 핀은 눌리면 한 단계 진한 색(`REVIEW_PIN_ACTIVE_COLOR`)이 된다
+- 앱에서 핀이나 네이버 글자를 누르면 가벼운 진동(`expo-haptics` Light)을 준다
 
 ## 바텀시트 동작 방식 (`app/(tabs)/maps/index.tsx`)
 
@@ -106,6 +117,7 @@
 - **주의**: `close()`는 index가 -1에 도달하면 항상 `onClose`를 발생시키는데(`node_modules/@gorhom/bottom-sheet/src/components/bottomSheet/BottomSheet.tsx`의 `animateToPositionCompleted`), `pushSheet`가 아래 레이어를 가리려고 호출하는 `close()`도 똑같이 `onClose`를 발생시킨다. 이게 실제 pop과 구분 없이 `handleLayerClosed`를 타면 "덮여서 숨겨진 것"이 스택에서 제거돼버리므로, `suppressCloseRef`에 "덮여서 닫힌" 키를 표시해두고 `handleLayerClosed`가 그 키를 보면 무시하도록 한다.
 - `resetStack()`: 스택을 통째로 즉시 언마운트(애니메이션 없음, `close()`도 호출하지 않으므로 `onClose`/`suppressCloseRef`와 무관). bus/칩 재선택처럼 완전히 다른 컨텍스트로 전환할 때 사용.
 - `BuildingDetailSheet`/`PlaceDetailSheet`/`PlaceListSheet`/`DaedongPlaceListSheet`/`CategoryListSheet`의 닫기(X) 버튼은 전부 `onClose={popSheet}`로 연결돼 있다 — "한 단계 뒤로"와 "닫기"가 스택 모델에서는 같은 동작이라 별도 back 버튼이 필요 없다 (places 목록에서 들어온 상세는 popSheet 시 목록으로, 지도에서 바로 들어온 상세는 popSheet 시 base(건물 목록)로 돌아감 — 스택 깊이가 자동으로 그 차이를 반영함).
+- 장소 시트(place)는 중간 높이를 50% 대신 내용에 맞춘다. 리뷰 영역 첫 칸("아직 리뷰가 없어요" 상자 또는 첫 리뷰) 아래 끝까지 재서(`onPeekHeightChange`) 핸들과 아래 여백 16px을 더하고 화면의 30~85% 안으로 맞춘다 (`layerSnapPoints`)
 - 시트를 10%로 내려 둔 채 지도에서 같은 핀이나 다른 핀을 누르면 그 레이어를 절반(index 1)까지 다시 올린다 (`raiseLayer`). 더 올려 둔 경우는 그대로 둔다
 - `selectCategoryPin`(장소/건물 마커 클릭·목록 항목 클릭 공용)은 항상 `pushSheet`만 호출한다 — 이미 상세가 열려 있는 상태에서 다른 핀을 클릭하면 그 위에 새 레이어가 또 쌓인다(뒤로가기 시 이전에 보던 핀으로 돌아감).
 

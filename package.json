@@ -46,6 +46,7 @@
     "expo-constants": "~55.0.17",
     "expo-file-system": "~55.0.26",
     "expo-font": "~55.0.8",
+    "expo-haptics": "~55.0.18",
     "expo-image-manipulator": "~55.0.21",
     "expo-image-picker": "~55.0.24",
     "expo-linking": "~55.0.17",
@@ -95,5 +96,10 @@
     "typescript": "~5.9.2"
   },
   "private": true,
-  "packageManager": "pnpm@9.15.9"
+  "packageManager": "pnpm@9.15.9",
+  "pnpm": {
+    "patchedDependencies": {
+      "@mj-studio/react-native-naver-map@2.8.0": "patches/@mj-studio__react-native-naver-map@2.8.0.patch"
+    }
+  }
 }
