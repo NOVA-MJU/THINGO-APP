@@ -2,6 +2,7 @@
 // 서버 동기화 API(POST /api/v1/map/sync/map)는 code로 덮어쓰기(upsert)하므로 공공데이터 상가업소번호로 code를 만들어
 // 같은 파일을 다시 올려도 가게가 두 번 생기지 않는다. 올린 가게는 네이버 글자 대조(GET /map/symbol-match)에서 바로 찾힌다.
 //
+// 카테고리 칸이 빈 가게(약국·문구점 같은 새 카테고리 후보)는 서버에 그 카테고리를 먼저 만든 뒤 칸을 채워야 올라간다.
 // 1) JSON만 만들기: node scripts/audit-to-sync.mjs place-audit/missing.csv > place-audit/sync.json
 // 2) 서버에 올리기: THINGO_SYNC_TOKEN=<백엔드 sync 토큰> node scripts/audit-to-sync.mjs place-audit/missing.csv --upload
 // 확인: node scripts/audit-to-sync.mjs --check
@@ -9,20 +10,6 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const SYNC_URL = process.env.THINGO_SYNC_URL ?? 'https://api.thingo.kr/api/v1/sync/map';
-
-// 공공데이터 업종(중분류 > 소분류) → 우리 카테고리. 대동명지도(daedong-*)는 명월 제휴 목록이라 여기서 넣지 않는다
-const CATEGORY_RULES = [
-  { pattern: /편의점/, categoryCode: 'convenience-store' },
-  { pattern: /비알코올|카페|커피|제과|디저트/, categoryCode: 'cafe' },
-];
-const DEFAULT_CATEGORY_CODE = 'restaurant';
-
-export function categoryCodeFor(publicCategory) {
-  return (
-    CATEGORY_RULES.find((rule) => rule.pattern.test(publicCategory))?.categoryCode ??
-    DEFAULT_CATEGORY_CODE
-  );
-}
 
 // 따옴표로 감싼 CSV(audit-places.mjs가 만든 형식, 엑셀 BOM 포함)를 줄마다 객체로 읽는다
 export function parseCsv(text) {
@@ -42,26 +29,36 @@ export function parseCsv(text) {
 }
 
 export function toSyncPlaces(rows) {
-  return rows
-    .filter((row) => row.추가?.trim().toUpperCase() === 'O' && row.상가업소번호)
-    .map((row) => ({
-      code: `semas-${row.상가업소번호}`,
-      categoryCode: categoryCodeFor(row.업종),
-      name: row.상호,
-      latitude: Number(row.위도),
-      longitude: Number(row.경도),
-      address: row.주소,
-    }));
+  return (
+    rows
+      // 카테고리는 audit-places.mjs가 업종으로 정해 둔다. 비어 있으면(새 카테고리 후보) 서버에 그 카테고리가 없어 올리지 않는다
+      .filter((row) => row.추가?.trim().toUpperCase() === 'O' && row.상가업소번호 && row.카테고리)
+      .map((row) => ({
+        code: `semas-${row.상가업소번호}`,
+        categoryCode: row.카테고리,
+        name: row.상호,
+        latitude: Number(row.위도),
+        longitude: Number(row.경도),
+        address: row.주소,
+      }))
+  );
 }
 
 function selfCheck() {
-  assert.equal(categoryCodeFor('비알코올 > 카페'), 'cafe');
-  assert.equal(categoryCodeFor('종합 소매 > 편의점'), 'convenience-store');
-  assert.equal(categoryCodeFor('한식 > 백반/한정식'), 'restaurant');
-  const csv =
-    '﻿"추가","상가업소번호","상호","업종","주소","학교에서m","같은자리우리가게","위도","경도"\n' +
-    '"O","MA0101","호랑마라","중식 > 마라탕","서울 서대문구 1","120","","37.58","126.923"\n' +
-    '"","MA0102","탄뽀뽀","일식 > 돈가스","서울 서대문구 2","150","","37.581","126.924"';
+  const header =
+    '추가,상가업소번호,상호,업종,카테고리,새카테고리후보,주소,학교에서m,같은자리우리가게,위도,경도';
+  const rows = [
+    'O,MA0101,호랑마라,중식 > 마라탕,restaurant,,서울 서대문구 1,120,,37.58,126.923',
+    ',MA0102,탄뽀뽀,일식 > 돈가스,restaurant,,서울 서대문구 2,150,,37.581,126.924',
+    'O,MA0103,온누리약국,의약·화장품 소매 > 약국,,약국,서울 서대문구 3,90,,37.579,126.922',
+  ];
+  // audit-places.mjs가 쓰는 형식대로 엑셀 BOM과 따옴표를 붙인다
+  const quote = (line) =>
+    line
+      .split(',')
+      .map((cell) => `"${cell}"`)
+      .join(',');
+  const csv = '\uFEFF' + [header, ...rows].map(quote).join('\n');
   assert.deepEqual(toSyncPlaces(parseCsv(csv)), [
     {
       code: 'semas-MA0101',

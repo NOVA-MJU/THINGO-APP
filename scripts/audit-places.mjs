@@ -6,9 +6,10 @@
 // 네이버·카카오 지도 데이터는 약관상 저장할 수 없어 대조 기준으로 쓰지 않는다. 공공데이터가 분기마다 갱신되니 분기마다 다시 돌린다.
 //
 // 실행: SEMAS_SERVICE_KEY=<data.go.kr 일반 인증키(Decoding)> node scripts/audit-places.mjs [--radius 1000] [--out place-audit]
+//       [--daedong-seed ../THINGO_BACKEND/docs/map-seed/daedong-sync.json] (폐업 후보에 네이버 장소 링크를 붙인다)
 // 매칭 로직만 확인: node scripts/audit-places.mjs --check
 import assert from 'node:assert/strict';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const CAMPUS = { lat: 37.579711, lng: 126.923186 }; // lib/maps/campus.ts와 같은 값
@@ -17,7 +18,7 @@ const MAX_RADIUS = 2000; // API 명세상 반경 최대값(m)
 const PAGE_SIZE = 1000;
 const THINGO_API = process.env.THINGO_API_BASE ?? 'https://api.thingo.kr/api/v1';
 // 가게 핀이 들어 있는 카테고리. cafeteria(학식)는 교내 시설이라 상가 데이터에 없어 뺀다
-const OUR_CATEGORIES = ['daedong', 'restaurant', 'cafe', 'convenience-store'];
+const OUR_CATEGORIES = ['daedong', 'restaurant', 'cafe', 'truck', 'convenience-store', 'printer'];
 // 공공데이터 좌표는 건물 대표점이라 우리 핀과 수십 m 어긋날 수 있다
 const MATCH_METERS = 80;
 // 이 거리 안의 다른 이름 가게는 "같은 자리" 참고용으로만 적는다 (간판이 바뀐 가게 확인용)
@@ -59,12 +60,30 @@ function isSimilarName(firstName, secondName) {
   const isContained = first.includes(second) || second.includes(first);
   if (Math.min(first.length, second.length) >= 2 && isContained) return true;
   // 두 글자 조각이 60% 이상 겹치면 같은 곳 (Dice 계수)
+  return bigramSimilarity(first, second) >= 0.6;
+}
+
+function bigramSimilarity(first, second) {
   const firstBigrams = bigrams(first);
   const secondBigrams = bigrams(second);
   const totalCount = firstBigrams.size + secondBigrams.size;
-  if (totalCount === 0) return false;
+  if (totalCount === 0) return 0;
   const sharedCount = [...firstBigrams].filter((bigram) => secondBigrams.has(bigram)).length;
-  return (2 * sharedCount) / totalCount >= 0.6;
+  return (2 * sharedCount) / totalCount;
+}
+
+function commonPrefixLength(first, second) {
+  const mismatchIndex = [...first].findIndex((character, index) => character !== second[index]);
+  return mismatchIndex === -1 ? first.length : mismatchIndex;
+}
+
+// 같은 자리(20m 안)에서는 이름이 덜 비슷해도 같은 가게로 본다. 우리 이름은 네이버 지도 이름이고 공공데이터는 사업자 등록 이름이라
+// '봉구네가마솥순대국'/'봉구네순대', '롯데리아 명지대학점'/'롯데리아해리피아'처럼 앞부분만 같거나 일부만 겹친다
+function isSameStoreAtSpot(point, candidate) {
+  if (distanceMeters(point, candidate) > SAME_SPOT_METERS) return false;
+  const first = normalizeName(point.name);
+  const second = normalizeName(candidate.name);
+  return commonPrefixLength(first, second) >= 2 || bigramSimilarity(first, second) >= 0.4;
 }
 
 function nearest(point, candidates) {
@@ -77,12 +96,30 @@ function nearest(point, candidates) {
 function hasMatch(point, candidates) {
   return candidates.some(
     (candidate) =>
-      distanceMeters(point, candidate) <= MATCH_METERS && isSimilarName(point.name, candidate.name)
+      (distanceMeters(point, candidate) <= MATCH_METERS &&
+        isSimilarName(point.name, candidate.name)) ||
+      isSameStoreAtSpot(point, candidate)
   );
 }
 
-function isFoodStore(store) {
-  return store.indsLclsNm === '음식' || (store.indsSclsNm ?? '').includes('편의점');
+// 공공데이터 업종(대 > 중 > 소분류) → 우리 카테고리. 위에서부터 처음 맞는 규칙을 쓴다.
+// categoryCode가 없는 규칙은 학생에게 쓸모 있지만 아직 우리 카테고리가 없는 업종이라 "새 카테고리 후보"로만 적는다
+const STORE_CATEGORY_RULES = [
+  {
+    matches: (store) => /편의점|슈퍼마켓/.test(store.indsSclsNm),
+    categoryCode: 'convenience-store',
+  },
+  { matches: (store) => store.indsSclsNm === '복사업', categoryCode: 'printer' },
+  { matches: (store) => store.indsMclsNm?.trim() === '비알코올', categoryCode: 'cafe' },
+  { matches: (store) => store.indsLclsNm === '음식', categoryCode: 'restaurant' },
+  { matches: (store) => store.indsSclsNm === '약국', newCategory: '약국' },
+  { matches: (store) => /문구/.test(store.indsSclsNm), newCategory: '문구점' },
+  { matches: (store) => store.indsSclsNm === '셀프 빨래방', newCategory: '빨래방' },
+  { matches: (store) => /스터디 카페/.test(store.indsSclsNm), newCategory: '스터디카페' },
+];
+
+function classifyStore(store) {
+  return STORE_CATEGORY_RULES.find((rule) => rule.matches(store)) ?? null;
 }
 
 async function fetchPublicStores(serviceKey, radius) {
@@ -137,6 +174,21 @@ async function fetchOurPlaces() {
   return [...new Map(places.map((place) => [place.id, place])).values()];
 }
 
+// 마커 API는 code를 주지 않아서, 대동명지도 시드(백엔드 docs/map-seed/daedong-sync.json)에서 이름과 좌표로 네이버 장소 id를 찾아 붙인다
+function withNaverPlaceIds(places, seedPath) {
+  if (!seedPath) return places;
+  const seedPlaces = JSON.parse(readFileSync(seedPath, 'utf8').replace(/^\uFEFF/, '')).places;
+  return places.map((place) => {
+    const seedPlace = seedPlaces.find(
+      (candidate) =>
+        candidate.name === place.name &&
+        distanceMeters(place, { lat: candidate.latitude, lng: candidate.longitude }) <= 10
+    );
+    const naverPlaceId = seedPlace?.code.match(/^dd-(\d+)$/)?.[1];
+    return naverPlaceId ? { ...place, naverPlaceId } : place;
+  });
+}
+
 function toCsv(rows) {
   const escape = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
   const header = Object.keys(rows[0] ?? { 결과: '' });
@@ -161,6 +213,9 @@ function audit(publicStores, ourPlaces, radius) {
         상가업소번호: store.id ?? '',
         상호: store.name,
         업종: store.category,
+        // 서버에 올릴 우리 카테고리. 비어 있으면 아직 카테고리가 없는 업종(새카테고리후보 칸)이라 올리지 않는다
+        카테고리: store.categoryCode ?? '',
+        새카테고리후보: store.newCategory ?? '',
         주소: store.address,
         학교에서m: Math.round(distanceMeters(CAMPUS, store)),
         같은자리우리가게:
@@ -173,12 +228,17 @@ function audit(publicStores, ourPlaces, radius) {
     })
     .sort((a, b) => a.학교에서m - b.학교에서m);
   const closed = ours
-    .filter((place) => !hasMatch(place, publicStores))
+    // 야식트럭은 사업장 등록이 없는 이동 판매라 공공데이터에 없는 게 정상이다
+    .filter((place) => place.category !== 'truck' && !hasMatch(place, publicStores))
     .map((place) => {
       const near = nearest(place, publicStores);
       return {
         id: place.id,
         상호: place.name,
+        // 대동명지도 가게는 네이버 지도 장소에서 가져와 code가 dd-<네이버 장소 id>다. 눌러서 지금도 영업하는지 확인한다
+        네이버지도: place.naverPlaceId
+          ? `https://map.naver.com/p/entry/place/${place.naverPlaceId}`
+          : `https://map.naver.com/p/search/${encodeURIComponent(place.name)}`,
         카테고리: place.category,
         주소: place.address,
         학교에서m: Math.round(distanceMeters(CAMPUS, place)),
@@ -238,31 +298,36 @@ async function main() {
   const outDir = argValue('--out', 'place-audit');
 
   const raw = await fetchPublicStores(serviceKey, radius);
-  const food = raw.filter(isFoodStore);
+  const classified = raw
+    .map((store) => ({ store, rule: classifyStore(store) }))
+    .filter(({ rule }) => rule !== null);
   // 업종 이름이 바뀌면 필터가 0건이 되므로 분포를 보여 줘서 바로 알아채게 한다
   const counts = Object.groupBy(raw, (store) => store.indsLclsNm);
   const countByCategory = Object.fromEntries(
     Object.entries(counts).map(([category, stores]) => [category, stores.length])
   );
   console.log(`반경 ${radius}m 상가 ${raw.length}곳, 업종 대분류:`, countByCategory);
-  if (food.length === 0)
-    throw new Error('음식·편의점 업종이 0건이다. 위 대분류 이름을 보고 isFoodStore를 고친다');
+  if (classified.length === 0)
+    throw new Error('대상 업종이 0건이다. 위 대분류 이름을 보고 STORE_CATEGORY_RULES를 고친다');
 
-  const publicStores = food.map((store) => ({
+  const publicStores = classified.map(({ store, rule }) => ({
     id: store.bizesId,
+    categoryCode: rule.categoryCode ?? '',
+    newCategory: rule.newCategory ?? '',
     name: store.brchNm ? `${store.bizesNm} ${store.brchNm}` : store.bizesNm,
     category: [store.indsMclsNm, store.indsSclsNm].filter(Boolean).join(' > '),
     address: store.rdnmAdr || store.lnoAdr,
     lat: Number(store.lat),
     lng: Number(store.lon),
   }));
-  const { ours, missing, closed } = audit(publicStores, await fetchOurPlaces(), radius);
+  const ourPlaces = withNaverPlaceIds(await fetchOurPlaces(), argValue('--daedong-seed', null));
+  const { ours, missing, closed } = audit(publicStores, ourPlaces, radius);
 
   mkdirSync(outDir, { recursive: true });
   writeFileSync(join(outDir, 'missing.csv'), toCsv(missing));
   writeFileSync(join(outDir, 'closed.csv'), toCsv(closed));
   console.log(
-    `공공데이터 음식·편의점 ${publicStores.length}곳, 우리 가게 ${ours.length}곳\n` +
+    `공공데이터 대상 업종 ${publicStores.length}곳, 우리 장소 ${ours.length}곳\n` +
       `우리에게 없는 가게 ${missing.length}곳 -> ${join(outDir, 'missing.csv')}\n` +
       `폐업·이전 후보 ${closed.length}곳 -> ${join(outDir, 'closed.csv')}`
   );
