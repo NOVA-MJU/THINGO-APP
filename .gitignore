@@ -45,3 +45,5 @@ yarn-error.*
 expo-env.d.ts
 # @end expo-cli
 web-reference/
+# scripts/audit-places.mjs 결과 CSV
+place-audit/
