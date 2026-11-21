@@ -5,6 +5,8 @@
 // 도면 SVG를 추가하거나 다시 export하면 `node scripts/generate-floor-plan-targets.mjs`로 다시 생성한다.
 // (export한 SVG의 첫 줄 캔버스 전체 배경 사각형 `<rect width=".." height=".." fill="#F5F7F9"/>`은 지우고 넣는다)
 // (글자 테두리 `<text stroke=".." stroke-width="..">`도 지우고 넣는다. 테두리가 글자를 덮어 하얗게 보인다)
+// 출입문 글자(#3B96FF)는 벽·선과 겹쳐도 읽히게 바로 앞에 흰 테두리만 그린 복사본(fill="none" stroke="#FFFFFF")을 둔다.
+// 테두리를 글자 자체에 주면 다시 하얗게 덮이므로 복사본으로 깔고, 이 복사본은 검색 대상에서 뺀다
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -87,6 +89,8 @@ function estimateTextWidth(text, fontSize) {
 
 function parseLabels(svg) {
   return [...svg.matchAll(/<text\b([^>]*)>([\s\S]*?)<\/text>/g)].flatMap(([, attrs, body]) => {
+    // 출입문 글자 뒤에 까는 흰 테두리 복사본은 같은 글자가 두 번 잡히지 않게 뺀다
+    if (attr(attrs, 'fill') === 'none') return [];
     const tspans = [...body.matchAll(/<tspan\b([^>]*)>([^<]*)<\/tspan>/g)];
     const text = decode(tspans.map(([, , content]) => content).join(' ')).trim();
     if (!text || tspans.length === 0) return [];
@@ -193,7 +197,7 @@ function buildFloor(svg) {
   }
   // Figma가 글자 테두리(외곽선 효과)를 <text stroke>로 내보내면 테두리가 글자 위에 덮여 글자가 하얗게 보인다
   // (react-native-svg·브라우저 모두 채움 다음 테두리 순으로 그린다). 테두리 없이 넣는다
-  if (/<text [^>]*stroke=/.test(svg)) {
+  if (/<text (?![^>]*fill="none")[^>]*stroke=/.test(svg)) {
     throw new Error('도면 SVG의 글자(<text>)에서 stroke 속성을 지워야 한다');
   }
   const labels = parseLabels(svg);

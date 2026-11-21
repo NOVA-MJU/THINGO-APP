@@ -47,6 +47,8 @@ pnpm expo run:android
 - 웹: `main`에 머지하면 `deploy-web.yml`이 바로 배포한다 (feature → `develop` PR → `develop` → `main` PR)
 - 앱: `app-release` 브랜치에 올렸을 때만 `deploy-app.yml`이 EAS로 iOS·Android를 빌드하고 스토어에 제출한다. EAS 무료 플랜은 월 빌드 횟수가 적으니 시뮬레이터로 다 확인한 최종본만 올린다: `git push origin main:app-release`
 - App Store에 이미 승인된 버전 번호로는 새 빌드를 받지 않는다 (ITMS-90186). 출시 전에 `app.config.ts`의 `version`을 올린다
+- EAS는 깃에 올라간 파일로 빌드한다. `modules/*/ios` 같은 로컬 네이티브 모듈 소스가 커밋됐는지 확인한다 (`.gitignore`는 루트 `/ios/`, `/android/`만 무시)
+- EAS 환경변수(`EXPO_PUBLIC_API_BASE_URL`, `EXPO_PUBLIC_NAVER_MAP_CLIENT_ID`)는 expo.dev 프로젝트에 있다. 빌드 로그의 "loaded from the production environment on EAS" 줄에 둘 다 있는지 본다
 
 ## naming conventions
 
@@ -81,7 +83,10 @@ pnpm expo run:android
 - 장소 상세(`sheet-place-detail.tsx`)와 리뷰 작성은 같은 훅 `hooks/use-place-photos.ts`(같은 react-query 캐시)를 쓴다
 - 사진 찾기는 기간·장수 제한 없이 사진첩 전체를 본다. 사진마다 위치를 따로 묻는 expo-media-library로는 수만 장이 너무 느려서, 로컬 네이티브 모듈 `modules/photo-location-scan`(iOS 전용, `./modules`는 Expo 자동 링크 대상)이 PHAsset 목록을 한 번 훑으며 좌표 상자 안 사진만 돌려준다. 이 모듈을 바꾸면 스토어 빌드가 새로 나가야 반영된다
 - 지도의 다홍색 "다녀온 곳" 핀(`hooks/use-visited-places.ts`)은 대동명지도 가게 전체(`/map/categories/daedong/markers`)와 내 사진 위치를 기기 안에서 비교해 만든다. 대동 상권은 가게가 몇 m 간격이라 GPS로 가릴 수 없어서, 가장 가까운 가게와 10m(`PLACE_AMBIGUITY_METERS`) 안 가게는 후보로 묶고 "이 사진, 어디서 찍었나요?" 시트에서 고르게 한다. 장소 상세의 사진 수도 같은 기준(`filterPhotosForPlace`)이라 핀과 맞는다
+- 장소 사진과 다녀온 곳은 음식·음료 사진만 쓴다. 같은 네이티브 모듈의 `classifyPhotos`(Apple Vision, 기기 안)로 라벨을 받아 `lib/photo-food.ts`가 음식인지 보고, 라벨은 AsyncStorage에 기억해 새 사진만 분류한다(`lib/photo-labels.ts`). 사진 음식으로 붙어 있는 가게 후보도 좁힌다(커피면 카페만, 맞는 곳이 없으면 그대로). 확인: `node lib/photo-food.check.mjs`
+- 띵고는 새 서비스라 사진첩에 지금은 없어진 예전 가게 사진이 섞인다. 사진 위치로는 가릴 수 없어서 "여기서 찍은 내 사진" 카드와 "이 사진, 어디서 찍었나요?" 시트에서 X("지금은 없어진 가게예요" / "이 가게 사진이 아니에요")로 숨기게 한다. 숨긴 사진은 장소 id별로 기기에 기억해(`lib/maps/dismissed-place-photos.ts`) 그 장소 제안, 리뷰 쓰기 추천, 다녀온 곳 핀에서 뺀다
 - 이 기기에서 리뷰를 쓴 가게는 AsyncStorage(`lib/maps/reviewed-places.ts`)에 기억해 핀에서 뺀다. 서버에 "내가 쓴 리뷰" API가 생기면 그걸로 바꾼다
+- 학교 주변이 좁아 이름 알약을 다 띄우면 겹친다. 지도 이동·확대가 끝날 때의 줌으로 화면에서 겹치는 핀끼리 "대표 가게 외 N곳" 알약 하나로 묶는다(`lib/maps/cluster-visits.ts`, 확인: `node lib/maps/cluster-visits.check.mjs`). 대표는 최근에 간 곳이고, 확대하면 저절로 풀린다. 묶음을 누르면 "이 근처 다녀온 곳" 목록 시트(`sheet-visit-group.tsx`)가 뜬다. 지금 보고 있는 곳은 묶지 않고 따로 띄운다
 - 핀은 기본으로 숨기고 지도 왼쪽 아래 "다녀온 곳 N" 버튼을 눌렀을 때만 띄운다(다시 누르면 숨김, 저장하지 않아 앱을 다시 열면 숨김). 핀 글자는 SDK 캡션이 마커 전체 높이 가운데에 놓여서, 꼬리 높이만큼 위에 빈칸을 둬 알약 가운데에 맞춘다
 - iOS 지도 마커의 자식 뷰는 이미지로 찍히는데 그 시점에 RN Text가 그려지지 않는다. 라벨 글자는 SDK `caption`(`align: 'Center'`)으로 얹고 뷰는 배경만 그린다 (`components/naver-map/naver-map.native.tsx`)
 

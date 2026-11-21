@@ -1,4 +1,4 @@
-import { getFloorPlanLabels, getFloorPlanLayout, MAP_FLOOR_PLANS } from '@/assets/map-floors';
+import { MAP_FLOOR_PLANS } from '@/assets/map-floors';
 import { ArrowRightIcon, SearchIcon, XThinIcon } from '@/components/icons';
 import { Text } from '@/components/ui/text';
 import {
@@ -7,6 +7,7 @@ import {
   searchFloorPlanTexts,
   sortFloorLabels,
 } from '@/lib/maps/floor-plan-search';
+import { loadBuildingFloorPlans } from '@/lib/maps/floor-plan-buildings';
 import { formatFloorPlanLabel } from '@/lib/maps/format';
 import { cn } from '@/lib/utils';
 import { BottomSheetTextInput } from '@gorhom/bottom-sheet';
@@ -19,16 +20,6 @@ const MAX_OTHER_BUILDING_RESULTS = 5;
 // 웹에서 입력하면 브라우저 포커스 테두리(:focus-visible, outline auto)가 검게 그려진다. auto는 굵기 0도 무시해서 none으로 꺼야 하는데
 // RN 타입에는 'none'이 없다 (react-native-web은 그대로 CSS로 넘긴다). className은 BottomSheetTextInput에 적용되지 않는다
 const WEB_NO_OUTLINE = { outlineStyle: 'none' } as unknown as TextStyle;
-
-function loadBuildingFloorPlans(buildingId: string): BuildingFloorPlans {
-  const floorOrder = sortFloorLabels(getFloorPlanLabels(buildingId));
-  const floors: BuildingFloorPlans['floors'] = {};
-  for (const label of floorOrder) {
-    const layout = getFloorPlanLayout(buildingId, label);
-    if (layout) floors[label] = layout;
-  }
-  return { buildingId, floors, floorOrder };
-}
 
 // 건물 시트의 호실·시설 검색. 층별 안내도 카드 맨 위에 붙어 있다. 이 건물 층별 안내도에 적힌 글자에서 찾고(서버를 거치지 않음),
 // 누르면 그 층 안내도를 열어 찾은 글자를 강조한다. 도면이 없는 건물은 그리지 않는다.

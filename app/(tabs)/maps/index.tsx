@@ -8,6 +8,8 @@ import {
   MAP_CATEGORY_PINS_PAGE_SIZE,
   MAP_THEMES_QUERY_KEY,
   type MapCategoryPin,
+  matchMapSymbol,
+  type MapSymbolMatch,
 } from '@/api/maps';
 import { SearchIcon, ThingoLogoSmall } from '@/components/icons';
 import MapQuickTooltipArrow from '@/assets/images/map-quick-tooltip-arrow.svg';
@@ -17,7 +19,12 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Text } from '@/components/ui/text';
 import { BUS_STOPS, type BusStopStation } from '@/lib/maps/bus-stops';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Head from 'expo-router/head';
@@ -32,6 +39,7 @@ import {
   Pressable,
   ScrollView,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -46,6 +54,8 @@ import SheetHandle from './_components/sheets/sheet-handle';
 import SheetStackLayer from './_components/sheet-stack-layer';
 import VisitedPlacesButton from './_components/visited-places-button';
 import VisitCandidatesSheet from './_components/sheets/sheet-visit-candidates';
+import UnknownPlaceSheet from './_components/sheets/sheet-unknown-place';
+import VisitGroupSheet from './_components/sheets/sheet-visit-group';
 import CATEGORIES from './_constants/category-data';
 import { CampusIcon, CurrentLocationIcon, MoreIcon, StarIcon } from '@/components/icons/map';
 import { useMapSearchSelection } from '@/context/map-search-selection';
@@ -57,8 +67,15 @@ import {
   getDistanceFromCampusKm,
 } from '@/lib/maps/campus';
 import { getMapIconKey } from '@/lib/maps/icons';
+import { clusterOverlappingPoints } from '@/lib/maps/cluster-visits';
+import { findSymbolMatch, type SymbolPoint } from '@/lib/maps/match-symbol';
+import { fetchReviewablePlaces } from '@/hooks/use-place-photos';
 import { cn } from '@/lib/utils';
-import { useVisitedPlaces, type VisitedPlaceCandidate } from '@/hooks/use-visited-places';
+import {
+  useDismissPlacePhotos,
+  useVisitedPlaces,
+  type VisitedPlaceCandidate,
+} from '@/hooks/use-visited-places';
 
 const QUICK_CHIP_IDS = ['bus', 'daedong', 'printer', 'lounge', 'bank'];
 const QUICK_TOOLTIP_VISIBLE_MS = 4000;
@@ -75,6 +92,12 @@ const QUICK_CHIPS = ALL_CHIPS.filter((chip) => QUICK_CHIP_IDS.includes(chip.id))
 );
 
 const SNAP_POINTS = ['10%', '50%', '100%'];
+// 장소 시트는 중간 높이를 내용에 맞춘다: 핸들(sheet-handle.tsx의 py-4 + 막대 4px) + "리뷰 N" 영역 바로 위까지.
+// 그 위치에 리뷰 영역 위 여백(mt-5)이 포함돼 있어 내 사진 카드 아래가 살짝 남는다
+const SHEET_HANDLE_HEIGHT = 36;
+const PEEK_BOTTOM_MARGIN = 8;
+// 다녀온 곳 묶음 핀의 마커 id 앞에 붙인다 (뒤에 묶인 key들을 쉼표로 잇는다)
+const VISIT_GROUP_ID_PREFIX = 'group:';
 // 캠퍼스 건물 이름이 다 보이는 줌 (처음 열 때, 학교로 돌아가기 버튼). 웹(JS SDK)은 같은 줌 값이 앱보다 한 단계 멀리 보여서 1을 더한다
 const CAMPUS_ZOOM = Platform.OS === 'web' ? 17 : 16;
 const MAP_CONTROL_SHADOW = {
@@ -111,6 +134,10 @@ type SheetScreenInit =
   | { kind: 'bus'; station: BusStopStation }
   // 내 사진첩 "다녀온 곳" 핀의 후보 가게 고르기 (useVisitedPlaces 결과의 key)
   | { kind: 'visit'; visitKey: string }
+  // 지도에서 "대표 가게 외 N곳"으로 묶인 다녀온 곳 핀 (useVisitedPlaces 결과의 key 목록, 최근 순)
+  | { kind: 'visit-group'; visitKeys: string[] }
+  // 네이버 기본 글자를 눌렀는데 우리 DB에 없는 곳
+  | { kind: 'symbol'; caption: string }
   | { kind: 'category' };
 type SheetScreen = SheetScreenInit & { key: string; initialIndex: number };
 
@@ -623,23 +650,84 @@ export default function MapsScreen() {
 
   // 내 사진첩 기준 "다녀온 곳"(리뷰 남길 곳) 핀. iOS에서 사진 권한이 있을 때만 생긴다
   const visitedPlaces = useVisitedPlaces();
+  const queryClient = useQueryClient();
+  const dismissVisitPhotos = useDismissPlacePhotos();
+  const { height: windowHeight } = useWindowDimensions();
+  // 장소 시트 레이어별로 잰 "리뷰 N 영역 바로 위까지" 높이 (layerSnapPoints)
+  const [placePeekHeights, setPlacePeekHeights] = React.useState<Record<string, number>>({});
   // 다녀온 곳 핀은 기본으로 숨기고, 왼쪽 아래 버튼을 눌렀을 때만 띄운다 (앱을 다시 열면 다시 숨김)
   const [visitedPinsShown, setVisitedPinsShown] = React.useState(false);
-  const reviewSuggestionMarkers = React.useMemo(
-    () =>
-      visitedPlaces.places.map((visit) => {
-        const [nearest, ...others] = visit.candidates;
-        return {
-          id: visit.key,
-          latitude: nearest.latitude,
-          longitude: nearest.longitude,
-          // 붙어 있는 가게라 어느 곳인지 모르면 "OO 외 N곳"으로 띄우고, 누르면 고르게 한다
-          name: others.length ? `${nearest.name} 외 ${others.length}곳` : nearest.name,
-          photoCount: visit.photoIds.length,
-        };
-      }),
-    [visitedPlaces.places]
-  );
+  // 지도 줌 (이동·확대가 끝났을 때). 다녀온 곳 핀을 화면에서 겹치는 것끼리 묶는 데 쓴다
+  const [mapZoom, setMapZoom] = React.useState(CAMPUS_ZOOM);
+  // 지금 보고 있는 다녀온 곳 핀 (후보 고르기 시트, 또는 그 핀에서 연 가게 상세). 그 핀을 진하게, 맨 위로 그린다
+  const selectedVisitKey = React.useMemo(() => {
+    const visitScreen = sheetStack.find(
+      (s): s is Extract<SheetScreen, { kind: 'visit' }> => s.kind === 'visit'
+    );
+    if (visitScreen) return visitScreen.visitKey;
+    if (selectedPlaceId === null) return undefined;
+    return visitedPlaces.places.find((visit) =>
+      visit.candidates.some((candidate) => candidate.id === selectedPlaceId)
+    )?.key;
+  }, [sheetStack, selectedPlaceId, visitedPlaces.places]);
+
+  // 다녀온 곳 핀. 화면에서 겹치는 곳끼리 "대표 가게 외 N곳"으로 묶고(대표는 최근에 간 곳), 지금 보고 있는 곳은 묶지 않고 따로 띄운다
+  const reviewSuggestionMarkers = React.useMemo(() => {
+    const visitMarkers = visitedPlaces.places.map((visit) => {
+      const [nearest, ...others] = visit.candidates;
+      return {
+        id: visit.key,
+        latitude: nearest.latitude,
+        longitude: nearest.longitude,
+        placeName: nearest.name,
+        // 붙어 있는 가게라 어느 곳인지 모르면 "OO 외 N곳"으로 띄우고, 누르면 고르게 한다
+        name: others.length ? `${nearest.name} 외 ${others.length}곳` : nearest.name,
+        photoCount: visit.photoIds.length,
+      };
+    });
+    const selectedMarkers = visitMarkers.filter((marker) => marker.id === selectedVisitKey);
+    const groupedMarkers = clusterOverlappingPoints(
+      visitMarkers.filter((marker) => marker.id !== selectedVisitKey),
+      mapZoom
+    ).map(({ representative, members }) =>
+      members.length === 1
+        ? representative
+        : {
+            ...representative,
+            id: VISIT_GROUP_ID_PREFIX + members.map((member) => member.id).join(','),
+            name: `${representative.placeName} 외 ${members.length - 1}곳`,
+            photoCount: members.reduce((sum, member) => sum + member.photoCount, 0),
+          }
+    );
+    return [...selectedMarkers, ...groupedMarkers];
+  }, [visitedPlaces.places, selectedVisitKey, mapZoom]);
+
+  function onVisitedMarkerPress(markerId: string) {
+    if (!markerId.startsWith(VISIT_GROUP_ID_PREFIX)) {
+      openVisitedPlace(markerId);
+      return;
+    }
+    const visitKeys = markerId.slice(VISIT_GROUP_ID_PREFIX.length).split(',');
+    const [representative] = visitedPlaces.places.filter((visit) => visitKeys.includes(visit.key));
+    hideQuickTooltips();
+    clearSearchResult();
+    if (representative) {
+      mapRef.current?.animateCameraTo(
+        representative.candidates[0].latitude,
+        representative.candidates[0].longitude
+      );
+    }
+    const top = sheetStack[sheetStack.length - 1] as SheetScreen | undefined;
+    if (top?.kind === 'visit-group') {
+      setSheetStack((prev) => [
+        ...prev.slice(0, -1),
+        { kind: 'visit-group', visitKeys, key: top.key, initialIndex: top.initialIndex },
+      ]);
+      raiseLayer(top.key);
+      return;
+    }
+    pushSheet({ kind: 'visit-group', visitKeys });
+  }
 
   function openVisitedPlace(key: string) {
     const visit = visitedPlaces.places.find((item) => item.key === key);
@@ -658,9 +746,67 @@ export default function MapsScreen() {
         ...prev.slice(0, -1),
         { kind: 'visit', visitKey: key, key: top.key, initialIndex: top.initialIndex },
       ]);
+      raiseLayer(top.key);
       return;
     }
     pushSheet({ kind: 'visit', visitKey: key });
+  }
+
+  // 네이버 기본 글자(심벌)를 누르면 이름·위치로 우리 건물·가게를 찾아 그 시트를 연다. 없으면 "띵고에 아직 없는 곳" 시트.
+  // 서버(모든 카테고리, 전수조사로 추가한 가게 포함)에 먼저 묻고, 서버에 API가 없거나 실패하면 앱 안 목록으로 대조한다
+  async function onSymbolPress(symbol: SymbolPoint) {
+    const match = await matchMapSymbol(symbol.caption, symbol.latitude, symbol.longitude).catch(
+      () => findSymbolMatchInApp(symbol)
+    );
+    if (match?.type === 'BUILDING') {
+      onBuildingMarkerPress(String(match.id));
+      return;
+    }
+    if (match) {
+      selectCategoryPin({
+        id: match.id,
+        type: 'FACILITY',
+        latitude: match.latitude,
+        longitude: match.longitude,
+      });
+      return;
+    }
+
+    hideQuickTooltips();
+    clearSearchResult();
+    mapRef.current?.animateCameraTo(symbol.latitude, symbol.longitude);
+    const top = sheetStack[sheetStack.length - 1] as SheetScreen | undefined;
+    if (top?.kind === 'symbol') {
+      setSheetStack((prev) => [
+        ...prev.slice(0, -1),
+        { kind: 'symbol', caption: symbol.caption, key: top.key, initialIndex: top.initialIndex },
+      ]);
+      raiseLayer(top.key);
+      return;
+    }
+    pushSheet({ kind: 'symbol', caption: symbol.caption });
+  }
+
+  // 서버 대조를 못 쓸 때: 캠퍼스 건물 → 대동명지도 가게 순으로 앱이 가진 목록에서 찾는다
+  async function findSymbolMatchInApp(symbol: SymbolPoint): Promise<MapSymbolMatch> {
+    const building = findSymbolMatch(symbol, buildings);
+    if (building) {
+      return {
+        id: building.id,
+        type: 'BUILDING',
+        latitude: building.latitude,
+        longitude: building.longitude,
+      };
+    }
+    // 가게 목록은 다녀온 곳 찾기와 같은 캐시라 보통 이미 받아 둔 상태다. 실패하면 없는 곳으로 보여준다
+    const places = await fetchReviewablePlaces(queryClient).catch(() => []);
+    const place = findSymbolMatch(
+      symbol,
+      places.map((reviewablePlace) => ({ ...reviewablePlace, name: reviewablePlace.title }))
+    );
+    return place
+      ? { id: place.id, type: 'PLACE', latitude: place.latitude, longitude: place.longitude }
+      : null;
   }
 
   function openVisitCandidate(candidate: VisitedPlaceCandidate) {
@@ -864,8 +1010,12 @@ export default function MapsScreen() {
   function onBusStopMarkerPress(id: string) {
     const busStop = BUS_STOPS.find((s) => s.id === id);
     if (!busStop) return;
-    // 이미 선택돼있는 정류장 핀을 또 클릭한 경우 - 아무 동작도 하지 않는다
-    if (selectedBusStopId === id) return;
+    // 이미 선택돼있는 정류장 핀을 또 클릭한 경우 - 내려 둔 시트만 다시 올린다
+    if (selectedBusStopId === id) {
+      const top = sheetStack[sheetStack.length - 1];
+      if (top) raiseLayer(top.key);
+      return;
+    }
 
     hideQuickTooltips();
     clearSearchResult();
@@ -1057,6 +1207,14 @@ export default function MapsScreen() {
   }
 
   // 스택 레이어 하나의 콘텐츠 렌더링 (상세 데이터 로딩 중에는 스피너 표시)
+  // 레이어별 시트 높이. 장소 시트는 내용("리뷰 N" 영역 바로 위까지)을 재서 중간 높이로 쓰고, 화면의 30~85% 안으로 맞춘다
+  function layerSnapPoints(screen: SheetScreen) {
+    const peek = screen.kind === 'place' ? placePeekHeights[screen.key] : undefined;
+    if (!peek) return SNAP_POINTS;
+    const height = SHEET_HANDLE_HEIGHT + peek + PEEK_BOTTOM_MARGIN;
+    return ['10%', Math.min(Math.max(height, windowHeight * 0.3), windowHeight * 0.85), '100%'];
+  }
+
   function renderStackScreenContent(screen: SheetScreen) {
     if (screen.kind === 'category') {
       return <CategoryList onChipPress={onQuickChipPress} onClose={popSheet} />;
@@ -1119,6 +1277,15 @@ export default function MapsScreen() {
       return <BusInfoSheet station={screen.station} onClose={popSheet} />;
     }
 
+    if (screen.kind === 'symbol') {
+      return <UnknownPlaceSheet caption={screen.caption} onClose={popSheet} />;
+    }
+
+    if (screen.kind === 'visit-group') {
+      const visits = visitedPlaces.places.filter((visit) => screen.visitKeys.includes(visit.key));
+      return <VisitGroupSheet visits={visits} onSelect={openVisitedPlace} onClose={popSheet} />;
+    }
+
     if (screen.kind === 'visit') {
       const visit = visitedPlaces.places.find((item) => item.key === screen.visitKey);
       if (!visit) {
@@ -1129,7 +1296,18 @@ export default function MapsScreen() {
         );
       }
       return (
-        <VisitCandidatesSheet visit={visit} onSelect={openVisitCandidate} onClose={popSheet} />
+        <VisitCandidatesSheet
+          visit={visit}
+          onSelect={openVisitCandidate}
+          onClose={popSheet}
+          onDismissPhotos={() => {
+            dismissVisitPhotos.mutate({
+              placeIds: visit.candidates.map((candidate) => candidate.id),
+              photoIds: visit.photoIds,
+            });
+            popSheet();
+          }}
+        />
       );
     }
 
@@ -1140,7 +1318,17 @@ export default function MapsScreen() {
         </View>
       );
     }
-    return <PlaceDetailSheet place={selectedPlaceDetail} onClose={popSheet} />;
+    return (
+      <PlaceDetailSheet
+        place={selectedPlaceDetail}
+        onClose={popSheet}
+        onPeekHeightChange={(height) =>
+          setPlacePeekHeights((prev) =>
+            prev[screen.key] === height ? prev : { ...prev, [screen.key]: height }
+          )
+        }
+      />
+    );
   }
 
   return (
@@ -1173,7 +1361,8 @@ export default function MapsScreen() {
         reviewSuggestionMarkers={
           isMapOverlayFree && visitedPinsShown ? reviewSuggestionMarkers : []
         }
-        onReviewSuggestionMarkerPress={openVisitedPlace}
+        onReviewSuggestionMarkerPress={onVisitedMarkerPress}
+        selectedReviewSuggestionId={selectedVisitKey}
         placeMarkers={
           selectedSearchResult
             ? searchResultMarkers
@@ -1200,6 +1389,8 @@ export default function MapsScreen() {
         onBusStopMarkerPress={onBusStopMarkerPress}
         onBuildingMarkerPress={onBuildingMarkerPress}
         onPlaceMarkerPress={onPlaceMarkerPress}
+        onSymbolPress={onSymbolPress}
+        onZoomChange={setMapZoom}
       />
 
       {/* 플로팅 헤더 */}
@@ -1386,7 +1577,7 @@ export default function MapsScreen() {
             key={screen.key}
             sheetRef={getLayerRef(screen.key)}
             initialIndex={screen.initialIndex}
-            snapPoints={SNAP_POINTS}
+            snapPoints={layerSnapPoints(screen)}
             topInset={insets.top}
             onChange={(index) => updateLayerIndex(screen.key, index)}
             onClose={() => handleLayerClosed(screen.key, belowKey)}
