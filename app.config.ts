@@ -137,6 +137,8 @@ const config: ExpoConfig = {
     ],
     // iOS 27 SDK(Xcode 27)로 빌드해도 iOS 27에서 꺼지지 않게 UIScene 생명주기로 실행한다
     './plugins/with-ios-scene-lifecycle.js',
+    // Xcode 27이 최소 iOS 15 미만 Pod 타깃을 거부해서 앱 최소 버전까지 올린다
+    './plugins/with-ios-pod-deployment-target.js',
   ],
   experiments: {
     typedRoutes: true,

@@ -49,6 +49,8 @@ pnpm expo run:android
 - 앱: `app-release` 브랜치에 올렸을 때만 `deploy-app.yml`이 EAS로 iOS·Android를 빌드하고 스토어에 제출한다. EAS 무료 플랜은 월 빌드 횟수가 적으니 시뮬레이터로 다 확인한 최종본만 올린다: `git push origin main:app-release`
 - App Store에 이미 승인된 버전 번호로는 새 빌드를 받지 않는다 (ITMS-90186). 출시 전에 `app.config.ts`의 `version`을 올린다
 - iOS는 Xcode 27(iOS 27 SDK)로 빌드하고 iOS 27 시뮬레이터로 확인한다. iOS 27은 UIScene 생명주기를 쓰지 않는 앱을 바로 꺼서, `plugins/with-ios-scene-lifecycle.js`가 prebuild 때 SceneDelegate와 Info.plist scene 설정을 넣는다 (React Native는 scene의 window에서 시작하고, 링크로 열린 경우 launchOptions에 넣어 `Linking.getInitialURL`이 받는다). Expo 템플릿이 바뀌어 넣을 자리를 못 찾으면 prebuild가 멈춘다
+- Xcode 27은 최소 iOS 15 미만 Pod 타깃을 아카이브할 때 오류로 거부해서, `plugins/with-ios-pod-deployment-target.js`가 Podfile post_install에서 앱 최소 버전보다 낮은 Pod 타깃을 올린다
+- 로컬 TestFlight 빌드: `eas build --platform ios --profile production --local` 후 `eas submit --path`. EAS 빌드 횟수를 쓰지 않는다. 이 맥 로그인 키체인에 애플 WWDR G3 중간 인증서가 있어야 배포 인증서 확인을 통과한다
 - EAS는 깃에 올라간 파일로 빌드한다. `modules/*/ios` 같은 로컬 네이티브 모듈 소스가 커밋됐는지 확인한다 (`.gitignore`는 루트 `/ios/`, `/android/`만 무시)
 - EAS 환경변수(`EXPO_PUBLIC_API_BASE_URL`, `EXPO_PUBLIC_NAVER_MAP_CLIENT_ID`)는 expo.dev 프로젝트에 있다. 빌드 로그의 "loaded from the production environment on EAS" 줄에 둘 다 있는지 본다
 
