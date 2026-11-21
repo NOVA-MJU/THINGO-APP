@@ -1,0 +1,46 @@
+name: iOS TestFlight (GitHub build)
+
+# EAS 클라우드 빌드 대신 GitHub의 macOS 머신에서 직접 빌드(eas build --local)하고 TestFlight에 제출한다.
+# 이 저장소는 공개라 GitHub Actions macOS 시간이 무료라서 EAS 무료 플랜 월 빌드 횟수를 쓰지 않는다 (제출은 횟수와 무관).
+# Xcode는 EAS 서버와 같은 26.2로 고정한다 (27 SDK로 빌드하면 iOS 27에서 앱이 바로 꺼졌다).
+# 서명 인증서·프로비저닝·App Store Connect 키는 EAS 서버에 있는 것을 EXPO_TOKEN(thingo_mju 계정)으로 받아 쓴다.
+# 실행: GitHub Actions 탭에서 Run workflow, 또는 gh workflow run ios-testflight.yml --ref main
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-submit:
+    runs-on: macos-26
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Xcode 26.2
+        run: sudo xcode-select -s /Applications/Xcode_26.2.app
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build iOS on this machine
+        env:
+          EXPO_PUBLIC_API_BASE_URL: ${{ secrets.EXPO_PUBLIC_API_BASE_URL }}
+          EXPO_PUBLIC_NAVER_MAP_CLIENT_ID: ${{ secrets.EXPO_PUBLIC_NAVER_MAP_CLIENT_ID }}
+        run: eas build --platform ios --profile production --local --non-interactive --output ${{ runner.temp }}/thingo.ipa
+
+      - name: Submit to TestFlight
+        run: eas submit --platform ios --profile production --path ${{ runner.temp }}/thingo.ipa --non-interactive

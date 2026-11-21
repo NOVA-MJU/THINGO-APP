@@ -62,3 +62,32 @@ export function zoomToSplit<T extends ClusterablePoint>(
   );
   return candidateZooms.find((zoom) => clusterByGridCell(points, zoom).length > 1) ?? maxZoom;
 }
+
+// 점들이 화면의 보이는 영역(visibleWidth x visibleHeight pt) 안에 다 들어오는 가장 큰 줌 (maxZoom을 넘지 않음).
+// 묶음 핀을 눌러 확대했는데 풀린 핀이 화면 밖이나 시트 뒤로 가면 안 보여서, 나뉘는 줌(zoomToSplit)과 같이 보고 작은 쪽을 쓴다
+export function zoomToFit<T extends ClusterablePoint>(
+  points: T[],
+  visibleWidth: number,
+  visibleHeight: number,
+  maxZoom: number
+): number {
+  if (!points.length) return maxZoom;
+  const latitudes = points.map((point) => point.latitude);
+  const longitudes = points.map((point) => point.longitude);
+  const averageLatitude = latitudes.reduce((sum, value) => sum + value, 0) / points.length;
+  const cosine = Math.cos((averageLatitude * Math.PI) / 180);
+  const widthMeters =
+    (Math.max(...longitudes) - Math.min(...longitudes)) * METERS_PER_DEGREE * cosine;
+  const heightMeters = (Math.max(...latitudes) - Math.min(...latitudes)) * METERS_PER_DEGREE;
+  const metersPerPixel = Math.max(widthMeters / visibleWidth, heightMeters / visibleHeight);
+  if (metersPerPixel <= 0) return maxZoom;
+  return Math.min(maxZoom, Math.log2((METERS_PER_PIXEL_AT_ZOOM_ZERO * cosine) / metersPerPixel));
+}
+
+// 카메라 가운데 위도를 shiftPixels만큼 아래(남쪽)로 옮긴 값. 그러면 latitude 자리가 화면 가운데보다 shiftPixels 위에 보인다
+// (아래 절반을 시트가 덮을 때 보여줄 곳을 시트 위 지도 가운데로 올리는 데 쓴다)
+export function latitudeShiftedDown(latitude: number, zoom: number, shiftPixels: number) {
+  const cosine = Math.cos((latitude * Math.PI) / 180);
+  const metersPerPixel = (METERS_PER_PIXEL_AT_ZOOM_ZERO * cosine) / 2 ** zoom;
+  return latitude - (shiftPixels * metersPerPixel) / METERS_PER_DEGREE;
+}
