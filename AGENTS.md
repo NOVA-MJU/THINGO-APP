@@ -45,9 +45,10 @@ pnpm expo run:android
 ## deploy
 
 - 웹: `main`에 머지하면 `deploy-web.yml`이 바로 배포한다 (feature → `develop` PR → `develop` → `main` PR)
-- 앱 TestFlight(빌드 횟수 차감 없음): GitHub Actions `ios-testflight.yml`을 수동 실행한다(`gh workflow run ios-testflight.yml --ref main`). 공개 저장소라 무료인 GitHub macOS 머신(Xcode 26.2 고정)에서 `eas build --local`로 빌드하고 `eas submit`으로 제출한다. 서명·App Store Connect 키는 EAS 서버 것을 `EXPO_TOKEN`(thingo_mju 계정 토큰) 시크릿으로 받아 쓴다
+- 앱 TestFlight(빌드 횟수 차감 없음): GitHub Actions `ios-testflight.yml`을 수동 실행한다(`gh workflow run ios-testflight.yml --ref main`). 공개 저장소라 무료인 GitHub macOS 머신(`xcode-27`, Xcode 27.2 고정)에서 `eas build --local`로 빌드하고 `eas submit`으로 제출한다. 서명·App Store Connect 키는 EAS 서버 것을 `EXPO_TOKEN`(thingo_mju 계정 토큰) 시크릿으로 받아 쓴다
 - 앱: `app-release` 브랜치에 올렸을 때만 `deploy-app.yml`이 EAS로 iOS·Android를 빌드하고 스토어에 제출한다. EAS 무료 플랜은 월 빌드 횟수가 적으니 시뮬레이터로 다 확인한 최종본만 올린다: `git push origin main:app-release`
 - App Store에 이미 승인된 버전 번호로는 새 빌드를 받지 않는다 (ITMS-90186). 출시 전에 `app.config.ts`의 `version`을 올린다
+- iOS는 Xcode 27(iOS 27 SDK)로 빌드하고 iOS 27 시뮬레이터로 확인한다. iOS 27은 UIScene 생명주기를 쓰지 않는 앱을 바로 꺼서, `plugins/with-ios-scene-lifecycle.js`가 prebuild 때 SceneDelegate와 Info.plist scene 설정을 넣는다 (React Native는 scene의 window에서 시작하고, 링크로 열린 경우 launchOptions에 넣어 `Linking.getInitialURL`이 받는다). Expo 템플릿이 바뀌어 넣을 자리를 못 찾으면 prebuild가 멈춘다
 - EAS는 깃에 올라간 파일로 빌드한다. `modules/*/ios` 같은 로컬 네이티브 모듈 소스가 커밋됐는지 확인한다 (`.gitignore`는 루트 `/ios/`, `/android/`만 무시)
 - EAS 환경변수(`EXPO_PUBLIC_API_BASE_URL`, `EXPO_PUBLIC_NAVER_MAP_CLIENT_ID`)는 expo.dev 프로젝트에 있다. 빌드 로그의 "loaded from the production environment on EAS" 줄에 둘 다 있는지 본다
 
