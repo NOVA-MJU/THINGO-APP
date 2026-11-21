@@ -56,6 +56,7 @@ import VisitedPlacesButton from './_components/visited-places-button';
 import VisitCandidatesSheet from './_components/sheets/sheet-visit-candidates';
 import UnknownPlaceSheet from './_components/sheets/sheet-unknown-place';
 import VisitGroupSheet from './_components/sheets/sheet-visit-group';
+import VisitAreaSheet from './_components/sheets/sheet-visit-area';
 import CATEGORIES from './_constants/category-data';
 import { CampusIcon, CurrentLocationIcon, MoreIcon, StarIcon } from '@/components/icons/map';
 import { useAuth } from '@/context/auth-context';
@@ -69,7 +70,7 @@ import {
   getDistanceFromCampusKm,
 } from '@/lib/maps/campus';
 import { getMapIconKey } from '@/lib/maps/icons';
-import { clusterByGridCell } from '@/lib/maps/cluster-visits';
+import { clusterByGridCell, zoomToSplit } from '@/lib/maps/cluster-visits';
 import { findSymbolMatch, type SymbolPoint } from '@/lib/maps/match-symbol';
 import { fetchReviewablePlaces } from '@/hooks/use-place-photos';
 import { cn } from '@/lib/utils';
@@ -104,8 +105,7 @@ const PEEK_BOTTOM_MARGIN = 8;
 const VISIT_GROUP_ID_PREFIX = 'group:';
 // 묶음 핀 id 안에서 건물 키를 나누는 글자 (건물 키는 도로명 주소라 쉼표를 쓰지 않는다)
 const VISIT_KEY_SEPARATOR = '|';
-// 묶음 핀을 누를 때마다 확대하는 단계, 이 줌부터는 더 확대하지 않고 묶인 건물 사진을 한 시트로 보여준다
-const VISIT_GROUP_ZOOM_STEP = 2;
+// 묶음 핀을 눌러 확대할 때 이 줌보다 크게는 확대하지 않는다 (이때도 안 풀리면 바로 붙은 건물)
 const VISIT_GROUP_MAX_ZOOM = 19;
 // 캠퍼스 건물 이름이 다 보이는 줌 (처음 열 때, 학교로 돌아가기 버튼). 웹(JS SDK)은 같은 줌 값이 앱보다 한 단계 멀리 보여서 1을 더한다
 const CAMPUS_ZOOM = Platform.OS === 'web' ? 17 : 16;
@@ -144,6 +144,8 @@ type SheetScreenInit =
   // 내 사진첩 "사진 N장" 핀을 눌렀을 때 사진을 날짜별로 보고 가게를 고르는 화면.
   // markerId: 누른 핀(한 구역에 묶인 핀이면 묶음 id), visitKeys: 그 핀에 든 useVisitedPlaces 결과의 key
   | { kind: 'visit'; markerId: string; visitKeys: string[] }
+  // 여러 건물이 묶인 핀을 눌렀을 때 건물마다 내 사진을 보여주고 건물을 고르게 하는 화면 (visitKeys: 묶인 건물 key)
+  | { kind: 'visit-area'; markerId: string; visitKeys: string[] }
   // "다녀온 곳 N" 버튼으로 핀을 켰을 때 뜨는 전체 목록 (지도 가운데에서 가까운 순)
   | { kind: 'visit-list' }
   // 네이버 기본 글자를 눌렀는데 우리 DB에 없는 곳
@@ -753,9 +755,10 @@ export default function MapsScreen() {
     mapRef.current?.animateCameraTo(visit.latitude, visit.longitude, 18);
   }
 
-  // "사진 N장" 핀을 누르면 그 건물 사진을 날짜별로 보여주고 가게를 고르게 한다.
-  // 여러 건물이 묶인 핀은 먼저 지도를 확대해 건물별 핀으로 풀어 준다 (어느 건물에 몇 장인지 보이게).
-  // 아주 크게 확대해도 안 풀리면(건물이 바로 붙어 있으면) 묶인 건물 사진을 한 시트에서 보여준다
+  // "사진 N장" 핀을 누르면.
+  // - 건물 하나: 그 건물 사진과 가게를 고르는 시트(visit)를 연다
+  // - 여러 건물이 묶인 핀: 묶음이 처음 나뉘는 줌까지만 확대하고(zoomToSplit, 어느 정도 확대된 상태면 한 단계만) 건물마다 사진을
+  //   보여주는 시트(visit-area)를 연다. 거기서 건물을 고르거나 지도에서 풀린 건물 핀을 누르면 visit 시트로 간다
   function onVisitedMarkerPress(markerId: string) {
     const isGroup = markerId.startsWith(VISIT_GROUP_ID_PREFIX);
     const visitKeys = isGroup
@@ -766,25 +769,22 @@ export default function MapsScreen() {
     hideQuickTooltips();
     clearSearchResult();
     const marker = reviewSuggestionMarkers.find((item) => item.id === markerId) ?? visits[0];
-    if (isGroup && mapCamera.zoom < VISIT_GROUP_MAX_ZOOM) {
-      mapRef.current?.animateCameraTo(
-        marker.latitude,
-        marker.longitude,
-        Math.min(mapCamera.zoom + VISIT_GROUP_ZOOM_STEP, VISIT_GROUP_MAX_ZOOM)
-      );
-      return;
-    }
-    mapRef.current?.animateCameraTo(marker.latitude, marker.longitude);
+    const kind = isGroup ? 'visit-area' : 'visit';
+    mapRef.current?.animateCameraTo(
+      marker.latitude,
+      marker.longitude,
+      isGroup ? zoomToSplit(visits, mapCamera.zoom, VISIT_GROUP_MAX_ZOOM) : undefined
+    );
     const top = sheetStack[sheetStack.length - 1] as SheetScreen | undefined;
-    if (top?.kind === 'visit') {
+    if (top?.kind === kind) {
       setSheetStack((prev) => [
         ...prev.slice(0, -1),
-        { kind: 'visit', markerId, visitKeys, key: top.key, initialIndex: top.initialIndex },
+        { kind, markerId, visitKeys, key: top.key, initialIndex: top.initialIndex },
       ]);
       raiseLayer(top.key);
       return;
     }
-    pushSheet({ kind: 'visit', markerId, visitKeys });
+    pushSheet({ kind, markerId, visitKeys });
   }
 
   // 네이버 기본 글자(심벌)를 누르면 이름·위치로 우리 건물·가게를 찾아 그 시트를 연다. 없으면 "띵고에 아직 없는 곳" 시트.
@@ -1336,6 +1336,17 @@ export default function MapsScreen() {
           center={mapCamera}
           onSelect={focusVisitedPlace}
           onClose={hideVisitedPins}
+        />
+      );
+    }
+
+    if (screen.kind === 'visit-area') {
+      const visits = visitedPlaces.places.filter((visit) => screen.visitKeys.includes(visit.key));
+      return (
+        <VisitAreaSheet
+          visits={visits}
+          onSelectBuilding={onVisitedMarkerPress}
+          onClose={popSheet}
         />
       );
     }

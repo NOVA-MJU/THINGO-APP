@@ -209,3 +209,33 @@ export function buildingKeyOf(address: string | null | undefined, placeId: numbe
     .trim();
   return key || `place:${placeId}`;
 }
+
+// 같은 방문으로 보는 범위: 리뷰에 올린 사진과 같은 날, 이 시간·거리 안에서 찍은 사진
+export const SAME_VISIT_WINDOW_MS = 3 * 60 * 60 * 1000;
+export const SAME_VISIT_RADIUS_METERS = 100;
+
+// 리뷰에 올린 사진(그 리뷰의 가게)과 같은 방문에 찍은 사진을 그 가게로 정한다.
+// 다섯 장 중 한 장만 올려도 나머지 네 장은 실내 GPS 오차와 상관없이 같은 가게 사진으로 보여주려는 것이다.
+// 여러 리뷰 사진에 걸리면 찍은 시각이 가장 가까운 쪽. 돌려주는 값: 사진 id -> 가게 id (올린 사진 자신은 빼고)
+export function assignPhotosToUploadedPlaces(
+  photos: LocatedPhoto[],
+  uploadedPhotos: (LocatedPhoto & { placeId: number })[]
+): Map<string, number> {
+  const uploadedIds = new Set(uploadedPhotos.map((photo) => photo.id));
+  return photos
+    .filter((photo) => !uploadedIds.has(photo.id))
+    .reduce((assigned, photo) => {
+      const nearest = uploadedPhotos
+        .filter(
+          (uploaded) =>
+            localDay(uploaded.takenAt) === localDay(photo.takenAt) &&
+            Math.abs(uploaded.takenAt - photo.takenAt) <= SAME_VISIT_WINDOW_MS &&
+            distanceMeters(uploaded.location, photo.location) <= SAME_VISIT_RADIUS_METERS
+        )
+        .sort(
+          (first, second) =>
+            Math.abs(first.takenAt - photo.takenAt) - Math.abs(second.takenAt - photo.takenAt)
+        )[0];
+      return nearest ? assigned.set(photo.id, nearest.placeId) : assigned;
+    }, new Map<string, number>());
+}

@@ -86,20 +86,23 @@ function PlacePhotoSuggestionsIos({
     onUploadingChange(upload.isPending || isAutoUploading);
   }, [upload.isPending, isAutoUploading, onUploadingChange]);
 
-  // 장소 상세에서 "이 사진으로 리뷰 쓰기"로 들어오면 고른 사진을 순서대로 한 번만 올린다
+  // 장소 상세나 지도 사진 시트에서 고른 사진으로 들어오면 그 사진을 순서대로 한 번만 올린다.
+  // 지도 시트에서 이름으로 찾은 먼 가게를 고르면 사진이 이 가게 근처 사진(visits)에 없어서, 그때는 사진첩에서 바로 읽어 올린다
   const autoUploadStartedRef = React.useRef(false);
   React.useEffect(() => {
     if (autoUploadStartedRef.current || !visits || !initialPhotoIds?.length) return;
     autoUploadStartedRef.current = true;
     const photos = visits.flatMap((visit) => visit.photos);
-    const targets = initialPhotoIds
-      .map((id) => photos.find((photo) => photo.id === id))
-      .filter((photo) => photo != null)
-      .slice(0, maxCount);
-    if (!targets.length) return;
     setIsAutoUploading(true);
     void (async () => {
-      for (const photo of targets) await upload.mutateAsync(photo).catch(() => undefined);
+      const targets = await Promise.all(
+        initialPhotoIds
+          .slice(0, maxCount)
+          .map((id) => photos.find((photo) => photo.id === id) ?? readLibraryPhoto(id))
+      );
+      for (const photo of targets) {
+        if (photo) await upload.mutateAsync(photo).catch(() => undefined);
+      }
       setIsAutoUploading(false);
     })();
   }, [visits, initialPhotoIds, maxCount, upload]);
@@ -279,6 +282,22 @@ function SuggestedPhotoTile({
       )}
     </Pressable>
   );
+}
+
+// 근처 사진 목록에 없는 사진첩 사진을 id로 읽는다 (올릴 때 크기가 필요하다). 지워졌거나 못 읽으면 null
+async function readLibraryPhoto(id: string): Promise<PlacePhoto | null> {
+  const info = await MediaLibrary.getAssetInfoAsync(id).catch(() => null);
+  if (!info) return null;
+  return {
+    id,
+    takenAt: info.creationTime,
+    location: {
+      latitude: info.location?.latitude ?? 0,
+      longitude: info.location?.longitude ?? 0,
+    },
+    width: info.width,
+    height: info.height,
+  };
 }
 
 // 압축(다시 인코딩) 과정에서 원본 EXIF가 빠져 사진 위치가 서버로 올라가지 않는다
