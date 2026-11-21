@@ -285,6 +285,8 @@ export type MapCategoryMarker = {
   grouped: boolean;
   latitude: number;
   longitude: number;
+  // 도로명 주소 (대동명지도 가게). 같은 주소면 같은 건물이다
+  location?: string | null;
 };
 
 // 카테고리 전체 마커 (페이지 없이 한 번에). 대동명지도(daedong)는 학교 주변 가게 전체가 온다

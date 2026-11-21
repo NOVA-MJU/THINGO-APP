@@ -1,17 +1,17 @@
 import { XIcon } from '@/components/icons';
-import { RestaurantIcon } from '@/components/icons/map';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
-import type { VisitedPlace, VisitedPlaceCandidate } from '@/hooks/use-visited-places';
+import { useLibraryPhotoUri } from '@/hooks/use-place-photos';
+import type { VisitedPlace } from '@/hooks/use-visited-places';
 import { formatMapDistance, formatVisitDate } from '@/lib/maps/format';
 import { distanceMeters, type GeoPoint } from '@/lib/photo-location';
 import { ChevronRight } from 'lucide-react-native';
 import * as React from 'react';
-import { ScrollView, TouchableOpacity, View } from 'react-native';
+import { Image, ScrollView, TouchableOpacity, View } from 'react-native';
 
-// 다녀온 곳 목록. 붙어 있는 가게라 사진 한 묶음에 후보가 여러 곳이어도 "외 N곳"으로 접지 않고 가게마다 한 줄씩 보여줘서 바로 고르게 한다.
-// "다녀온 곳 N" 버튼으로 핀을 켰을 때 뜬다: 전체를 지도 가운데에서 가까운 순으로, 고르면 그 핀으로 지도를 옮긴다
-// (핀을 누르면 사진을 날짜별로 보고 가게를 고르는 sheet-visit-candidates.tsx가 뜬다)
+// "다녀온 곳 N" 버튼으로 핀을 켰을 때 뜨는 전체 목록. 지도 핀과 같이 건물 하나가 한 줄이고,
+// 가게 이름 대신 최근 사진과 사진 수·날짜·거리를 보여준다 (어느 가게인지는 핀 시트에서 사진을 보고 고른다).
+// 지도 가운데에서 가까운 순이고, 고르면 그 핀으로 지도를 옮긴다 (핀을 누르면 sheet-visit-candidates.tsx가 뜬다)
 export default function VisitGroupSheet({
   visits,
   title,
@@ -23,27 +23,14 @@ export default function VisitGroupSheet({
   visits: VisitedPlace[];
   title: string;
   description: string;
-  // 있으면 이 위치(지도 가운데)에서 가까운 순으로 정렬하고 거리를 같이 보여준다
-  center?: GeoPoint;
-  // 고른 가게와 그 가게가 들어 있는 다녀온 곳(사진 묶음)
-  onSelect: (visitKey: string, candidate: VisitedPlaceCandidate) => void;
+  // 이 위치(지도 가운데)에서 가까운 순으로 정렬하고 거리를 같이 보여준다
+  center: GeoPoint;
+  onSelect: (visit: VisitedPlace) => void;
   onClose: () => void;
 }) {
-  // 가게 한 곳이 여러 사진 묶음의 후보로 겹치면 최근 묶음 하나만 남긴다 (visits는 최근에 간 곳부터 온다)
-  const rows = [
-    ...new Map(
-      visits
-        .flatMap((visit) => visit.candidates.map((candidate) => ({ visit, candidate })))
-        .reverse()
-        .map((row) => [row.candidate.id, row] as const)
-    ).values(),
-  ].reverse();
-  const sortedRows = center
-    ? [...rows].sort(
-        (first, second) =>
-          distanceMeters(first.candidate, center) - distanceMeters(second.candidate, center)
-      )
-    : rows;
+  const sortedVisits = [...visits].sort(
+    (first, second) => distanceMeters(first, center) - distanceMeters(second, center)
+  );
 
   return (
     <ScrollView>
@@ -67,38 +54,44 @@ export default function VisitGroupSheet({
         <View className="h-1 bg-grey-02" />
       </View>
 
-      {sortedRows.map(({ visit, candidate }, index) => {
-        return (
-          <React.Fragment key={candidate.id}>
-            {index > 0 && <View className="mx-4 my-3 h-[1.5px] bg-grey-02" />}
-            <TouchableOpacity
-              className="flex-row items-center gap-3.5 px-4"
-              activeOpacity={0.7}
-              onPress={() => onSelect(visit.key, candidate)}
-            >
-              <View className="rounded bg-blue-05 p-2">
-                <RestaurantIcon size={24} className="text-blue-15" />
-              </View>
-              <View className="flex-1">
-                <Text className="text-black text-body04" numberOfLines={1}>
-                  {candidate.name}
-                </Text>
-                <Text className="text-grey-40 text-caption02">
-                  {[
-                    formatVisitDate(visit.lastVisitAt),
-                    `사진 ${visit.photos.length}장`,
-                    center && formatMapDistance(distanceMeters(candidate, center)),
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
-                </Text>
-              </View>
-              <Icon as={ChevronRight} size={18} className="text-grey-30" />
-            </TouchableOpacity>
-          </React.Fragment>
-        );
-      })}
+      {sortedVisits.map((visit, index) => (
+        <React.Fragment key={visit.key}>
+          {index > 0 && <View className="mx-4 my-3 h-[1.5px] bg-grey-02" />}
+          <TouchableOpacity
+            className="flex-row items-center gap-3.5 px-4"
+            activeOpacity={0.7}
+            onPress={() => onSelect(visit)}
+          >
+            {/* 다녀온 곳은 음식 사진이 한 장 이상 있어야 생긴다 */}
+            <LatestPhoto id={visit.photos[0].id} />
+            <View className="flex-1">
+              <Text className="text-black text-body04" numberOfLines={1}>
+                {`사진 ${visit.photos.length}장`}
+              </Text>
+              <Text className="text-grey-40 text-caption02" numberOfLines={1}>
+                {[
+                  visit.address?.replace(/^서울\s+\S+구\s+/, ''),
+                  formatVisitDate(visit.lastVisitAt),
+                  formatMapDistance(distanceMeters(visit, center)),
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </Text>
+            </View>
+            <Icon as={ChevronRight} size={18} className="text-grey-30" />
+          </TouchableOpacity>
+        </React.Fragment>
+      ))}
       <View className="h-6" />
     </ScrollView>
+  );
+}
+
+function LatestPhoto({ id }: { id: string }) {
+  const uri = useLibraryPhotoUri(id);
+  return (
+    <View className="h-11 w-11 overflow-hidden rounded-lg bg-grey-10">
+      {uri && <Image source={{ uri }} className="h-full w-full" resizeMode="cover" />}
+    </View>
   );
 }

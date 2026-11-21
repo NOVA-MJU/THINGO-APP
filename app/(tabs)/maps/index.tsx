@@ -76,6 +76,7 @@ import { cn } from '@/lib/utils';
 import {
   useDismissPlacePhotos,
   useVisitedPlaces,
+  type VisitedPlace,
   type VisitedPlaceCandidate,
 } from '@/hooks/use-visited-places';
 
@@ -100,6 +101,11 @@ const SHEET_HANDLE_HEIGHT = 36;
 const PEEK_BOTTOM_MARGIN = 8;
 // 다녀온 곳 묶음 핀의 마커 id 앞에 붙인다 (뒤에 묶인 key들을 쉼표로 잇는다)
 const VISIT_GROUP_ID_PREFIX = 'group:';
+// 묶음 핀 id 안에서 건물 키를 나누는 글자 (건물 키는 도로명 주소라 쉼표를 쓰지 않는다)
+const VISIT_KEY_SEPARATOR = '|';
+// 묶음 핀을 누를 때마다 확대하는 단계, 이 줌부터는 더 확대하지 않고 묶인 건물 사진을 한 시트로 보여준다
+const VISIT_GROUP_ZOOM_STEP = 2;
+const VISIT_GROUP_MAX_ZOOM = 19;
 // 캠퍼스 건물 이름이 다 보이는 줌 (처음 열 때, 학교로 돌아가기 버튼). 웹(JS SDK)은 같은 줌 값이 앱보다 한 단계 멀리 보여서 1을 더한다
 const CAMPUS_ZOOM = Platform.OS === 'web' ? 17 : 16;
 const MAP_CONTROL_SHADOW = {
@@ -683,22 +689,19 @@ export default function MapsScreen() {
     )?.key;
   }, [sheetStack, focusedVisitKey, selectedPlaceId, visitedPlaces.places]);
 
-  // 다녀온 곳 핀. 사진 위치로 가게를 정확히 가릴 수 없어서 가게 이름 대신 "사진 N장"(아직 리뷰에 안 올린 사진)으로 띄우고,
-  // 누르면 사진을 보고 가게를 고르게 한다. 지도를 고정된 구역(격자)으로 나눠 같은 구역에 든 핀을 하나로 묶고(사진 수 합계),
+  // 다녀온 곳 핀 = 건물 하나. 사진 위치로 가게를 정확히 가릴 수 없어서 가게 이름 없이 "사진 N장"(아직 리뷰에 안 올린 사진)만 띄우고,
+  // 누르면 사진을 보고 그 건물 가게를 고르게 한다. 지도를 고정된 구역(격자)으로 나눠 같은 구역에 든 핀을 하나로 묶고(사진 수 합계),
   // 지금 보고 있는 곳은 묶지 않고 따로 띄운다. 구역은 지도 위치가 아니라 줌으로만 정해져서 지도를 조금 옮겨도 핀이 튀지 않는다.
-  // 묶음 핀은 구역 안 곳들의 가운데에 둔다
+  // 묶음 핀은 구역 안 곳들의 가운데에 두고, 누르면 지도를 확대해 건물별 핀으로 풀어 준다
   const reviewSuggestionMarkers = React.useMemo(() => {
-    const visitMarkers = visitedPlaces.places.map((visit) => {
-      const [nearest] = visit.candidates;
-      return {
-        id: visit.key,
-        latitude: nearest.latitude,
-        longitude: nearest.longitude,
-        placeName: nearest.name,
-        name: `사진 ${visit.photos.length}장`,
-        photoCount: visit.photos.length,
-      };
-    });
+    const visitMarkers = visitedPlaces.places.map((visit) => ({
+      id: visit.key,
+      latitude: visit.latitude,
+      longitude: visit.longitude,
+      // 이름 없이 사진 수만 ("사진 N장", components/naver-map/building-label.ts reviewPinText)
+      name: '',
+      photoCount: visit.photos.length,
+    }));
     const selectedMarkers = visitMarkers.filter((marker) => marker.id === selectedVisitKey);
     const groupedMarkers = clusterByGridCell(
       visitMarkers.filter((marker) => marker.id !== selectedVisitKey),
@@ -709,8 +712,8 @@ export default function MapsScreen() {
         : {
             ...representative,
             ...position,
-            id: VISIT_GROUP_ID_PREFIX + members.map((member) => member.id).join(','),
-            name: `사진 ${members.reduce((sum, member) => sum + member.photoCount, 0)}장`,
+            id:
+              VISIT_GROUP_ID_PREFIX + members.map((member) => member.id).join(VISIT_KEY_SEPARATOR),
             photoCount: members.reduce((sum, member) => sum + member.photoCount, 0),
           }
     );
@@ -731,24 +734,33 @@ export default function MapsScreen() {
   }
 
   // 목록에서 고른 가게로 지도를 옮기고 그 다녀온 곳 핀을 강조한다 (핀을 다시 누르면 그 곳 화면이 열린다)
-  function focusVisitedPlace(visitKey: string, candidate: VisitedPlaceCandidate) {
-    setFocusedVisitKey(visitKey);
-    mapRef.current?.animateCameraTo(candidate.latitude, candidate.longitude, 18);
+  function focusVisitedPlace(visit: VisitedPlace) {
+    setFocusedVisitKey(visit.key);
+    mapRef.current?.animateCameraTo(visit.latitude, visit.longitude, 18);
   }
 
-  // "사진 N장" 핀(묶음 핀 포함)을 누르면 그 핀의 사진을 날짜별로 보여주고 가게를 고르게 한다
+  // "사진 N장" 핀을 누르면 그 건물 사진을 날짜별로 보여주고 가게를 고르게 한다.
+  // 여러 건물이 묶인 핀은 먼저 지도를 확대해 건물별 핀으로 풀어 준다 (어느 건물에 몇 장인지 보이게).
+  // 아주 크게 확대해도 안 풀리면(건물이 바로 붙어 있으면) 묶인 건물 사진을 한 시트에서 보여준다
   function onVisitedMarkerPress(markerId: string) {
-    const visitKeys = markerId.startsWith(VISIT_GROUP_ID_PREFIX)
-      ? markerId.slice(VISIT_GROUP_ID_PREFIX.length).split(',')
+    const isGroup = markerId.startsWith(VISIT_GROUP_ID_PREFIX);
+    const visitKeys = isGroup
+      ? markerId.slice(VISIT_GROUP_ID_PREFIX.length).split(VISIT_KEY_SEPARATOR)
       : [markerId];
-    const [representative] = visitedPlaces.places.filter((visit) => visitKeys.includes(visit.key));
-    if (!representative) return;
+    const visits = visitedPlaces.places.filter((visit) => visitKeys.includes(visit.key));
+    if (!visits.length) return;
     hideQuickTooltips();
     clearSearchResult();
-    mapRef.current?.animateCameraTo(
-      representative.candidates[0].latitude,
-      representative.candidates[0].longitude
-    );
+    const marker = reviewSuggestionMarkers.find((item) => item.id === markerId) ?? visits[0];
+    if (isGroup && mapCamera.zoom < VISIT_GROUP_MAX_ZOOM) {
+      mapRef.current?.animateCameraTo(
+        marker.latitude,
+        marker.longitude,
+        Math.min(mapCamera.zoom + VISIT_GROUP_ZOOM_STEP, VISIT_GROUP_MAX_ZOOM)
+      );
+      return;
+    }
+    mapRef.current?.animateCameraTo(marker.latitude, marker.longitude);
     const top = sheetStack[sheetStack.length - 1] as SheetScreen | undefined;
     if (top?.kind === 'visit') {
       setSheetStack((prev) => [
@@ -1306,7 +1318,7 @@ export default function MapsScreen() {
         <VisitGroupSheet
           visits={visitedPlaces.places}
           title={`다녀온 곳 ${visitedPlaces.places.length}곳`}
-          description="지도 가운데에서 가까운 순이에요. 누르면 그 핀으로 지도를 옮겨요."
+          description="아직 리뷰에 안 올린 내 사진을 건물별로 모았어요. 지도 가운데에서 가까운 순이고, 누르면 그 핀으로 지도를 옮겨요."
           center={mapCamera}
           onSelect={focusVisitedPlace}
           onClose={hideVisitedPins}
