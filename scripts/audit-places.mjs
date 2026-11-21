@@ -112,10 +112,10 @@ const STORE_CATEGORY_RULES = [
   { matches: (store) => store.indsSclsNm === '복사업', categoryCode: 'printer' },
   { matches: (store) => store.indsMclsNm?.trim() === '비알코올', categoryCode: 'cafe' },
   { matches: (store) => store.indsLclsNm === '음식', categoryCode: 'restaurant' },
-  { matches: (store) => store.indsSclsNm === '약국', newCategory: '약국' },
+  { matches: (store) => store.indsSclsNm === '약국', categoryCode: 'pharmacy' },
   { matches: (store) => /문구/.test(store.indsSclsNm), newCategory: '문구점' },
   { matches: (store) => store.indsSclsNm === '셀프 빨래방', newCategory: '빨래방' },
-  { matches: (store) => /스터디 카페/.test(store.indsSclsNm), newCategory: '스터디카페' },
+  { matches: (store) => /스터디 카페/.test(store.indsSclsNm), categoryCode: 'study-cafe' },
 ];
 
 function classifyStore(store) {
