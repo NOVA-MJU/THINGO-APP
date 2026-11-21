@@ -20,8 +20,7 @@ export function clusterByGridCell<T extends ClusterablePoint>(
 ): PointCluster<T>[] {
   if (!points.length) return [];
   // 경도 칸 폭은 위도에 따라 달라서, 지도를 옮겨도 칸이 변하지 않게 점들의 평균 위도 하나로 고정한다
-  const averageLatitude =
-    points.reduce((sum, point) => sum + point.latitude, 0) / points.length;
+  const averageLatitude = points.reduce((sum, point) => sum + point.latitude, 0) / points.length;
   const cosine = Math.cos((averageLatitude * Math.PI) / 180);
   const metersPerPixel = (METERS_PER_PIXEL_AT_ZOOM_ZERO * cosine) / 2 ** zoom;
   const cellLatitude = (CELL_HEIGHT * metersPerPixel) / METERS_PER_DEGREE;
@@ -42,10 +41,8 @@ export function clusterByGridCell<T extends ClusterablePoint>(
       members.length === 1
         ? members[0]
         : {
-            latitude:
-              members.reduce((sum, member) => sum + member.latitude, 0) / members.length,
-            longitude:
-              members.reduce((sum, member) => sum + member.longitude, 0) / members.length,
+            latitude: members.reduce((sum, member) => sum + member.latitude, 0) / members.length,
+            longitude: members.reduce((sum, member) => sum + member.longitude, 0) / members.length,
           },
   }));
 }
