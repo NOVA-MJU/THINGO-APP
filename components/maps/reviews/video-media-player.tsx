@@ -157,6 +157,8 @@ function NativeVideoMediaPlayer({
       onLayout={onLayout}
     >
       <ZoomableMedia
+        // 스토리 화면 전용이라 탭은 이전/다음 넘기기에 쓰고 두 번 탭 확대는 끈다
+        doubleTapToZoom={false}
         resetKey={mediaItem.url}
         onZoomActiveChange={onZoomActiveChange}
         onZoomedChange={onZoomedChange}
@@ -317,6 +319,8 @@ function WebVideoMediaPlayer({
       onLayout={onLayout}
     >
       <ZoomableMedia
+        // 스토리 화면 전용이라 탭은 이전/다음 넘기기에 쓰고 두 번 탭 확대는 끈다
+        doubleTapToZoom={false}
         resetKey={mediaItem.url}
         onZoomActiveChange={onZoomActiveChange}
         onZoomedChange={onZoomedChange}

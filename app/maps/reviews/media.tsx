@@ -7,7 +7,9 @@ import {
 } from '@/components/maps/reviews/video-media-player';
 import { ZoomableMedia } from '@/components/maps/reviews/zoomable-media';
 import { Text } from '@/components/ui/text';
+import { isLoginRequiredError } from '@/api/client';
 import { useAuth } from '@/context/auth-context';
+import { useLoginRequiredModal } from '@/context/login-required-modal-context';
 import { showAlert } from '@/lib/alert';
 import {
   getPlaceReview,
@@ -48,6 +50,11 @@ const CONTENT_SHEET_MEDIA_VERTICAL_GAP = 20;
 const REVIEW_GRADIENT_HEIGHT_RATIO = 0.25;
 const STORY_IMAGE_DURATION_MS = 5000;
 const STORY_PROGRESS_TICK_MS = 50;
+// 인스타그램 스토리와 같은 탭 영역: 화면 왼쪽 30%를 누르면 이전, 나머지(가운데·오른쪽)를 누르면 다음.
+// 가운데를 눌렀을 때 아무 일도 없으면 눌렸는지 헷갈려서 가운데도 다음으로 넘긴다
+const STORY_PREVIOUS_ZONE_RATIO = 0.3;
+// 길게 눌러 멈추면 위·아래 글자와 버튼을 이 시간 동안 흐리게 감춘다 (사진만 보이게)
+const STORY_CHROME_FADE_MS = 160;
 type StoryMediaEntry = {
   mediaItem: PlaceReviewMediaItem;
   review: PlaceReview | null;
@@ -58,6 +65,7 @@ export default function PlaceReviewMediaScreen() {
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const { user } = useAuth();
+  const { showLoginRequiredModal } = useLoginRequiredModal();
   const { imageUrl, reviewId, placeName, placeId, mediaIndex, mediaSource } = useLocalSearchParams<{
     imageUrl?: string | string[];
     reviewId?: string | string[];
@@ -89,6 +97,10 @@ export default function PlaceReviewMediaScreen() {
   const [isMediaZoomed, setIsMediaZoomed] = React.useState(false);
   const [storyProgress, setStoryProgress] = React.useState(0);
   const contentSheetProgress = React.useRef(new Animated.Value(0)).current;
+  // 길게 눌러 멈췄을 때 감추는 위·아래 글자와 버튼의 투명도
+  const storyChromeOpacity = React.useRef(new Animated.Value(1)).current;
+  // 첫 사진에서 왼쪽을 누르면 처음부터 다시 재생하려고 자동 넘김 타이머를 새로 시작시키는 값
+  const [storyRestartCount, setStoryRestartCount] = React.useState(0);
   const storyProgressAnimation = React.useRef(new Animated.Value(0)).current;
   const closeSheetTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const closeViewerTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -355,40 +367,63 @@ export default function PlaceReviewMediaScreen() {
     router.back();
   }, [canAdvanceMedia, contentSheetVisible, isStoryPlaybackPaused, moveToNext]);
 
+  const fadeStoryChrome = React.useCallback(
+    (toValue: number) => {
+      Animated.timing(storyChromeOpacity, {
+        toValue,
+        duration: STORY_CHROME_FADE_MS,
+        useNativeDriver: true,
+      }).start();
+    },
+    [storyChromeOpacity]
+  );
+
   const handleStoryLongPress = React.useCallback(() => {
     suppressNextPressRef.current = true;
     setIsStoryPaused(true);
-  }, []);
+    fadeStoryChrome(0);
+  }, [fadeStoryChrome]);
 
   const handleStoryPressOut = React.useCallback(() => {
     setIsStoryPaused(false);
+    fadeStoryChrome(1);
     setTimeout(() => {
       suppressNextPressRef.current = false;
     }, 0);
+  }, [fadeStoryChrome]);
+
+  // 첫 사진에서 왼쪽을 누르면 인스타그램처럼 그 사진을 처음부터 다시 보여준다
+  const restartCurrentStory = React.useCallback(() => {
+    storyProgressRef.current = 0;
+    setStoryProgress(0);
+    setStoryRestartCount((count) => count + 1);
   }, []);
 
   const handleMediaPress = React.useCallback(
-    (event: GestureResponderEvent, onMiddlePress?: () => void) => {
+    (event: GestureResponderEvent) => {
       if (suppressNextPressRef.current) return;
       if (isMediaZoomed) return;
 
-      if (mediaItems.length <= 1 || mediaWidth <= 0) {
-        onMiddlePress?.();
+      const isPreviousZone =
+        mediaWidth > 0 && event.nativeEvent.locationX < mediaWidth * STORY_PREVIOUS_ZONE_RATIO;
+      if (isPreviousZone) {
+        if (activeIndex === 0) restartCurrentStory();
+        else moveToPrevious();
         return;
       }
-
-      const locationX = event.nativeEvent.locationX;
-      if (locationX < mediaWidth * 0.28) {
-        moveToPrevious();
-        return;
-      }
-      if (locationX > mediaWidth * 0.72) {
-        moveToNext();
-        return;
-      }
-      onMiddlePress?.();
+      // 마지막 사진에서 다음을 누르면 인스타그램처럼 스토리를 닫는다
+      if (canAdvanceMedia) moveToNext();
+      else router.back();
     },
-    [isMediaZoomed, mediaItems.length, mediaWidth, moveToNext, moveToPrevious]
+    [
+      activeIndex,
+      canAdvanceMedia,
+      isMediaZoomed,
+      mediaWidth,
+      moveToNext,
+      moveToPrevious,
+      restartCurrentStory,
+    ]
   );
 
   // 이미지 미디어 자동 진행
@@ -420,10 +455,21 @@ export default function PlaceReviewMediaScreen() {
     }, STORY_PROGRESS_TICK_MS);
 
     return () => clearInterval(intervalId);
-  }, [activeMediaItem, canAdvanceMedia, contentSheetVisible, isStoryPlaybackPaused, moveToNext]);
+  }, [
+    activeMediaItem,
+    canAdvanceMedia,
+    contentSheetVisible,
+    isStoryPlaybackPaused,
+    moveToNext,
+    storyRestartCount,
+  ]);
 
   async function handleToggleLike() {
     if (!activeReview) return;
+    if (!user) {
+      showLoginRequiredModal();
+      return;
+    }
 
     try {
       const nextReview = await togglePlaceReviewLike(activeReview.id);
@@ -431,8 +477,9 @@ export default function PlaceReviewMediaScreen() {
 
       setReview((previous) => (previous?.id === nextReview.id ? nextReview : previous));
       setReviewDetailsById((previous) => ({ ...previous, [nextReview.id]: nextReview }));
-    } catch {
-      showAlert('좋아요 처리 실패', '잠시 후 다시 시도해주세요.');
+    } catch (error) {
+      if (isLoginRequiredError(error)) showLoginRequiredModal();
+      else showAlert('좋아요 처리 실패', '잠시 후 다시 시도해주세요.');
     }
   }
 
@@ -470,7 +517,7 @@ export default function PlaceReviewMediaScreen() {
               onOrientationChange={setMediaOrientation}
               onProgress={handleVideoProgress}
               onEnd={handleVideoEnd}
-              onPress={(event, togglePlayback) => handleMediaPress(event, togglePlayback)}
+              onPress={(event) => handleMediaPress(event)}
               onStoryLongPress={handleStoryLongPress}
               onStoryPressOut={handleStoryPressOut}
               onZoomActiveChange={setIsZooming}
@@ -487,6 +534,7 @@ export default function PlaceReviewMediaScreen() {
             >
               <ZoomableMedia
                 resetKey={activeMediaItem.url}
+                doubleTapToZoom={false}
                 onZoomActiveChange={setIsZooming}
                 onZoomedChange={setIsMediaZoomed}
                 overlay={
@@ -518,77 +566,83 @@ export default function PlaceReviewMediaScreen() {
         )}
       </View>
 
-      <View pointerEvents="none" style={styles.bottomScrim} />
-      {shouldShowReviewGradient ? <ReviewBottomGradient /> : null}
-
-      <ReviewMediaStoryIndicator
-        visible={showIndicator && !contentSheetVisible}
-        items={mediaItems}
-        activeIndex={activeIndex}
-        progress={storyProgressAnimation}
-        topOffset={insets.top + STORY_INDICATOR_TOP}
-      />
-
-      <Pressable
-        onPress={() => router.back()}
-        className="absolute right-5 z-30 h-8 w-8 items-center justify-center"
-        style={{ top: mediaTopOffset + CLOSE_TOP_FROM_MEDIA }}
-        hitSlop={8}
+      {/* 길게 눌러 멈추면 아래 위·아래 글자와 버튼을 감춘다 (인스타그램 스토리처럼 사진만 남긴다) */}
+      <Animated.View
+        pointerEvents="box-none"
+        style={[StyleSheet.absoluteFill, { opacity: storyChromeOpacity }]}
       >
-        <XIcon size={24} className="text-white" />
-      </Pressable>
+        <View pointerEvents="none" style={styles.bottomScrim} />
+        {shouldShowReviewGradient ? <ReviewBottomGradient /> : null}
 
-      {activeReview ? (
-        <View
-          pointerEvents="box-none"
-          className="absolute left-5 right-5 z-20"
-          style={{ bottom: reviewBottomOffset }}
-        >
-          <View className="min-w-0 pr-14">
-            <View className="flex-row items-center gap-2">
-              <ReviewAvatar profileImageUrl={reviewProfileImageUrl} />
-              <Text className="text-white text-body04" numberOfLines={1}>
-                {reviewNickname}
-              </Text>
-            </View>
-            <Text className="mt-5 text-grey-20 text-caption02">
-              {formatReviewDate(activeReview.createdAt)}
-            </Text>
-            <ReviewContentPreview
-              content={activeReview.content}
-              canOpen={canOpenReviewContent}
-              onOpen={handleOpenReviewContent}
-              onLineCountChange={setReviewContentLineCount}
-            />
-          </View>
-        </View>
-      ) : null}
+        <ReviewMediaStoryIndicator
+          visible={showIndicator && !contentSheetVisible}
+          items={mediaItems}
+          activeIndex={activeIndex}
+          progress={storyProgressAnimation}
+          topOffset={insets.top + STORY_INDICATOR_TOP}
+        />
 
-      {activeReview ? (
         <Pressable
-          onPress={handleToggleLike}
-          className="absolute right-5 z-30 h-[50px] w-8 items-center"
-          style={{ bottom: likeBottomOffset }}
+          onPress={() => router.back()}
+          className="absolute right-5 z-30 h-8 w-8 items-center justify-center"
+          style={{ top: mediaTopOffset + CLOSE_TOP_FROM_MEDIA }}
           hitSlop={8}
         >
-          <HeartIcon size={35} filled={Boolean(activeReview.liked)} className="text-white" />
-          <View className="h-[16px] items-center justify-center">
-            {(activeReview.likeCount ?? 0) > 0 ? (
-              <Text className="leading-[16px] text-white text-caption02">
-                {activeReview.likeCount}
-              </Text>
-            ) : null}
-          </View>
+          <XIcon size={24} className="text-white" />
         </Pressable>
-      ) : null}
 
-      {!activeReview && resolvedPlaceName ? (
-        <View className="absolute left-5 right-5 z-20" style={{ bottom: reviewBottomOffset }}>
-          <Text className="leading-[21px] text-white text-body04" numberOfLines={2}>
-            {resolvedPlaceName} 사진입니다.
-          </Text>
-        </View>
-      ) : null}
+        {activeReview ? (
+          <View
+            pointerEvents="box-none"
+            className="absolute left-5 right-5 z-20"
+            style={{ bottom: reviewBottomOffset }}
+          >
+            <View className="min-w-0 pr-14">
+              <View className="flex-row items-center gap-2">
+                <ReviewAvatar profileImageUrl={reviewProfileImageUrl} />
+                <Text className="text-white text-body04" numberOfLines={1}>
+                  {reviewNickname}
+                </Text>
+              </View>
+              <Text className="mt-5 text-grey-20 text-caption02">
+                {formatReviewDate(activeReview.createdAt)}
+              </Text>
+              <ReviewContentPreview
+                content={activeReview.content}
+                canOpen={canOpenReviewContent}
+                onOpen={handleOpenReviewContent}
+                onLineCountChange={setReviewContentLineCount}
+              />
+            </View>
+          </View>
+        ) : null}
+
+        {activeReview ? (
+          <Pressable
+            onPress={handleToggleLike}
+            className="absolute right-5 z-30 h-[50px] w-8 items-center"
+            style={{ bottom: likeBottomOffset }}
+            hitSlop={8}
+          >
+            <HeartIcon size={35} filled={Boolean(activeReview.liked)} className="text-white" />
+            <View className="h-[16px] items-center justify-center">
+              {(activeReview.likeCount ?? 0) > 0 ? (
+                <Text className="leading-[16px] text-white text-caption02">
+                  {activeReview.likeCount}
+                </Text>
+              ) : null}
+            </View>
+          </Pressable>
+        ) : null}
+
+        {!activeReview && resolvedPlaceName ? (
+          <View className="absolute left-5 right-5 z-20" style={{ bottom: reviewBottomOffset }}>
+            <Text className="leading-[21px] text-white text-body04" numberOfLines={2}>
+              {resolvedPlaceName} 사진입니다.
+            </Text>
+          </View>
+        ) : null}
+      </Animated.View>
 
       {activeReview ? (
         <ReviewContentBottomSheet

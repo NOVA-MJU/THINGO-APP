@@ -17,6 +17,8 @@ type ZoomableMediaProps = {
   resetKey: string;
   onZoomActiveChange: (active: boolean) => void;
   onZoomedChange: (zoomed: boolean) => void;
+  // 두 번 탭해서 확대. 스토리 화면은 탭이 이전/다음 넘기기라 끈다 (두 손가락 확대·축소는 그대로)
+  doubleTapToZoom?: boolean;
 };
 
 export function ZoomableMedia({
@@ -25,6 +27,7 @@ export function ZoomableMedia({
   resetKey,
   onZoomActiveChange,
   onZoomedChange,
+  doubleTapToZoom = true,
 }: ZoomableMediaProps) {
   const scale = useSharedValue(MIN_ZOOM_SCALE);
   const savedScale = useSharedValue(MIN_ZOOM_SCALE);
@@ -176,11 +179,11 @@ export function ZoomableMedia({
     [onZoomedChange, savedScale, savedTranslateX, savedTranslateY, scale, translateX, translateY]
   );
 
-  // 핀치, 드래그, 더블 탭 확대 제스처 결합
-  const zoomGesture = React.useMemo(
-    () => Gesture.Race(doubleTapGesture, Gesture.Simultaneous(pinchGesture, panGesture)),
-    [doubleTapGesture, panGesture, pinchGesture]
-  );
+  // 핀치, 드래그, 더블 탭 확대 제스처 결합 (doubleTapToZoom이 꺼져 있으면 핀치·드래그만)
+  const zoomGesture = React.useMemo(() => {
+    const pinchAndPan = Gesture.Simultaneous(pinchGesture, panGesture);
+    return doubleTapToZoom ? Gesture.Race(doubleTapGesture, pinchAndPan) : pinchAndPan;
+  }, [doubleTapGesture, doubleTapToZoom, panGesture, pinchGesture]);
 
   const zoomStyle = useAnimatedStyle(() => ({
     transform: [
