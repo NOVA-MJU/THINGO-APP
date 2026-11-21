@@ -41,10 +41,10 @@ export const REVIEW_PIN_BODY_HEIGHT = 28;
 export const REVIEW_PIN_TAIL_HEIGHT = 6;
 const REVIEW_PIN_PADDING_X = 12;
 
-// 핀 글자 한 줄 (네이티브 SDK 캡션으로 그린다). 이름이 있으면 "{이름}  사진 N", 없으면 "사진 N장"만.
+// 핀 글자 한 줄 (네이티브 SDK 캡션으로 그린다). 이름이 있으면 "{이름}  사진 N", 없으면 "내가 찍은 사진 N장"만.
 // 다녀온 곳 핀은 사진 위치로 가게를 가릴 수 없어서 이름 없이 사진 수만 띄운다
 export function reviewPinText(name: string, photoCount: number) {
-  return name ? `${name}  사진 ${photoCount}` : `사진 ${photoCount}장`;
+  return name ? `${name}  사진 ${photoCount}` : `내가 찍은 사진 ${photoCount}장`;
 }
 
 export function reviewPinWidth(name: string, photoCount: number) {
