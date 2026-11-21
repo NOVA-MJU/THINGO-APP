@@ -1,4 +1,5 @@
 import {
+  getBuildings,
   getMapSearchResults,
   getMapSearchSuggestions,
   MAP_SEARCH_PAGE_SIZE,
@@ -9,7 +10,9 @@ import {
 import { ArrowLeftIcon, SearchIcon, XIcon } from '@/components/icons';
 import { Text } from '@/components/ui/text';
 import { formatMapDistance, getOperatingStatusClassName } from '@/lib/maps/format';
+import { loadAllBuildingFloorPlans, toFloorPlanSearchItems } from '@/lib/maps/floor-plan-buildings';
 import { formatPlaceSubtitle, getFloorPlanHref } from '@/lib/maps/floor-plan-href';
+import { searchBuildingsFloorPlanTexts } from '@/lib/maps/floor-plan-search';
 import { getMapIcon, getMapIconClassName } from '@/lib/maps/icons';
 import { contentFadeIn, listItemEnter } from '@/lib/motion';
 import { cn } from '@/lib/utils';
@@ -36,6 +39,8 @@ import ThemeMapList from './_components/theme-map-list';
 const MAX_RECENT_SEARCH_COUNT = 10;
 const RECENT_SEARCHES_KEY = 'map_recent_searches';
 const AUTOCOMPLETE_DEBOUNCE_MS = 250;
+// 서버 결과 뒤에 붙이는 층별 안내도 도면 글자 결과 최대 수
+const MAX_FLOOR_PLAN_RESULTS = 5;
 
 type SearchCoordinates = {
   latitude: number;
@@ -98,11 +103,27 @@ export default function MapsSearchScreen() {
       previousQuery?.queryKey[1] === submittedKeyword ? previous : undefined,
   });
 
-  // 페이지별로 나뉜 결과를 하나의 리스트로 평탄화
-  const searchResults = React.useMemo(
-    () => searchQuery.data?.pages.flat() ?? [],
-    [searchQuery.data]
-  );
+  // 층별 안내도 도면 글자 결과에 붙일 건물 이름 (지도 화면과 같은 캐시)
+  const { data: buildings = [] } = useQuery({
+    queryKey: ['map-buildings', undefined, undefined],
+    queryFn: () => getBuildings(),
+  });
+  const floorPlanBuildings = React.useMemo(() => loadAllBuildingFloorPlans(), []);
+
+  // 페이지별로 나뉜 서버 결과를 하나의 리스트로 평탄화하고, 서버에 없는 도면 글자(예: 코이노니아홀) 결과를 뒤에 붙인다
+  const searchResults = React.useMemo(() => {
+    const serverItems = searchQuery.data?.pages.flat() ?? [];
+    if (!submittedKeyword) return serverItems;
+    const buildingNames = Object.fromEntries(
+      buildings.map((building) => [String(building.id), building.name])
+    );
+    const floorPlanItems = toFloorPlanSearchItems(
+      searchBuildingsFloorPlanTexts(floorPlanBuildings, submittedKeyword, MAX_FLOOR_PLAN_RESULTS),
+      buildingNames,
+      serverItems
+    );
+    return [...serverItems, ...floorPlanItems];
+  }, [searchQuery.data, submittedKeyword, buildings, floorPlanBuildings]);
 
   // 화면 진입 시 검색창에 자동 포커스(레이아웃 완료 후 포커스가 걸리도록 약간 지연)
   React.useEffect(() => {

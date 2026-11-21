@@ -63,7 +63,7 @@
 
 검색창은 층별 안내도 카드 맨 위(도면 위)에 붙어 있다 (`FloorPlanCarousel`의 `header`). 따로 떨어져 있으면 눈에 잘 안 띈다. 카드 안 "크게 보기"와 같은 흰 알약(h-9)으로 작게 두고, 결과가 없으면 줄을 늘리지 않고 입력창 안에 "결과 없음"만 띄운다. 서버를 거치지 않고 이 건물 도면에 적힌 글자(`targets.json`)에서 찾는다 (`lib/maps/floor-plan-search.ts`, 확인: `node lib/maps/floor-plan-search.check.mjs`). 두 줄 라벨('S2111 / 소강당')은 한 키('s2111소강당')라서 키에 검색어가 들어 있는지로 찾고, '1353'처럼 앞의 S를 빼고 쳐도 찾는다. 결과를 누르면 `/maps/floor?target=<키>`로 열어 그 글자를 강조한다. 이 건물에서 하나도 못 찾으면 다른 건물 도면에서 찾아 "종합관 3F S1353"처럼 건물 이름을 붙여 보여준다(`searchBuildingsFloorPlanTexts`). 이 건물에서 찾은 게 있으면 다른 건물은 보지 않는다 ('화장실'처럼 어디에나 있는 이름이 섞이지 않게). 웹 입력창 포커스 테두리는 `outlineStyle: 'none'`으로 끈다 (`className`은 `BottomSheetTextInput`에 적용되지 않는다).
 
-호실 이름(예: S10134 코이노니아홀)을 도면에 넣을 때는 SVG의 두 줄 라벨 형식(코드 줄 끝 `&#10;`, 다음 줄 y+10)을 따르고 `node scripts/generate-floor-plan-targets.mjs`로 다시 생성한다. 명지도 통합 검색은 서버 장소 이름(`name`)·호실 코드(`indoorCode`)로 찾으므로 서버 데이터(시트 `서버-장소`)도 같이 바꿔야 한다.
+호실 이름(예: S10134 코이노니아홀)을 도면에 넣을 때는 SVG의 두 줄 라벨 형식(코드 줄 끝 `&#10;`, 다음 줄 y+10)을 따르고 `node scripts/generate-floor-plan-targets.mjs`로 다시 생성한다. 명지도 통합 검색은 서버 장소 이름(`name`)·호실 코드(`indoorCode`)로 찾고, 그 뒤에 층별 안내도 도면 글자 결과(최대 5개, `lib/maps/floor-plan-buildings.ts`)를 붙인다. 그래서 서버 이름이 'S10134'뿐인 호실도 도면에 적힌 '코이노니아홀'로 찾힌다. 서버 결과에 같은 호실 코드가 있으면 도면 결과는 빼서 두 번 나오지 않게 한다.
 
 ### 학교로 돌아가기 버튼
 
