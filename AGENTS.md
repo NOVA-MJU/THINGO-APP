@@ -47,6 +47,8 @@ pnpm expo run:android
 - 웹: `main`에 머지하면 `deploy-web.yml`이 바로 배포한다 (feature → `develop` PR → `develop` → `main` PR)
 - 앱: `app-release` 브랜치에 올렸을 때만 `deploy-app.yml`이 EAS로 iOS·Android를 빌드하고 스토어에 제출한다. EAS 무료 플랜은 월 빌드 횟수가 적으니 시뮬레이터로 다 확인한 최종본만 올린다: `git push origin main:app-release`
 - App Store에 이미 승인된 버전 번호로는 새 빌드를 받지 않는다 (ITMS-90186). 출시 전에 `app.config.ts`의 `version`을 올린다
+- EAS는 깃에 올라간 파일로 빌드한다. `modules/*/ios` 같은 로컬 네이티브 모듈 소스가 커밋됐는지 확인한다 (`.gitignore`는 루트 `/ios/`, `/android/`만 무시)
+- EAS 환경변수(`EXPO_PUBLIC_API_BASE_URL`, `EXPO_PUBLIC_NAVER_MAP_CLIENT_ID`)는 expo.dev 프로젝트에 있다. 빌드 로그의 "loaded from the production environment on EAS" 줄에 둘 다 있는지 본다
 
 ## naming conventions
 
