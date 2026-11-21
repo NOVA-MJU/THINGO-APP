@@ -818,6 +818,22 @@ export default function MapsScreen() {
     });
   }
 
+  // "이 사진, 어디서 찍었나요?"에서 가게를 고르면 고른 사진이 붙은 리뷰 쓰기 화면으로 바로 간다
+  // (sheet-place-detail.tsx의 openWriteReview와 같은 경로·파라미터)
+  function writeVisitReview(candidate: VisitedPlaceCandidate, photoIds: string[]) {
+    router.push({
+      pathname: '/maps/reviews/write',
+      params: {
+        placeId: String(candidate.id),
+        placeName: candidate.name,
+        categoryCode: candidate.categoryCode,
+        latitude: String(candidate.latitude),
+        longitude: String(candidate.longitude),
+        ...(photoIds.length ? { photoIds: photoIds.join(',') } : {}),
+      },
+    });
+  }
+
   // 검색·칩·테마·버스·장소 핀이 하나도 떠 있지 않은 기본 지도 상태
   const isMapOverlayFree =
     !selectedSearchResult &&
@@ -1297,8 +1313,10 @@ export default function MapsScreen() {
       }
       return (
         <VisitCandidatesSheet
+          // 다른 다녀온 곳으로 바뀌면 고른 사진을 처음(모두 선택)으로 되돌린다
+          key={visit.key}
           visit={visit}
-          onSelect={openVisitCandidate}
+          onSelect={writeVisitReview}
           onClose={popSheet}
           onDismissPhotos={() => {
             dismissVisitPhotos.mutate({
