@@ -156,6 +156,9 @@ function audit(publicStores, ourPlaces, radius) {
     .map((store) => {
       const near = nearest(store, ours);
       return {
+        // 추가할 가게는 이 칸에 O를 적는다 (scripts/audit-to-sync.mjs가 O인 줄만 서버에 올린다)
+        추가: '',
+        상가업소번호: store.id ?? '',
         상호: store.name,
         업종: store.category,
         주소: store.address,
@@ -246,6 +249,7 @@ async function main() {
     throw new Error('음식·편의점 업종이 0건이다. 위 대분류 이름을 보고 isFoodStore를 고친다');
 
   const publicStores = food.map((store) => ({
+    id: store.bizesId,
     name: store.brchNm ? `${store.bizesNm} ${store.brchNm}` : store.bizesNm,
     category: [store.indsMclsNm, store.indsSclsNm].filter(Boolean).join(' > '),
     address: store.rdnmAdr || store.lnoAdr,
