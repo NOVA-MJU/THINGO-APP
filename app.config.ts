@@ -22,7 +22,7 @@ const config: ExpoConfig = {
   slug: 'thingo-app',
   // EAS 프로젝트 소유 Expo 계정. 빌드·서명 인증서가 이 계정의 프로젝트(extra.eas.projectId)에 묶인다
   owner: 'thingo_mju',
-  version: '1.0.14',
+  version: '1.0.15',
   locales: { ko: './locales/ko.json' },
   orientation: 'portrait',
   icon: './assets/images/icon.png',
