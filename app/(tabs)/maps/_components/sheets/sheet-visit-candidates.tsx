@@ -1,12 +1,12 @@
-import { ArrowLeftIcon, SearchIcon, XIcon, XThinIcon } from '@/components/icons';
+import { SearchIcon, XIcon, XThinIcon } from '@/components/icons';
 import { RestaurantIcon } from '@/components/icons/map';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { useLibraryPhotoUri, useReviewablePlaces } from '@/hooks/use-place-photos';
-import { formatPhotoDay } from '@/lib/maps/format';
-import { groupPhotosByDay } from '@/lib/photo-location';
-import { cn } from '@/lib/utils';
 import type { VisitedPlace, VisitedPlaceCandidate } from '@/hooks/use-visited-places';
+import { formatMapDistance, formatPhotoDay } from '@/lib/maps/format';
+import { distanceMeters, groupPhotosByDay } from '@/lib/photo-location';
+import { cn } from '@/lib/utils';
 import { BottomSheetTextInput } from '@gorhom/bottom-sheet';
 import { ChevronRight, Lock } from 'lucide-react-native';
 import * as React from 'react';
@@ -19,20 +19,23 @@ import LibraryPhotoViewer from './library-photo-viewer';
 const MAX_PHOTOS = 40;
 // 리뷰 쓰기 화면의 최대 첨부 수와 같다
 const MAX_PICK_COUNT = 10;
-// "목록에 없어요"에서 이름으로 찾을 때 보여줄 최대 가게 수
+// "주변 가게 더 보기"를 누를 때마다 더 보여줄 가게 수
+const MORE_PLACES_STEP = 10;
+// 가게 이름으로 찾을 때 보여줄 최대 가게 수
 const MAX_SEARCH_RESULTS = 8;
 
-// 지도 "사진 N장" 핀(건물 하나)을 눌렀을 때. 실내 GPS로는 붙어 있는 가게를 가릴 수 없어서 두 단계로 나눈다.
-// 1. 사진 고르기: 그 건물 근처에서 찍은 사진을 찍은 날짜별 한 줄씩 보여주고(가장 최근 날을 미리 골라 둠) 아래 버튼으로 넘어간다
-// 2. 가게 고르기: 고른 사진을 위에 작게 두고 그 건물 가게 -> 바로 옆 가게 순으로 고른다. 목록에 없으면 이름으로 찾는다.
-// 가게를 누르면 고른 사진이 붙은 리뷰 쓰기 화면으로 바로 간다. 사진을 누르면 크게 보고, 크게 본 채로도 고를 수 있다
+// 지도 "사진 N장" 건물 핀을 눌렀을 때. 맨 위에 그 건물 근처에서 찍은 내 사진을 좌우로 넘겨 보게 하고
+// (찍은 날마다 작은 날짜 글씨와 옅은 세로선으로 나눔, 가장 최근 날을 미리 골라 둠), 아래에서 어느 가게였는지 고른다.
+// 실내 GPS는 수십 m씩 빗나가서 이 건물 가게 말고 주변 가게도 가까운 순으로 같이 보여주고, 더 보거나 이름으로 찾을 수 있다.
+// 가게를 누르면 고른 사진이 고른 순서대로 붙은 리뷰 쓰기 화면으로 바로 간다 (멀리 있는 가게를 골라도 사진은 그대로 간다).
+// 사진을 누르면 전체 화면으로 크게 보고, 크게 본 채로도 고를 수 있다
 export default function VisitCandidatesSheet({
   visits,
   onSelect,
   onClose,
   onDismissPhotos,
 }: {
-  // 핀 하나(건물 하나). 아주 크게 확대해도 안 풀리는 묶음 핀이면 여러 건물
+  // 건물 핀 하나 (아주 크게 확대해도 안 풀리는 바로 붙은 건물이면 여러 개)
   visits: VisitedPlace[];
   // 고른 가게와 리뷰에 올릴 사진 (고른 순서)
   onSelect: (candidate: VisitedPlaceCandidate, photoIds: string[]) => void;
@@ -55,7 +58,6 @@ export default function VisitCandidatesSheet({
   const [selectedIds, setSelectedIds] = React.useState<string[]>(() =>
     (days[0]?.photos ?? []).slice(0, MAX_PICK_COUNT).map((photo) => photo.id)
   );
-  const [step, setStep] = React.useState<'photos' | 'place'>('photos');
   const [isDismissDialogOpen, setIsDismissDialogOpen] = React.useState(false);
   // 크게 보고 있는 사진 순번 (사진을 누르면 연다)
   const [viewerIndex, setViewerIndex] = React.useState<number | null>(null);
@@ -74,30 +76,9 @@ export default function VisitCandidatesSheet({
     });
   }
 
-  // 날짜 줄의 "모두 선택": 그날 사진을 한 번에 고르거나 푼다
-  function toggleDay(dayPhotoIds: string[]) {
-    const allSelected = dayPhotoIds.every((id) => selectedIds.includes(id));
-    setSelectedIds((previous) =>
-      allSelected
-        ? previous.filter((id) => !dayPhotoIds.includes(id))
-        : [...new Set([...previous, ...dayPhotoIds])].slice(0, MAX_PICK_COUNT)
-    );
-  }
-
   return (
     <ScrollView keyboardShouldPersistTaps="handled">
       <View className="flex-row items-start px-4">
-        {step === 'place' && (
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel="사진 다시 고르기"
-            hitSlop={8}
-            onPress={() => setStep('photos')}
-            className="mr-2 h-7 w-7 items-center justify-center"
-          >
-            <ArrowLeftIcon size={20} className="text-black" />
-          </TouchableOpacity>
-        )}
         <View className="flex-1 gap-1">
           <Text className="text-black text-title03">{title}</Text>
           {address && (
@@ -117,95 +98,61 @@ export default function VisitCandidatesSheet({
         </TouchableOpacity>
       </View>
 
-      <StepHeader step={step} />
-
-      {step === 'photos' ? (
-        <>
-          {days.map((day) => {
-            const dayPhotoIds = day.photos.map((photo) => photo.id);
-            const allSelected = dayPhotoIds.every((id) => selectedIds.includes(id));
-            return (
-              <View key={day.day} className="mt-4" style={{ gap: 8 }}>
-                {/* 날짜 줄: 작은 글씨와 옅은 선으로 날마다 나눠 어느 날 찍은 사진인지 헷갈리지 않게 한다 */}
-                <View className="flex-row items-center gap-2 px-4">
-                  <Text className="text-grey-60 text-caption01">{formatPhotoDay(day.day)}</Text>
-                  <Text className="text-grey-30 text-caption02">{day.photos.length}장</Text>
-                  <View className="h-px flex-1 bg-grey-10" />
-                  <Pressable
-                    accessibilityRole="button"
-                    hitSlop={8}
-                    onPress={() => toggleDay(dayPhotoIds)}
-                  >
-                    <Text className="text-grey-40 text-caption02">
-                      {allSelected ? '선택 해제' : '모두 선택'}
-                    </Text>
-                  </Pressable>
+      {/* 사진은 좌우 한 줄. 찍은 날마다 위에 작은 날짜 글씨, 날 사이에 옅은 세로선 */}
+      <NativeViewGestureHandler disallowInterruption>
+        <ScrollView
+          horizontal
+          nestedScrollEnabled
+          directionalLockEnabled
+          showsHorizontalScrollIndicator={false}
+          className="mt-4"
+          contentContainerStyle={{ paddingHorizontal: 16 }}
+        >
+          {days.map((day, dayIndex) => (
+            <View key={day.day} className="flex-row">
+              {dayIndex > 0 && <View className="mx-3 mt-6 w-px self-stretch bg-grey-20" />}
+              <View style={{ gap: 6 }}>
+                <Text className="text-grey-60 text-caption02">{formatPhotoDay(day.day)}</Text>
+                <View className="flex-row" style={{ gap: 6 }}>
+                  {day.photos.map((photo) => (
+                    <PhotoTile
+                      key={photo.id}
+                      id={photo.id}
+                      order={selectedIds.indexOf(photo.id) + 1}
+                      onOpen={() => setViewerIndex(orderedPhotoIds.indexOf(photo.id))}
+                      onToggle={() => togglePhoto(photo.id)}
+                    />
+                  ))}
                 </View>
-                {/* 날마다 가로 한 줄이라 사진이 많아도 아래 버튼까지 스크롤이 길어지지 않는다 */}
-                <NativeViewGestureHandler disallowInterruption>
-                  <ScrollView
-                    horizontal
-                    nestedScrollEnabled
-                    directionalLockEnabled
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{ gap: 6, paddingHorizontal: 16 }}
-                  >
-                    {day.photos.map((photo) => (
-                      <PhotoTile
-                        key={photo.id}
-                        id={photo.id}
-                        order={selectedIds.indexOf(photo.id) + 1}
-                        onOpen={() => setViewerIndex(orderedPhotoIds.indexOf(photo.id))}
-                        onToggle={() => togglePhoto(photo.id)}
-                      />
-                    ))}
-                  </ScrollView>
-                </NativeViewGestureHandler>
               </View>
-            );
-          })}
-
-          <View className="mt-5 px-4" style={{ gap: 8 }}>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => setStep('place')}
-              className="h-12 flex-row items-center justify-center gap-1 rounded-xl bg-mju-primary active:opacity-80"
-            >
-              <Text className="text-white text-body04">
-                {selectedIds.length > 0
-                  ? `사진 ${selectedIds.length}장으로 가게 고르기`
-                  : '사진 없이 가게 고르기'}
-              </Text>
-              <Icon as={ChevronRight} size={16} className="text-white" />
-            </Pressable>
-            <View className="flex-row items-center justify-center gap-1">
-              <Icon as={Lock} size={12} className="text-grey-40" />
-              <Text className="text-grey-40 text-caption02">
-                내 사진첩 사진이라 나만 보여요. 리뷰에 올린 사진만 다른 사람에게 보여요
-              </Text>
             </View>
-            {selectedIds.length > 0 && (
-              <TouchableOpacity
-                accessibilityRole="button"
-                onPress={() => setIsDismissDialogOpen(true)}
-                className="items-center py-2"
-              >
-                <Text className="text-grey-40 underline text-caption02">
-                  고른 사진은 이 근처 가게 사진이 아니에요
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </>
-      ) : (
-        <PlaceStep
-          visits={visits}
-          selectedIds={selectedIds}
-          onSelect={(candidate) => onSelect(candidate, selectedIds)}
-          onEditPhotos={() => setStep('photos')}
-        />
-      )}
+          ))}
+        </ScrollView>
+      </NativeViewGestureHandler>
+      <View className="mt-2 flex-row items-center gap-1 px-4">
+        <Icon as={Lock} size={12} className="text-grey-40" />
+        <Text className="flex-1 text-grey-40 text-caption02">
+          {`${selectedIds.length}장 선택 · 나만 보여요. 리뷰에 올린 사진만 다른 사람에게 보여요`}
+        </Text>
+      </View>
 
+      <View className="py-4">
+        <View className="h-1 bg-grey-02" />
+      </View>
+
+      <PlaceList visits={visits} onSelect={(candidate) => onSelect(candidate, selectedIds)} />
+
+      {selectedIds.length > 0 && (
+        <TouchableOpacity
+          accessibilityRole="button"
+          onPress={() => setIsDismissDialogOpen(true)}
+          className="mt-4 items-center py-2"
+        >
+          <Text className="text-grey-40 underline text-caption02">
+            고른 사진은 이 근처 가게 사진이 아니에요
+          </Text>
+        </TouchableOpacity>
+      )}
       <View className="h-6" />
       <DismissPhotosDialog
         open={isDismissDialogOpen}
@@ -228,48 +175,16 @@ export default function VisitCandidatesSheet({
   );
 }
 
-// 지금 몇 번째 단계인지 (1 사진 고르기 -> 2 가게 고르기)
-function StepHeader({ step }: { step: 'photos' | 'place' }) {
-  return (
-    <View className="mt-4 flex-row items-center gap-2 px-4">
-      <StepBadge number={1} label="사진 고르기" active={step === 'photos'} />
-      <View className="h-px w-4 bg-grey-20" />
-      <StepBadge number={2} label="가게 고르기" active={step === 'place'} />
-    </View>
-  );
-}
-
-function StepBadge({ number, label, active }: { number: number; label: string; active: boolean }) {
-  return (
-    <View className="flex-row items-center gap-1.5">
-      <View
-        className={cn(
-          'h-5 w-5 items-center justify-center rounded-full',
-          active ? 'bg-mju-primary' : 'bg-grey-10'
-        )}
-      >
-        <Text className={cn('text-caption02', active ? 'text-white' : 'text-grey-40')}>
-          {number}
-        </Text>
-      </View>
-      <Text className={cn('text-caption01', active ? 'text-black' : 'text-grey-40')}>{label}</Text>
-    </View>
-  );
-}
-
-function PlaceStep({
+// "어느 가게였나요?" 같이 찍은 사진을 올린 곳 -> 이 건물 가게 -> 주변 가게(가까운 순) -> 더 보기 -> 이름으로 찾기
+function PlaceList({
   visits,
-  selectedIds,
   onSelect,
-  onEditPhotos,
 }: {
   visits: VisitedPlace[];
-  selectedIds: string[];
   onSelect: (candidate: VisitedPlaceCandidate) => void;
-  onEditPhotos: () => void;
 }) {
   const [query, setQuery] = React.useState('');
-  const [isSearching, setIsSearching] = React.useState(false);
+  const [extraPlaceCount, setExtraPlaceCount] = React.useState(0);
   const reviewablePlaces = useReviewablePlaces();
   // 같은 가게가 여러 건물 후보에 겹치면 한 번만 (이 건물 가게가 먼저 온다)
   const candidates = [
@@ -281,47 +196,52 @@ function PlaceStep({
       )
       .values(),
   ];
-  const buildingCandidates = candidates.filter((candidate) => candidate.inBuilding);
+  const sameVisitCandidates = candidates.filter((candidate) => candidate.sameVisitUploaded);
+  const buildingCandidates = candidates.filter(
+    (candidate) => candidate.inBuilding && !candidate.sameVisitUploaded
+  );
   const nearbyCandidates = candidates.filter((candidate) => !candidate.inBuilding);
+  const center = visits[0];
+  const toCandidate = (place: (typeof reviewablePlaces)[number]): VisitedPlaceCandidate => ({
+    id: place.id,
+    name: place.title,
+    categoryCode: place.categoryCode,
+    latitude: place.latitude,
+    longitude: place.longitude,
+    distanceMeters: distanceMeters(center, place),
+    inBuilding: false,
+    sameVisitUploaded: false,
+  });
+  // 이미 보여준 가게 다음으로 가까운 가게들 ("주변 가게 더 보기"를 누를 때마다 늘어난다)
+  const morePlaces = reviewablePlaces
+    .filter((place) => !candidates.some((candidate) => candidate.id === place.id))
+    .map(toCandidate)
+    .sort((first, second) => first.distanceMeters - second.distanceMeters);
   const normalizedQuery = query.replace(/\s/g, '').toLowerCase();
   const searchResults = normalizedQuery
     ? reviewablePlaces
         .filter((place) => place.title.replace(/\s/g, '').toLowerCase().includes(normalizedQuery))
         .slice(0, MAX_SEARCH_RESULTS)
-        .map((place) => ({
-          id: place.id,
-          name: place.title,
-          categoryCode: place.categoryCode,
-          latitude: place.latitude,
-          longitude: place.longitude,
-          distanceMeters: 0,
-          inBuilding: false,
-        }))
+        .map(toCandidate)
     : [];
 
   return (
-    <View className="mt-4">
-      {/* 고른 사진을 작게 보여줘 무엇을 올리는지 잊지 않게 한다. 누르면 사진 고르기로 돌아간다 */}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="사진 다시 고르기"
-        onPress={onEditPhotos}
-        className="mx-4 flex-row items-center gap-2.5 rounded-xl bg-grey-02 p-2.5"
-      >
-        <View className="flex-row">
-          {selectedIds.slice(0, 4).map((id, index) => (
-            <SmallThumbnail key={id} id={id} overlap={index > 0} />
+    <View>
+      <Text className="mx-4 mb-1 text-black text-body04">어느 가게였나요?</Text>
+      {sameVisitCandidates.length > 0 && (
+        <>
+          <SectionLabel label="같이 찍은 사진을 리뷰에 올린 곳" />
+          {sameVisitCandidates.map((candidate) => (
+            <CandidateRow
+              key={candidate.id}
+              candidate={candidate}
+              onPress={() => onSelect(candidate)}
+            />
           ))}
-        </View>
-        <Text className="flex-1 text-grey-60 text-caption01">
-          {selectedIds.length > 0 ? `고른 사진 ${selectedIds.length}장` : '고른 사진 없음'}
-        </Text>
-        <Text className="text-mju-primary text-caption01">다시 고르기</Text>
-      </Pressable>
-
-      <Text className="mx-4 mb-2 mt-5 text-black text-body04">어느 가게였나요?</Text>
+        </>
+      )}
       {buildingCandidates.length > 0 && (
-        <SectionLabel label={visits.length === 1 ? '이 건물 가게' : '이 주변 건물 가게'} />
+        <SectionLabel label={visits.length === 1 ? '이 건물 가게' : '이 건물들 가게'} />
       )}
       {buildingCandidates.map((candidate) => (
         <CandidateRow
@@ -330,63 +250,60 @@ function PlaceStep({
           onPress={() => onSelect(candidate)}
         />
       ))}
-      {nearbyCandidates.length > 0 && <SectionLabel label="바로 옆 가게" />}
-      {nearbyCandidates.map((candidate) => (
+      {nearbyCandidates.length + extraPlaceCount > 0 && <SectionLabel label="주변 가게" />}
+      {[...nearbyCandidates, ...morePlaces.slice(0, extraPlaceCount)].map((candidate) => (
         <CandidateRow
           key={candidate.id}
           candidate={candidate}
-          detail={`사진 위치에서 약 ${Math.max(1, Math.round(candidate.distanceMeters))}m`}
+          detail={formatMapDistance(candidate.distanceMeters)}
           onPress={() => onSelect(candidate)}
         />
       ))}
-
-      {/* 목록에 없으면 (GPS가 크게 빗나갔거나 다른 건물) 대동명지도 가게 이름으로 찾는다 */}
-      {isSearching ? (
-        <View className="mx-4 mt-4" style={{ gap: 4 }}>
-          <View className="h-10 flex-row items-center gap-1.5 rounded-full border border-grey-10 bg-white pl-3 pr-2.5">
-            <SearchIcon size={16} className="text-grey-40" />
-            <BottomSheetTextInput
-              value={query}
-              onChangeText={setQuery}
-              autoFocus
-              placeholder="가게 이름으로 찾기"
-              placeholderTextColor="#909499"
-              returnKeyType="search"
-              autoCorrect={false}
-              style={{ flex: 1, fontSize: 14, color: '#0B1215', paddingVertical: 0 }}
-            />
-            {query.length > 0 && (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="검색어 지우기"
-                hitSlop={8}
-                onPress={() => setQuery('')}
-              >
-                <XThinIcon size={14} className="text-grey-40" />
-              </Pressable>
-            )}
-          </View>
-          {normalizedQuery.length > 0 && searchResults.length === 0 && (
-            <Text className="px-2 text-grey-40 text-caption02">
-              찾는 가게가 없어요. 띵고에 아직 없는 가게일 수 있어요
-            </Text>
-          )}
-        </View>
-      ) : (
+      {extraPlaceCount < morePlaces.length && (
         <TouchableOpacity
           accessibilityRole="button"
-          onPress={() => setIsSearching(true)}
-          className="mt-4 items-center py-2"
+          onPress={() => setExtraPlaceCount((count) => count + MORE_PLACES_STEP)}
+          className="mx-4 mt-2 h-10 flex-row items-center justify-center gap-1 rounded-xl bg-grey-02"
         >
-          <Text className="text-grey-60 underline text-caption01">
-            목록에 없어요 · 가게 이름으로 찾기
-          </Text>
+          <Text className="text-grey-60 text-caption01">주변 가게 더 보기</Text>
         </TouchableOpacity>
       )}
+
+      {/* 목록에 없으면 대동명지도 가게 이름으로 찾는다 */}
+      <View className="mx-4 mt-3" style={{ gap: 4 }}>
+        <View className="h-10 flex-row items-center gap-1.5 rounded-full border border-grey-10 bg-white pl-3 pr-2.5">
+          <SearchIcon size={16} className="text-grey-40" />
+          <BottomSheetTextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="목록에 없으면 가게 이름으로 찾기"
+            placeholderTextColor="#909499"
+            returnKeyType="search"
+            autoCorrect={false}
+            style={{ flex: 1, fontSize: 14, color: '#0B1215', paddingVertical: 0 }}
+          />
+          {query.length > 0 && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="검색어 지우기"
+              hitSlop={8}
+              onPress={() => setQuery('')}
+            >
+              <XThinIcon size={14} className="text-grey-40" />
+            </Pressable>
+          )}
+        </View>
+        {normalizedQuery.length > 0 && searchResults.length === 0 && (
+          <Text className="px-2 text-grey-40 text-caption02">
+            찾는 가게가 없어요. 띵고에 아직 없는 가게일 수 있어요
+          </Text>
+        )}
+      </View>
       {searchResults.map((candidate) => (
         <CandidateRow
-          key={candidate.id}
+          key={`search-${candidate.id}`}
           candidate={candidate}
+          detail={formatMapDistance(candidate.distanceMeters)}
           onPress={() => onSelect(candidate)}
         />
       ))}
@@ -395,7 +312,7 @@ function PlaceStep({
 }
 
 function SectionLabel({ label }: { label: string }) {
-  return <Text className="mx-4 mb-1 mt-2 text-grey-40 text-caption02">{label}</Text>;
+  return <Text className="mx-4 mb-1 mt-3 text-grey-40 text-caption02">{label}</Text>;
 }
 
 function CandidateRow({
@@ -448,7 +365,7 @@ function PhotoTile({
       activeOpacity={0.8}
       onPress={onOpen}
       className={cn(
-        'h-[92px] w-[92px] overflow-hidden rounded-lg bg-grey-10',
+        'h-24 w-24 overflow-hidden rounded-lg bg-grey-10',
         selected && 'border-2 border-mju-primary'
       )}
     >
@@ -467,19 +384,5 @@ function PhotoTile({
         {selected && <Text className="text-[11px] text-white">{order}</Text>}
       </Pressable>
     </TouchableOpacity>
-  );
-}
-
-function SmallThumbnail({ id, overlap }: { id: string; overlap: boolean }) {
-  const uri = useLibraryPhotoUri(id);
-  return (
-    <View
-      className={cn(
-        'h-9 w-9 overflow-hidden rounded-lg border-2 border-grey-02 bg-grey-10',
-        overlap && '-ml-2.5'
-      )}
-    >
-      {uri && <Image source={{ uri }} className="h-full w-full" resizeMode="cover" />}
-    </View>
   );
 }

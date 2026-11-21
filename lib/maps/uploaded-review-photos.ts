@@ -31,6 +31,17 @@ export async function getUploadedPhotoIds(): Promise<string[]> {
   return Object.values(uploaded).flatMap((review) => review.photos.map((photo) => photo.photoId));
 }
 
+// 리뷰에 올린 사진첩 사진 id -> 그 리뷰의 가게 id. 같은 방문에 찍은 나머지 사진을 그 가게로 정하는 데 쓴다
+// (lib/photo-location.ts assignPhotosToUploadedPlaces)
+export async function getUploadedPhotoPlaces(): Promise<Map<string, number>> {
+  const uploaded = await getUploadedReviewPhotos();
+  return new Map(
+    Object.values(uploaded).flatMap((review) =>
+      review.photos.map((photo) => [photo.photoId, review.placeId] as const)
+    )
+  );
+}
+
 // 리뷰를 올리거나 고친 뒤: 지금 리뷰에 남아 있는 사진만 남기고, 이번에 사진첩에서 올린 사진을 더한다
 export async function rememberReviewPhotos(
   reviewId: string,

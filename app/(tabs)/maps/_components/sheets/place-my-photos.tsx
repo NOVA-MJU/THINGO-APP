@@ -10,6 +10,7 @@ import * as React from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, View } from 'react-native';
 import { NativeViewGestureHandler } from 'react-native-gesture-handler';
 import DismissPhotosDialog from './dismiss-photos-dialog';
+import LibraryPhotoViewer from './library-photo-viewer';
 
 // 리뷰 작성 화면의 최대 첨부 수와 같다
 const MAX_PICK_COUNT = 10;
@@ -30,6 +31,8 @@ export function MyPlacePhotosCard({
 }) {
   const photos = React.useMemo(() => visits.flatMap((visit) => visit.photos), [visits]);
   const [isDismissDialogOpen, setIsDismissDialogOpen] = React.useState(false);
+  // 크게 보고 있는 사진 순번 (사진을 누르면 전체 화면으로 연다. 크게 본 채로도 고를 수 있다)
+  const [viewerIndex, setViewerIndex] = React.useState<number | null>(null);
   const [selectedIds, setSelectedIds] = React.useState<string[]>(() =>
     (visits[0]?.photos ?? []).slice(0, MAX_PICK_COUNT).map((photo) => photo.id)
   );
@@ -97,7 +100,8 @@ export function MyPlacePhotosCard({
                       key={photo.id}
                       id={photo.id}
                       selected={selectedIds.includes(photo.id)}
-                      onPress={() => togglePhoto(photo.id)}
+                      onOpen={() => setViewerIndex(photos.indexOf(photo))}
+                      onToggle={() => togglePhoto(photo.id)}
                     />
                   ))}
                 </View>
@@ -106,6 +110,15 @@ export function MyPlacePhotosCard({
           ))}
         </ScrollView>
       </NativeViewGestureHandler>
+
+      <LibraryPhotoViewer
+        photoIds={photos.map((photo) => photo.id)}
+        index={viewerIndex}
+        onChangeIndex={setViewerIndex}
+        onClose={() => setViewerIndex(null)}
+        selectedIds={orderedSelectedIds}
+        onToggleSelect={togglePhoto}
+      />
 
       <View className="px-4">
         <Pressable
@@ -128,33 +141,40 @@ export function MyPlacePhotosCard({
   );
 }
 
+// 사진을 누르면 크게 보고, 오른쪽 위 동그라미를 누르면 고른다
 function MyPhotoTile({
   id,
   selected,
-  onPress,
+  onOpen,
+  onToggle,
 }: {
   id: string;
   selected: boolean;
-  onPress: () => void;
+  onOpen: () => void;
+  onToggle: () => void;
 }) {
   const uri = useLibraryPhotoUri(id);
   return (
     <Pressable
-      onPress={onPress}
-      accessibilityRole="checkbox"
-      accessibilityState={{ checked: selected }}
-      accessibilityLabel="내 사진"
+      onPress={onOpen}
+      accessibilityRole="button"
+      accessibilityLabel="내 사진 크게 보기"
       className="h-24 w-24 overflow-hidden rounded-xl bg-grey-10"
     >
       {uri && <Image source={{ uri }} className="h-full w-full" resizeMode="cover" />}
-      <View
+      <Pressable
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: selected }}
+        accessibilityLabel="리뷰에 올릴 사진으로 고르기"
+        hitSlop={8}
+        onPress={onToggle}
         className={cn(
           'absolute right-1.5 top-1.5 h-5 w-5 items-center justify-center rounded-full border-[1.5px] border-white',
           selected ? 'bg-mju-primary' : 'bg-black/25'
         )}
       >
         {selected && <Icon as={Check} size={12} className="text-white" strokeWidth={3} />}
-      </View>
+      </Pressable>
     </Pressable>
   );
 }

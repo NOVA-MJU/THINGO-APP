@@ -46,3 +46,19 @@ export function clusterByGridCell<T extends ClusterablePoint>(
           },
   }));
 }
+
+// 묶음 핀을 눌렀을 때 확대할 줌. 지금 줌에서 조금씩 키워 가며 묶음이 처음 둘 이상으로 나뉘는 줌을 찾는다.
+// 그래서 어느 정도 확대된 상태면 한 단계만 나뉘고, 아주 축소된 상태면 크게 확대돼도 아직 묶인 핀이 남을 수 있다(한 번 더 누르면 된다).
+// maxZoom까지 가도 안 나뉘면(건물이 바로 붙어 있으면) maxZoom
+export function zoomToSplit<T extends ClusterablePoint>(
+  points: T[],
+  currentZoom: number,
+  maxZoom: number,
+  step = 0.5
+): number {
+  const candidateZooms = Array.from(
+    { length: Math.max(0, Math.ceil((maxZoom - currentZoom) / step)) },
+    (_, index) => Math.min(maxZoom, currentZoom + step * (index + 1))
+  );
+  return candidateZooms.find((zoom) => clusterByGridCell(points, zoom).length > 1) ?? maxZoom;
+}
