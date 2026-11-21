@@ -111,9 +111,9 @@
 <rect x="359.719" y="357.094" width="8.5" height="3.1875" stroke="#8BC7FF" stroke-width="1.0625"/>
 <path d="M373 478.219V432M259.312 432V478.219M259.312 432H274.719M259.312 432H61.6875M373 432V160H33V432H61.6875M373 432H299.156M61.6875 432V461.219H114.281" stroke="#5DABFF" stroke-width="2.65625"/>
 <path d="M316 484L318.598 488.5H313.402L316 484Z" fill="#3B96FF"/>
-<text fill="#3B96FF" style="white-space: pre" xml:space="preserve" font-family="Pretendard" font-size="7" letter-spacing="0em"><tspan x="306.925" y="498.988">&#xcd9c;&#xc785;&#xbb38;</tspan></text>
+<text fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linejoin="round" style="white-space: pre" xml:space="preserve" font-family="Pretendard" font-size="7" letter-spacing="0em"><tspan x="306.925" y="498.988">&#xcd9c;&#xc785;&#xbb38;</tspan></text><text fill="#3B96FF" style="white-space: pre" xml:space="preserve" font-family="Pretendard" font-size="7" letter-spacing="0em"><tspan x="306.925" y="498.988">&#xcd9c;&#xc785;&#xbb38;</tspan></text>
 <path d="M121 447L125.5 444.402L125.5 449.598L121 447Z" fill="#3B96FF"/>
-<text fill="#3B96FF" style="white-space: pre" xml:space="preserve" font-family="Pretendard" font-size="7" letter-spacing="0em"><tspan x="129.425" y="449.488">&#xcd9c;&#xc785;&#xbb38;</tspan></text>
+<text fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linejoin="round" style="white-space: pre" xml:space="preserve" font-family="Pretendard" font-size="7" letter-spacing="0em"><tspan x="129.425" y="449.488">&#xcd9c;&#xc785;&#xbb38;</tspan></text><text fill="#3B96FF" style="white-space: pre" xml:space="preserve" font-family="Pretendard" font-size="7" letter-spacing="0em"><tspan x="129.425" y="449.488">&#xcd9c;&#xc785;&#xbb38;</tspan></text>
 <rect x="76" y="439" width="15" height="15" rx="1.5" fill="#909499"/>
 <path d="M88.75 442.75H86.125V445.375H83.5V448H80.875V450.625H78.25" stroke="white" stroke-width="0.8025" stroke-linecap="round" stroke-linejoin="round"/>
 <rect x="309" y="458" width="15" height="15" rx="1.5" fill="#909499"/>

@@ -7,6 +7,9 @@ import {
   groupPhotosNearPlace,
   type LocatedPhoto,
 } from '@/lib/photo-location';
+import { getDismissedPlacePhotos } from '@/lib/maps/dismissed-place-photos';
+import { isFoodPhoto } from '@/lib/photo-food';
+import { getPhotoLabels } from '@/lib/photo-labels';
 import PhotoLocationScan from '@/modules/photo-location-scan';
 import { type QueryClient, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as MediaLibrary from 'expo-media-library';
@@ -15,12 +18,17 @@ import { AppState } from 'react-native';
 
 export type PlacePhoto = LocatedPhoto & { width: number; height: number };
 
+// 장소별 내 사진 쿼리의 앞부분 (사진을 숨기면 다녀온 곳 핀과 같이 다시 찾는다)
+export const PLACE_PHOTOS_QUERY_KEY = ['place-photos'] as const;
+
 // iOS 앱에서만 사진첩을 훑는다. 웹은 사진첩에 접근할 수 없고, 안드로이드는 Google Play 사진 권한 정책 때문에
 // 시스템 선택기(+ 버튼)만 쓴다. 네이티브 모듈이 iOS에만 있어서 다른 곳에서는 null이다
 export const PLACE_PHOTOS_SUPPORTED = PhotoLocationScan != null;
 
 // 한 화면에 보여줄 최대 장수. 썸네일마다 원본 파일을 열기 때문에 너무 많으면 느려진다
 const MAX_PLACE_PHOTOS = 30;
+// 음식 사진인지 분류해 볼 최대 장수 (최근 사진부터). 처음 한 번만 분류하고 결과는 기기에 기억한다
+const MAX_CLASSIFIED_PLACE_PHOTOS = 60;
 
 export type PlacePhotosStatus = 'unsupported' | 'loading' | 'undetermined' | 'denied' | 'granted';
 
@@ -100,7 +108,13 @@ export function usePlacePhotos(placeId: number, place: GeoPoint | null) {
   } = usePhotoPermission();
 
   const query = useQuery({
-    queryKey: ['place-photos', placeId, place?.latitude, place?.longitude, accessPrivileges],
+    queryKey: [
+      ...PLACE_PHOTOS_QUERY_KEY,
+      placeId,
+      place?.latitude,
+      place?.longitude,
+      accessPrivileges,
+    ],
     queryFn: () => findPlacePhotos(placeId, place as GeoPoint, queryClient),
     enabled: granted && place != null,
     staleTime: Infinity,
@@ -148,7 +162,15 @@ async function findPlacePhotos(placeId: number, place: GeoPoint, queryClient: Qu
   // 붙어 있는 옆 가게에서 찍은 사진은 뺀다 (가게 목록을 못 받으면 반경만 본다)
   const nearbyPlaces = await fetchReviewablePlaces(queryClient).catch(() => []);
   const photos = filterPhotosForPlace(located, { id: placeId, ...place }, nearbyPlaces);
-  return limitPhotos(groupPhotosNearPlace(photos, place), MAX_PLACE_PHOTOS);
+  // 가게 근처에서 찍었어도 음식·음료 사진만 보여준다 (셀카·풍경 같은 관련 없는 사진이 섞이지 않게)
+  // 사용자가 X로 숨긴 사진(다른 가게, 지금은 없어진 예전 가게)도 뺀다
+  const dismissedIds = (await getDismissedPlacePhotos())[String(placeId)] ?? [];
+  const recent = photos
+    .filter((photo) => !dismissedIds.includes(photo.id))
+    .slice(0, MAX_CLASSIFIED_PLACE_PHOTOS);
+  const labels = await getPhotoLabels(recent.map((photo) => photo.id));
+  const foodPhotos = recent.filter((photo) => isFoodPhoto(labels[photo.id] ?? []));
+  return limitPhotos(groupPhotosNearPlace(foodPhotos, place), MAX_PLACE_PHOTOS);
 }
 
 // 최근 방문부터 채워서 전체 장수를 limit 안으로 자른다

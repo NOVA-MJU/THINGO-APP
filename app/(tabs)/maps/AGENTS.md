@@ -56,14 +56,14 @@
 - 층별 안내도 화면(`app/maps/floor`)은 도면이 그려진 영역(`content`)이 상하좌우 잘리지 않는 최대 배율로 가득 채워 연다(여백 16px, 영역 가운데를 화면 가운데에). 처음부터 확대하면 층 모양을 보려고 좌우로 꼭 밀어야 해서다. 더블탭은 이 화면으로 돌아온다
 - 페이지 폭은 카드 테두리 안쪽 폭으로 잰다 (바깥 폭을 쓰면 한 장 넘길 때마다 2px씩 밀린다)
 - 도면 영역은 `scripts/generate-floor-plan-targets.mjs`가 경로·사각형·선 좌표로 계산해 `targets.json`의 `content`에 넣는다. viewBox를 undefined로 넘기면 원래 viewBox가 지워지므로 있을 때만 넘긴다
-- 도면 글자(`<text>`)에는 테두리(stroke)를 두지 않는다. Figma 외곽선 효과가 stroke로 나오면 테두리가 글자 위에 덮여 하얗게 보인다(행정동 1층 출입문 등 24곳을 지웠고, 남아 있으면 생성 스크립트가 에러를 낸다). 출입문 글자는 파란색(#3B96FF), 나머지는 회색(#6D7073)
+- 도면 글자(`<text>`)에는 테두리(stroke)를 두지 않는다. Figma 외곽선 효과가 stroke로 나오면 테두리가 글자 위에 덮여 하얗게 보인다(행정동 1층 출입문 등 24곳을 지웠고, 남아 있으면 생성 스크립트가 에러를 낸다). 출입문 글자는 파란색(#3B96FF), 나머지는 회색(#6D7073). 출입문 등 방 밖에 떠 있는 안내 글자(파란 #3B96FF, '운동장' #909499)는 벽·선과 겹쳐도 읽히게 바로 뒤에 흰 테두리만 그린 복사본(`fill="none" stroke="#FFFFFF"`)을 깐다. 생성 스크립트는 이 복사본을 검색 대상에서 빼고, 그 외 글자의 stroke는 여전히 에러로 막는다
 - 도면 SVG에서 캔버스 전체 배경 사각형(`fill="#F5F7F9"`)을 지웠다 (남아 있으면 생성 스크립트가 에러를 낸다). 배경은 화면 쪽에서 `grey-02`(#F5F7F9)로 칠한다. 층별 안내도 화면의 확대 선명 레이어도 같은 배경색을 직접 칠한다 (안 칠하면 아래 흐린 레이어가 비친다)
 
 ### 건물 시트의 호실 검색 (`sheets/building-room-search.tsx`)
 
 검색창은 층별 안내도 카드 맨 위(도면 위)에 붙어 있다 (`FloorPlanCarousel`의 `header`). 따로 떨어져 있으면 눈에 잘 안 띈다. 카드 안 "크게 보기"와 같은 흰 알약(h-9)으로 작게 두고, 결과가 없으면 줄을 늘리지 않고 입력창 안에 "결과 없음"만 띄운다. 서버를 거치지 않고 이 건물 도면에 적힌 글자(`targets.json`)에서 찾는다 (`lib/maps/floor-plan-search.ts`, 확인: `node lib/maps/floor-plan-search.check.mjs`). 두 줄 라벨('S2111 / 소강당')은 한 키('s2111소강당')라서 키에 검색어가 들어 있는지로 찾고, '1353'처럼 앞의 S를 빼고 쳐도 찾는다. 결과를 누르면 `/maps/floor?target=<키>`로 열어 그 글자를 강조한다. 이 건물에서 하나도 못 찾으면 다른 건물 도면에서 찾아 "종합관 3F S1353"처럼 건물 이름을 붙여 보여준다(`searchBuildingsFloorPlanTexts`). 이 건물에서 찾은 게 있으면 다른 건물은 보지 않는다 ('화장실'처럼 어디에나 있는 이름이 섞이지 않게). 웹 입력창 포커스 테두리는 `outlineStyle: 'none'`으로 끈다 (`className`은 `BottomSheetTextInput`에 적용되지 않는다).
 
-호실 이름(예: S10134 코이노니아홀)을 도면에 넣을 때는 SVG의 두 줄 라벨 형식(코드 줄 끝 `&#10;`, 다음 줄 y+10)을 따르고 `node scripts/generate-floor-plan-targets.mjs`로 다시 생성한다. 명지도 통합 검색은 서버 장소 이름(`name`)·호실 코드(`indoorCode`)로 찾으므로 서버 데이터(시트 `서버-장소`)도 같이 바꿔야 한다.
+호실 이름(예: S10134 코이노니아홀)을 도면에 넣을 때는 SVG의 두 줄 라벨 형식(코드 줄 끝 `&#10;`, 다음 줄 y+10)을 따르고 `node scripts/generate-floor-plan-targets.mjs`로 다시 생성한다. 명지도 통합 검색은 서버 장소 이름(`name`)·호실 코드(`indoorCode`)로 찾고, 그 뒤에 층별 안내도 도면 글자 결과(최대 5개, `lib/maps/floor-plan-buildings.ts`)를 붙인다. 그래서 서버 이름이 'S10134'뿐인 호실도 도면에 적힌 '코이노니아홀'로 찾힌다. 도면 결과의 아이콘은 글자로 장소 종류를 짐작해 고른다(`floorTextCategoryCode`, 화장실·카페·프린트 등, 안 맞으면 강의실). 검색 결과 이름 옆 작은 아이콘은 왼쪽 칸이 사진일 때만 둔다 (사진이 없으면 같은 아이콘이 두 번 보인다). 서버 결과에 같은 호실 코드가 있으면 도면 결과는 빼서 두 번 나오지 않게 한다.
 
 ### 학교로 돌아가기 버튼
 
@@ -78,12 +78,23 @@
 
 방목학술정보관은 국제관과 약 50m 거리라 긴 이름 라벨이 늘 겹쳐 숨고 네이버 기본 글자만 보였다. 지도 라벨만 `BUILDING_LABEL_SHORT_NAMES`(`index.tsx`)로 "도서관"으로 줄인다. 라벨이 덮는 네이버 기본 글자는 `isHideCollidedSymbols`로 숨는다. 시트·검색은 원래 이름을 쓴다.
 
+### 네이버 기본 글자(심벌) 누르기 (앱 전용)
+
+네이버 지도가 그리는 가게·건물 글자를 누르면 우리 시트를 연다 (`onSymbolPress` in `index.tsx`).
+
+- 라이브러리(`@mj-studio/react-native-naver-map` 2.8.0)가 심벌 터치를 꺼내 주지 않아 `patches/`의 pnpm 패치로 `onTapSymbol`을 추가했다 (iOS `didTapSymbol`, Android `setOnSymbolClickListener`). 터치를 소비해서 이때는 `onTapMap`이 오지 않는다. 네이티브 변경이라 스토어 빌드가 새로 나가야 반영된다
+- 심벌은 이름과 좌표만 준다. 서버 `GET /map/symbol-match`(`matchMapSymbol`)가 모든 카테고리 핀에서 이름이 비슷하고 80m 안인 곳을 찾는다. 전수조사로 가게를 서버에 추가하면 앱을 다시 내지 않아도 찾힌다. 서버에 API가 없거나 실패하면 앱 안에서 건물 → 대동 가게 순으로 대조한다(`lib/maps/match-symbol.ts`, 확인: `node lib/maps/match-symbol.check.mjs`). 기준은 서버 `SymbolNameMatcher`, 전수조사 스크립트(`scripts/audit-places.mjs`)와 같다
+- 우리 DB에 없으면 "띵고에 아직 정보가 없는 곳" 시트(`sheet-unknown-place.tsx`)에서 네이버 지도 검색으로 넘긴다. 네이버 장소 정보는 약관상 가져와 보여주지 않는다
+- 웹 JS SDK는 심벌 터치를 알려주지 않아 웹에서는 동작하지 않는다
+
 ### 건물 이름 라벨 겹침
 
 건물 라벨(알약)은 겹치면 라벨 전체를 숨긴다 (줌인하면 다시 보인다). 우선순위는 선택한 건물 > `buildingMarkers` 배열 앞쪽(API 순서, 건물 번호순) 순이다.
 
-- **native**: `isHideCollidedMarkers` + `zIndex`(앞쪽일수록 큼). 선택한 건물은 `isForceShowIcon`으로 항상 보인다. 다녀온 곳 핀은 건물보다 zIndex가 커서 겹치면 건물 라벨이 숨는다
+- **native**: `isHideCollidedMarkers` + `zIndex`(앞쪽일수록 큼). 선택한 건물은 `isForceShowIcon`으로 항상 보인다. 다녀온 곳 핀은 건물보다 zIndex가 커서 겹치면 건물 라벨이 숨는다. 다녀온 곳 핀끼리도 `isHideCollidedMarkers`로 겹치면 최근에 간 곳(배열 앞쪽, zIndex 큼)만 남는다
 - **web**: 위 캡션과 같은 `recomputeCaptionVisibility`에서 `buildingLabelWidth`로 사각형을 만들어 판정하고 `visible`로 숨긴다
+- 누른(선택한) 핀은 종류와 상관없이 `SELECTED_MARKER_Z_INDEX`로 맨 위에 올리고 `isForceShowIcon`으로 숨지 않게 한다. 다른 핀 아래 깔린 핀을 눌러도 위로 올라와 눌린 게 보이게 하려는 것이다. 다녀온 곳 핀은 눌리면 한 단계 진한 색(`REVIEW_PIN_ACTIVE_COLOR`)이 된다
+- 앱에서 핀이나 네이버 글자를 누르면 가벼운 진동(`expo-haptics` Light)을 준다
 
 ## 바텀시트 동작 방식 (`app/(tabs)/maps/index.tsx`)
 
@@ -106,6 +117,7 @@
 - **주의**: `close()`는 index가 -1에 도달하면 항상 `onClose`를 발생시키는데(`node_modules/@gorhom/bottom-sheet/src/components/bottomSheet/BottomSheet.tsx`의 `animateToPositionCompleted`), `pushSheet`가 아래 레이어를 가리려고 호출하는 `close()`도 똑같이 `onClose`를 발생시킨다. 이게 실제 pop과 구분 없이 `handleLayerClosed`를 타면 "덮여서 숨겨진 것"이 스택에서 제거돼버리므로, `suppressCloseRef`에 "덮여서 닫힌" 키를 표시해두고 `handleLayerClosed`가 그 키를 보면 무시하도록 한다.
 - `resetStack()`: 스택을 통째로 즉시 언마운트(애니메이션 없음, `close()`도 호출하지 않으므로 `onClose`/`suppressCloseRef`와 무관). bus/칩 재선택처럼 완전히 다른 컨텍스트로 전환할 때 사용.
 - `BuildingDetailSheet`/`PlaceDetailSheet`/`PlaceListSheet`/`DaedongPlaceListSheet`/`CategoryListSheet`의 닫기(X) 버튼은 전부 `onClose={popSheet}`로 연결돼 있다 — "한 단계 뒤로"와 "닫기"가 스택 모델에서는 같은 동작이라 별도 back 버튼이 필요 없다 (places 목록에서 들어온 상세는 popSheet 시 목록으로, 지도에서 바로 들어온 상세는 popSheet 시 base(건물 목록)로 돌아감 — 스택 깊이가 자동으로 그 차이를 반영함).
+- 장소 시트(place)는 중간 높이를 50% 대신 내용에 맞춘다. 이름·운영정보·사진·내 사진 카드를 지나 "리뷰 N" 영역이 시작하는 곳까지 재서(`onPeekHeightChange`) 핸들과 여백(리뷰 영역 위 20px + 8px)을 더하고 화면의 30~85% 안으로 맞춘다 (`layerSnapPoints`)
 - 시트를 10%로 내려 둔 채 지도에서 같은 핀이나 다른 핀을 누르면 그 레이어를 절반(index 1)까지 다시 올린다 (`raiseLayer`). 더 올려 둔 경우는 그대로 둔다
 - `selectCategoryPin`(장소/건물 마커 클릭·목록 항목 클릭 공용)은 항상 `pushSheet`만 호출한다 — 이미 상세가 열려 있는 상태에서 다른 핀을 클릭하면 그 위에 새 레이어가 또 쌓인다(뒤로가기 시 이전에 보던 핀으로 돌아감).
 

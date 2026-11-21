@@ -20,3 +20,10 @@ export function getOperatingStatusClassName(status: string) {
   if (status.includes('운영중') || status.includes('24시간')) return 'text-[#34AA6F]';
   return 'text-grey-60';
 }
+
+// 다녀온 날짜: 올해면 '11월 12일', 지난해 이전이면 '2025년 11월 12일'
+export function formatVisitDate(ms: number) {
+  const date = new Date(ms);
+  const prefix = date.getFullYear() === new Date().getFullYear() ? '' : `${date.getFullYear()}년 `;
+  return `${prefix}${date.getMonth() + 1}월 ${date.getDate()}일`;
+}

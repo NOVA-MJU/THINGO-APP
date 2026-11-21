@@ -82,6 +82,8 @@ type PlaceCommunitySectionProps = {
   mediaFooter?: React.ReactNode;
   // 위 내용에 리뷰 쓰기 버튼이 이미 있으면 "어떠셨나요?" 카드를 숨겨 같은 버튼이 두 번 나오지 않게 한다
   showReviewPrompt?: boolean;
+  // 리뷰 영역("리뷰 N")이 시작하는 위치(이 컴포넌트 맨 위 기준, 위 여백 포함). 시트를 그 바로 위 내용까지만 보이게 연다
+  onReviewSectionTopChange?: (y: number) => void;
 };
 
 const COMING_SOON_CATEGORY_CODES = new Set(['club-room', 'smoking']);
@@ -140,6 +142,7 @@ export default function PlaceCommunitySection({
   mediaEmptyContent,
   mediaFooter,
   showReviewPrompt = true,
+  onReviewSectionTopChange,
 }: PlaceCommunitySectionProps) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
@@ -349,7 +352,10 @@ export default function PlaceCommunitySection({
 
       {showReviewPrompt && <ReviewPromptCard placeName={placeName} onWriteReview={onWriteReview} />}
 
-      <View className="mt-5 px-4">
+      <View
+        className="mt-5 px-4"
+        onLayout={(event) => onReviewSectionTopChange?.(event.nativeEvent.layout.y)}
+      >
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center gap-1.5">
             <Text className="text-black text-title03">리뷰</Text>

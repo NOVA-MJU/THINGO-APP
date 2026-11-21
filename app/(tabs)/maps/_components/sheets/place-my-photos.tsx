@@ -1,4 +1,4 @@
-import { LocationIcon } from '@/components/icons';
+import { LocationIcon, XThinIcon } from '@/components/icons';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { type PlacePhoto, useLibraryPhotoUri } from '@/hooks/use-place-photos';
@@ -8,6 +8,7 @@ import { Check, ChevronRight, ImagePlus, Lock, PencilLine, Plus } from 'lucide-r
 import * as React from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, View } from 'react-native';
 import { NativeViewGestureHandler } from 'react-native-gesture-handler';
+import DismissPhotosDialog from './dismiss-photos-dialog';
 
 // 리뷰 작성 화면의 최대 첨부 수와 같다
 const MAX_PICK_COUNT = 10;
@@ -18,12 +19,16 @@ export function MyPlacePhotosCard({
   visits,
   photoCount,
   onWriteReview,
+  onDismissPhotos,
 }: {
   visits: PhotoVisit<PlacePhoto>[];
   photoCount: number;
   onWriteReview: (photoIds: string[]) => void;
+  // X로 이 사진들을 숨긴다 (다른 가게 사진, 지금은 없어진 예전 가게 사진)
+  onDismissPhotos: (photoIds: string[]) => void;
 }) {
   const photos = React.useMemo(() => visits.flatMap((visit) => visit.photos), [visits]);
+  const [isDismissDialogOpen, setIsDismissDialogOpen] = React.useState(false);
   const [selectedIds, setSelectedIds] = React.useState<string[]>(() =>
     (visits[0]?.photos ?? []).slice(0, MAX_PICK_COUNT).map((photo) => photo.id)
   );
@@ -52,7 +57,24 @@ export function MyPlacePhotosCard({
           <Icon as={Lock} size={12} className="text-grey-40" />
           <Text className="text-grey-40 text-caption02">나만 보여요</Text>
         </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="이 사진들 숨기기"
+          hitSlop={8}
+          onPress={() => setIsDismissDialogOpen(true)}
+          className="ml-2.5"
+        >
+          <XThinIcon size={16} className="text-grey-40" />
+        </Pressable>
       </View>
+      <DismissPhotosDialog
+        open={isDismissDialogOpen}
+        onOpenChange={setIsDismissDialogOpen}
+        onDismiss={() => {
+          setIsDismissDialogOpen(false);
+          onDismissPhotos(photos.map((photo) => photo.id));
+        }}
+      />
 
       <NativeViewGestureHandler disallowInterruption>
         <ScrollView

@@ -44,7 +44,7 @@
 <path d="M33 428.281V432H373V160H33V402.25" stroke="#5DABFF" stroke-width="2.65625"/>
 <text transform="translate(244.625 291.75)" fill="#6D7073" style="white-space: pre" xml:space="preserve" font-family="Pretendard" font-size="8" letter-spacing="0em"><tspan x="0.171875" y="7.84375">&#xd559;&#xc0dd;&#xc2dd;&#xb2f9;</tspan></text>
 <path d="M31 414L26.5 411.402L26.5 416.598L31 414Z" fill="#3B96FF"/>
-<text transform="translate(23 404.5) rotate(90)" fill="#3B96FF" style="white-space: pre" xml:space="preserve" font-family="Pretendard" font-size="7" font-weight="500" letter-spacing="0em"><tspan x="0.425293" y="6.98828">&#xcd9c;&#xc785;&#xbb38;</tspan></text>
+<text transform="translate(23 404.5) rotate(90)" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linejoin="round" style="white-space: pre" xml:space="preserve" font-family="Pretendard" font-size="7" font-weight="500" letter-spacing="0em"><tspan x="0.425293" y="6.98828">&#xcd9c;&#xc785;&#xbb38;</tspan></text><text transform="translate(23 404.5) rotate(90)" fill="#3B96FF" style="white-space: pre" xml:space="preserve" font-family="Pretendard" font-size="7" font-weight="500" letter-spacing="0em"><tspan x="0.425293" y="6.98828">&#xcd9c;&#xc785;&#xbb38;</tspan></text>
 <rect x="341" y="337" width="15" height="15" rx="1.5" fill="#909499"/>
 <path d="M353.75 340.75H351.125V343.375H348.5V346H345.875V348.625H343.25" stroke="white" stroke-width="0.8025" stroke-linecap="round" stroke-linejoin="round"/>
 <rect x="34.5312" y="363.469" width="20.1875" height="3.1875" transform="rotate(-90 34.5312 363.469)" stroke="#8BC7FF" stroke-width="1.0625"/>

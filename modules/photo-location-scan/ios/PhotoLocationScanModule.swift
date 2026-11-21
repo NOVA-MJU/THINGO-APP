@@ -1,5 +1,6 @@
 import ExpoModulesCore
 import Photos
+import Vision
 
 // 사진첩 전체에서 좌표 범위 안에서 찍힌 사진만 골라준다.
 // expo-media-library는 사진마다 위치를 따로 물어봐야 해서 수만 장이면 너무 느리다.
@@ -29,6 +30,39 @@ public class PhotoLocationScanModule: Module {
         ])
       }
       return photos
+    }
+
+    // 사진마다 무엇이 찍혔는지 기기 안에서 분류한다 (Apple Vision, 서버로 보내지 않음).
+    // 확신도 0.3 이상인 라벨(food, coffee, beer, ramen...)만 돌려주고, 음식인지·어떤 가게인지는 JS에서 판단한다.
+    // 썸네일 크기로만 읽고 iCloud에서 내려받지 않는다. 기기에 이미지가 없어 분류하지 못한 사진은 결과에서 빠진다
+    AsyncFunction("classifyPhotos") { (ids: [String]) -> [String: [String]] in
+      let assets = PHAsset.fetchAssets(withLocalIdentifiers: ids, options: nil)
+      let options = PHImageRequestOptions()
+      options.isSynchronous = true
+      options.deliveryMode = .highQualityFormat
+      options.resizeMode = .fast
+      options.isNetworkAccessAllowed = false
+
+      var labelsById: [String: [String]] = [:]
+      assets.enumerateObjects { asset, _, _ in
+        var cgImage: CGImage?
+        PHImageManager.default().requestImage(
+          for: asset, targetSize: CGSize(width: 360, height: 360), contentMode: .aspectFill, options: options
+        ) { image, _ in
+          cgImage = image?.cgImage
+        }
+        guard let cgImage else { return }
+        let request = VNClassifyImageRequest()
+        do {
+          try VNImageRequestHandler(cgImage: cgImage, options: [:]).perform([request])
+        } catch {
+          return
+        }
+        labelsById[asset.localIdentifier] = (request.results ?? [])
+          .filter { $0.confidence >= 0.3 }
+          .map { $0.identifier }
+      }
+      return labelsById
     }
   }
 }

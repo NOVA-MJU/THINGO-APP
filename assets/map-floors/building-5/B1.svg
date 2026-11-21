@@ -167,7 +167,7 @@
 <rect x="154.59" y="353.885" width="8.94081" height="3.17757" stroke="#8BC7FF" stroke-width="1.05919"/>
 <rect x="154.59" y="357.062" width="8.94081" height="3.17757" stroke="#8BC7FF" stroke-width="1.05919"/>
 <rect x="154.59" y="360.24" width="8.94081" height="3.17757" stroke="#8BC7FF" stroke-width="1.05919"/>
-<text fill="#3B96FF" style="white-space: pre" xml:space="preserve" font-family="Pretendard" font-size="7" letter-spacing="0em"><tspan x="178.826" y="171.988">&#xbc29;&#xbaa9;&#xd559;&#xc220;&#xc815;&#xbcf4;&#xad00;&#10;</tspan><tspan x="190.925" y="180.988">&#xc9c4;&#xc785;&#xb85c;</tspan></text>
+<text fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linejoin="round" style="white-space: pre" xml:space="preserve" font-family="Pretendard" font-size="7" letter-spacing="0em"><tspan x="178.826" y="171.988">&#xbc29;&#xbaa9;&#xd559;&#xc220;&#xc815;&#xbcf4;&#xad00;&#10;</tspan><tspan x="190.925" y="180.988">&#xc9c4;&#xc785;&#xb85c;</tspan></text><text fill="#3B96FF" style="white-space: pre" xml:space="preserve" font-family="Pretendard" font-size="7" letter-spacing="0em"><tspan x="178.826" y="171.988">&#xbc29;&#xbaa9;&#xd559;&#xc220;&#xc815;&#xbcf4;&#xad00;&#10;</tspan><tspan x="190.925" y="180.988">&#xc9c4;&#xc785;&#xb85c;</tspan></text>
 <path d="M200 191L202.598 186.5H197.402L200 191Z" fill="#3B96FF"/>
 <text fill="#6D7073" style="white-space: pre" xml:space="preserve" font-family="Pretendard" font-size="7" letter-spacing="0em"><tspan x="138.851" y="353.988">&#xd589;&#xc815;&#xb3d9;&#10;</tspan><tspan x="132.801" y="362.988">&#xcd9c;&#xc785;&#xacc4;&#xb2e8;</tspan></text>
 <rect x="161" y="354" width="15" height="15" rx="1.5" fill="#909499"/>

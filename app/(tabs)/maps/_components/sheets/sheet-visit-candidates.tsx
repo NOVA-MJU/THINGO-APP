@@ -3,11 +3,14 @@ import { RestaurantIcon } from '@/components/icons/map';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { useLibraryPhotoUri } from '@/hooks/use-place-photos';
+import { formatVisitDate } from '@/lib/maps/format';
 import type { VisitedPlace, VisitedPlaceCandidate } from '@/hooks/use-visited-places';
 import { ChevronRight, Lock } from 'lucide-react-native';
-import { Fragment } from 'react';
+import * as React from 'react';
 import { Image, ScrollView, TouchableOpacity, View } from 'react-native';
 import { NativeViewGestureHandler } from 'react-native-gesture-handler';
+import DismissPhotosDialog from './dismiss-photos-dialog';
+import LibraryPhotoViewer from './library-photo-viewer';
 
 // 지도에 보여줄 사진 최대 장수 (썸네일마다 원본 파일을 연다)
 const MAX_THUMBNAILS = 6;
@@ -18,11 +21,19 @@ export default function VisitCandidatesSheet({
   visit,
   onSelect,
   onClose,
+  onDismissPhotos,
 }: {
   visit: VisitedPlace;
   onSelect: (candidate: VisitedPlaceCandidate) => void;
   onClose: () => void;
+  // 이 사진들을 숨긴다 (다른 가게 사진, 지금은 없어진 예전 가게 사진)
+  onDismissPhotos: () => void;
 }) {
+  const [isDismissDialogOpen, setIsDismissDialogOpen] = React.useState(false);
+  // 크게 보고 있는 사진 순번 (사진을 누르면 연다)
+  const [viewerIndex, setViewerIndex] = React.useState<number | null>(null);
+  const photoIds = visit.photoIds.slice(0, MAX_THUMBNAILS);
+
   return (
     <ScrollView>
       <View className="flex-row items-start px-4">
@@ -50,8 +61,16 @@ export default function VisitCandidatesSheet({
           className="mt-4"
           contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}
         >
-          {visit.photoIds.slice(0, MAX_THUMBNAILS).map((id) => (
-            <Thumbnail key={id} id={id} />
+          {photoIds.map((id, index) => (
+            <TouchableOpacity
+              key={id}
+              accessibilityRole="button"
+              accessibilityLabel="사진 크게 보기"
+              activeOpacity={0.8}
+              onPress={() => setViewerIndex(index)}
+            >
+              <Thumbnail id={id} />
+            </TouchableOpacity>
           ))}
         </ScrollView>
       </NativeViewGestureHandler>
@@ -65,7 +84,7 @@ export default function VisitCandidatesSheet({
       </View>
 
       {visit.candidates.map((candidate, index) => (
-        <Fragment key={candidate.id}>
+        <React.Fragment key={candidate.id}>
           {index > 0 && <View className="mx-4 my-3 h-[1.5px] bg-grey-02" />}
           <TouchableOpacity
             className="flex-row items-center gap-3.5 px-4"
@@ -85,9 +104,30 @@ export default function VisitCandidatesSheet({
             </View>
             <Icon as={ChevronRight} size={18} className="text-grey-30" />
           </TouchableOpacity>
-        </Fragment>
+        </React.Fragment>
       ))}
+      <TouchableOpacity
+        accessibilityRole="button"
+        onPress={() => setIsDismissDialogOpen(true)}
+        className="mt-5 items-center py-2"
+      >
+        <Text className="text-grey-40 underline text-caption02">여기 가게 사진이 아니에요</Text>
+      </TouchableOpacity>
       <View className="h-6" />
+      <DismissPhotosDialog
+        open={isDismissDialogOpen}
+        onOpenChange={setIsDismissDialogOpen}
+        onDismiss={() => {
+          setIsDismissDialogOpen(false);
+          onDismissPhotos();
+        }}
+      />
+      <LibraryPhotoViewer
+        photoIds={photoIds}
+        index={viewerIndex}
+        onChangeIndex={setViewerIndex}
+        onClose={() => setViewerIndex(null)}
+      />
     </ScrollView>
   );
 }
@@ -99,10 +139,4 @@ function Thumbnail({ id }: { id: string }) {
       {uri && <Image source={{ uri }} className="h-full w-full" resizeMode="cover" />}
     </View>
   );
-}
-
-function formatVisitDate(ms: number) {
-  const date = new Date(ms);
-  const prefix = date.getFullYear() === new Date().getFullYear() ? '' : `${date.getFullYear()}년 `;
-  return `${prefix}${date.getMonth() + 1}월 ${date.getDate()}일`;
 }

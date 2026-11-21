@@ -1,3 +1,4 @@
+import * as Haptics from 'expo-haptics';
 import {
   NaverMapView,
   NaverMapMarkerOverlay,
@@ -12,6 +13,7 @@ import {
   BUILDING_LABEL_HEIGHT,
   buildingLabelWidth,
   REVIEW_PIN_BODY_HEIGHT,
+  REVIEW_PIN_ACTIVE_COLOR,
   REVIEW_PIN_COLOR,
   REVIEW_PIN_FONT_SIZE,
   REVIEW_PIN_TAIL_HEIGHT,
@@ -42,6 +44,14 @@ const ACTIVE_MARKER_HEIGHT = 32;
  * 상단 1/3 지점에 오도록 피벗을 옮긴다.
  */
 const CAMERA_PIVOT = { x: 0.5, y: 2 / 5 };
+
+// 누른(선택한) 마커는 다른 마커 아래 깔려 있었어도 맨 위로 올린다
+const SELECTED_MARKER_Z_INDEX = 100000;
+
+// 핀을 누르면 가볍게 진동을 줘서 눌렸다는 느낌을 준다
+function tapFeedback() {
+  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+}
 
 export interface BusStopMarkerData {
   id: string;
@@ -98,11 +108,16 @@ interface Props {
   selectedBusStopId?: string;
   selectedBuildingId?: string;
   selectedPlaceId?: string;
+  selectedReviewSuggestionId?: string;
   onInteraction?: () => void;
   onBusStopMarkerPress?: (id: string) => void;
   onBuildingMarkerPress?: (id: string) => void;
   onPlaceMarkerPress?: (id: string) => void;
   onReviewSuggestionMarkerPress?: (id: string) => void;
+  // 네이버 기본 글자(가게·건물 등 심벌)를 눌렀을 때. 앱 전용이다 (웹 JS SDK는 심벌 터치를 알려주지 않는다)
+  onSymbolPress?: (symbol: { caption: string; latitude: number; longitude: number }) => void;
+  // 지도 이동·확대가 끝났을 때 줌. 다녀온 곳 핀 묶음을 다시 계산하는 데 쓴다
+  onZoomChange?: (zoom: number) => void;
 }
 
 export interface NaverMapHandle {
@@ -130,11 +145,14 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
     selectedBusStopId,
     selectedBuildingId,
     selectedPlaceId,
+    selectedReviewSuggestionId,
     onInteraction,
     onBusStopMarkerPress,
     onBuildingMarkerPress,
     onPlaceMarkerPress,
     onReviewSuggestionMarkerPress,
+    onSymbolPress,
+    onZoomChange,
   },
   ref
 ) {
@@ -193,11 +211,16 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
       animationDuration={500}
       onTouchStart={onInteraction}
       onTapMap={onInteraction}
+      onTapSymbol={(symbol) => {
+        tapFeedback();
+        onSymbolPress?.(symbol);
+      }}
       onCameraChanged={(params) => {
         if (params.reason === 'Gesture' || params.reason === 'Control') {
           onInteraction?.();
         }
       }}
+      onCameraIdle={onZoomChange ? ({ zoom }) => zoom != null && onZoomChange(zoom) : undefined}
       onInitialized={onInitialized}
       locationOverlay={{
         isVisible: !!userLocation,
@@ -223,7 +246,10 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
             image={
               isActive ? CATEGORY_MARKER_ACTIVE_IMAGES.BusIcon : CATEGORY_MARKER_IMAGES.BusIcon
             }
-            onTap={() => onBusStopMarkerPress?.(marker.id)}
+            onTap={() => {
+              tapFeedback();
+              onBusStopMarkerPress?.(marker.id);
+            }}
           />
         );
       })}
@@ -240,11 +266,14 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
             anchor={MARKER_ANCHOR}
             // 라벨끼리 겹치면 zIndex가 낮은 쪽을 SDK가 숨긴다 (줌인하면 다시 보인다).
             // 선택한 건물 > 목록 앞쪽(건물 번호순) 순으로 남기고, 선택한 건물은 항상 보이게 한다
-            zIndex={isActive ? buildingMarkers.length + 1 : buildingMarkers.length - index}
+            zIndex={isActive ? SELECTED_MARKER_Z_INDEX : buildingMarkers.length - index}
             isHideCollidedMarkers
             isForceShowIcon={isActive}
             isHideCollidedSymbols
-            onTap={() => onBuildingMarkerPress?.(marker.id)}
+            onTap={() => {
+              tapFeedback();
+              onBuildingMarkerPress?.(marker.id);
+            }}
             caption={{
               text: marker.name,
               align: 'Center',
@@ -273,21 +302,34 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
           </NaverMapMarkerOverlay>
         );
       })}
-      {reviewSuggestionMarkers.map((marker) => {
+      {reviewSuggestionMarkers.map((marker, index) => {
+        const isActive = marker.id === selectedReviewSuggestionId;
+        const color = isActive ? REVIEW_PIN_ACTIVE_COLOR : REVIEW_PIN_COLOR;
         const width = reviewPinWidth(marker.name, marker.photoCount);
         // SDK 캡션(가운데 정렬)은 마커 전체 높이의 가운데에 놓인다. 꼬리만큼 위에 빈칸을 둬서 글자가 알약 상하 가운데에 오게 한다
         const height = REVIEW_PIN_TAIL_HEIGHT + REVIEW_PIN_BODY_HEIGHT + REVIEW_PIN_TAIL_HEIGHT;
+        const onTap = () => {
+          tapFeedback();
+          onReviewSuggestionMarkerPress?.(marker.id);
+        };
         return (
           <NaverMapMarkerOverlay
-            key={`review-${marker.id}`}
+            key={`review-${marker.id}-${isActive}`}
             latitude={marker.latitude}
             longitude={marker.longitude}
             width={width}
             height={height}
             anchor={ACTIVE_MARKER_ANCHOR}
-            zIndex={buildingMarkers.length + 2}
+            // 겹치는 다녀온 곳은 화면(index.tsx)에서 "대표 외 N곳"으로 미리 묶는다. 그래도 겹치면 앞쪽(최근)만 남긴다. 건물 라벨보다는 항상 위
+            zIndex={
+              isActive
+                ? SELECTED_MARKER_Z_INDEX
+                : buildingMarkers.length + 2 + reviewSuggestionMarkers.length - index
+            }
+            isHideCollidedMarkers
+            isForceShowIcon={isActive}
             isHideCollidedSymbols
-            onTap={() => onReviewSuggestionMarkerPress?.(marker.id)}
+            onTap={onTap}
             caption={{
               text: `${marker.name}  ${reviewPinCountText(marker.photoCount)}`,
               align: 'Center',
@@ -296,12 +338,12 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
             }}
           >
             <View
-              key={`${marker.name}/${marker.photoCount}/${width}`}
+              key={`${marker.name}/${marker.photoCount}/${width}/${isActive}`}
               collapsable={false}
               style={{ width, height, alignItems: 'center', paddingTop: REVIEW_PIN_TAIL_HEIGHT }}
             >
-              <View style={[styles.reviewPinBody, { width }]} />
-              <View style={styles.reviewPinTail} />
+              <View style={[styles.reviewPinBody, { width, backgroundColor: color }]} />
+              <View style={[styles.reviewPinTail, { borderTopColor: color }]} />
             </View>
           </NaverMapMarkerOverlay>
         );
@@ -322,7 +364,12 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
                   ? CATEGORY_MARKER_ACTIVE_IMAGES[placeMarkerIcon]
                   : CATEGORY_MARKER_IMAGES[placeMarkerIcon]
               }
-              onTap={() => onPlaceMarkerPress?.(marker.id)}
+              zIndex={isActive ? SELECTED_MARKER_Z_INDEX : 0}
+              isForceShowIcon={isActive}
+              onTap={() => {
+                tapFeedback();
+                onPlaceMarkerPress?.(marker.id);
+              }}
               caption={
                 marker.name
                   ? { text: marker.name, color: '#0B1215', haloColor: '#FFFFFF' }

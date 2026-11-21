@@ -34,6 +34,8 @@ export function estimateTextWidth(text: string, fontSize: number) {
 
 // 내 사진첩 기준 "다녀온 곳"(리뷰 남길 곳) 핀. 건물 라벨과 구분되게 다홍색 말풍선으로 그린다
 export const REVIEW_PIN_COLOR = '#FF6B4A';
+// 누른 다녀온 곳 핀. 한 단계 진하게 해서 눌렀다는 게 보이게 한다
+export const REVIEW_PIN_ACTIVE_COLOR = '#E04A28';
 export const REVIEW_PIN_FONT_SIZE = 12;
 export const REVIEW_PIN_BODY_HEIGHT = 28;
 export const REVIEW_PIN_TAIL_HEIGHT = 6;

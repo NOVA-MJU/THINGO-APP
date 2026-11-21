@@ -294,3 +294,35 @@ export async function getCategoryMarkers(code: string): Promise<MapCategoryMarke
   );
   return data.data;
 }
+
+// 네이버 지도 기본 글자(가게·건물 이름)와 같은 곳인 우리 핀. 없으면 null
+export type MapSymbolMatch = {
+  id: number;
+  type: MapEntityType;
+  latitude: number;
+  longitude: number;
+} | null;
+
+type MapSymbolMatchResponse = {
+  id: number;
+  type: MapEntityType;
+  name: string;
+  latitude: number;
+  longitude: number;
+} | null;
+
+// 서버가 이름·좌표(80m)로 모든 카테고리 핀에서 찾는다. 전수조사로 가게를 추가하면 앱을 다시 배포하지 않아도 찾힌다.
+// 서버에 이 API가 아직 없으면(배포 전) 요청이 실패하고, 화면은 앱 안 대조로 대신한다
+export async function matchMapSymbol(
+  name: string,
+  latitude: number,
+  longitude: number
+): Promise<MapSymbolMatch> {
+  const { data } = await client.get<ApiResponse<MapSymbolMatchResponse>>('/map/symbol-match', {
+    params: { name, lat: latitude, lng: longitude },
+  });
+  const match = data.data;
+  return match
+    ? { id: match.id, type: match.type, latitude: match.latitude, longitude: match.longitude }
+    : null;
+}
