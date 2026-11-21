@@ -79,6 +79,7 @@ import {
   type VisitedPlace,
   type VisitedPlaceCandidate,
 } from '@/hooks/use-visited-places';
+import { useMyPlaceReviews } from '@/hooks/use-my-place-reviews';
 
 const QUICK_CHIP_IDS = ['bus', 'daedong', 'printer', 'lounge', 'bank'];
 const QUICK_TOOLTIP_VISIBLE_MS = 4000;
@@ -659,6 +660,19 @@ export default function MapsScreen() {
 
   // 내 사진첩 기준 "다녀온 곳"(리뷰 남길 곳) 핀. iOS에서 사진 권한이 있을 때만 생긴다
   const visitedPlaces = useVisitedPlaces();
+  // 내가 리뷰를 남긴 곳. 다녀온 곳 핀을 켰을 때 가는 파란 핀으로 같이 띄워 어디에 리뷰를 남겼는지 보여준다
+  const myReviews = useMyPlaceReviews();
+  const myReviewMarkers = React.useMemo(
+    () => [
+      ...new Map(
+        myReviews.map((item) => [
+          item.placeId,
+          { id: String(item.placeId), latitude: item.latitude, longitude: item.longitude },
+        ])
+      ).values(),
+    ],
+    [myReviews]
+  );
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { showLoginRequiredModal } = useLoginRequiredModal();
@@ -1405,6 +1419,17 @@ export default function MapsScreen() {
           isMapOverlayFree && visitedPinsShown ? reviewSuggestionMarkers : []
         }
         onReviewSuggestionMarkerPress={onVisitedMarkerPress}
+        myReviewMarkers={isMapOverlayFree && visitedPinsShown ? myReviewMarkers : []}
+        onMyReviewMarkerPress={(id) => {
+          const marker = myReviewMarkers.find((item) => item.id === id);
+          if (!marker) return;
+          selectCategoryPin({
+            id: Number(id),
+            type: 'FACILITY',
+            latitude: marker.latitude,
+            longitude: marker.longitude,
+          });
+        }}
         selectedReviewSuggestionId={selectedVisitKey}
         placeMarkers={
           selectedSearchResult

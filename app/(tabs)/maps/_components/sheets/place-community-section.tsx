@@ -43,6 +43,7 @@ import {
 } from '@/lib/maps/place-reviews';
 import { isLoginRequiredError } from '@/api/client';
 import { refreshMyPhotoSuggestions } from '@/hooks/use-visited-places';
+import { markReviewsViewed } from '@/lib/maps/review-views';
 import { useQueryClient } from '@tanstack/react-query';
 import { showAlert } from '@/lib/alert';
 import { cn } from '@/lib/utils';
@@ -175,6 +176,10 @@ export default function PlaceCommunitySection({
     () => sortReviews(reviews, reviewSort),
     [reviews, reviewSort]
   );
+  // 목록에 나온 리뷰 조회수를 센다 (앱 실행 동안 리뷰마다 한 번, lib/maps/review-views.ts)
+  React.useEffect(() => {
+    markReviewsViewed(sortedReviews.map((review) => review.id));
+  }, [sortedReviews]);
 
   const openDeleteReviewDialog = React.useCallback(
     (review: PlaceReview) => {
@@ -625,8 +630,10 @@ function ReportBottomSheetBackdrop(props: BottomSheetBackdropProps) {
   );
 }
 
+// 내 리뷰를 맨 위에 두고(자주 다시 보게), 그 아래 다른 사람 리뷰를 정렬 기준대로
 function sortReviews(reviews: PlaceReview[], sortOption: PlaceReviewSort) {
   return [...reviews].sort((a, b) => {
+    if (Boolean(a.isMine) !== Boolean(b.isMine)) return a.isMine ? -1 : 1;
     if (sortOption === 'likes') {
       const likeDiff = b.likeCount - a.likeCount;
       if (likeDiff !== 0) return likeDiff;
@@ -736,6 +743,11 @@ function ReviewCard({
         <View className="flex-row items-center gap-2">
           <ReviewAvatar profileImageUrl={profileImageUrl} />
           <Text className="text-grey-80 text-body05">{nickname}</Text>
+          {isOwnReview && (
+            <View className="rounded-full bg-blue-05 px-1.5 py-0.5">
+              <Text className="text-mju-primary text-caption02">내 리뷰</Text>
+            </View>
+          )}
         </View>
         <View>
           <TouchableOpacity
@@ -873,7 +885,12 @@ function ReviewCard({
             <Text className="text-grey-40 text-caption02">{review.likeCount}</Text>
           ) : null}
         </TouchableOpacity>
-        <Text className="text-grey-30 text-caption02">{formatReviewDate(review.createdAt)}</Text>
+        <View className="flex-row items-center gap-1.5">
+          {review.viewCount > 0 && (
+            <Text className="text-grey-30 text-caption02">조회 {review.viewCount}</Text>
+          )}
+          <Text className="text-grey-30 text-caption02">{formatReviewDate(review.createdAt)}</Text>
+        </View>
       </View>
     </View>
   );
