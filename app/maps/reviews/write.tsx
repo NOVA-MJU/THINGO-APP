@@ -375,7 +375,7 @@ export default function PlaceReviewWriteScreen() {
                 {/* 수정할 때 올렸던 사진 중 일부만 빼고 싶다는 요청이 많아, 빼는 방법을 바로 알려준다 */}
                 {isEditMode && mediaItems.length > 0 && (
                   <Text className="px-4 text-blue-35 text-caption02">
-                    빼고 싶은 사진의 X를 누른 뒤 아래 '리뷰 수정'을 누르면 그 사진만 지워져요.
+                    {"빼고 싶은 사진의 X를 누른 뒤 아래 '리뷰 수정'을 누르면 그 사진만 지워져요."}
                   </Text>
                 )}
               </View>
