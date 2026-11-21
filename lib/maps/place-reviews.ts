@@ -289,11 +289,21 @@ export async function createPlaceReview(input: CreatePlaceReviewInput): Promise<
   return normalizeReview(data.data, input.placeId);
 }
 
+// 본문·키워드·사진을 통째로 바꾼다 (서버가 빠진 사진은 지운다). 장소는 바꿀 수 없다
 export async function updatePlaceReview(
   reviewId: string,
-  _input: UpdatePlaceReviewInput
+  input: UpdatePlaceReviewInput
 ): Promise<PlaceReview | null> {
-  throw new Error(`리뷰 수정 API가 제공되지 않았습니다. reviewId=${reviewId}`);
+  const body: Omit<ReviewCreateRequest, 'pinId'> = {
+    keywords: input.keywordIds.map(toBackendKeywordCode).filter(isBackendKeywordCode),
+    content: input.content,
+    media: createMediaRequest(input.mediaItems ?? createImageMediaItems(input.imageUrls)),
+  };
+  const { data } = await client.patch<ApiSuccess<BackendReviewSummary>>(
+    `/reviews/${encodeURIComponent(reviewId)}`,
+    body
+  );
+  return normalizeReview(data.data);
 }
 
 export async function deletePlaceReview(reviewId: string): Promise<void> {

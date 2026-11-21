@@ -10,6 +10,8 @@ import {
   RadioIcon,
   XThinIcon,
 } from '@/components/icons';
+import { Icon } from '@/components/ui/icon';
+import { Ban, Flag, type LucideIcon, PencilLine, Trash2 } from 'lucide-react-native';
 import { ReviewVideoThumbnail } from '@/components/maps/review-video-thumbnail';
 import { Button } from '@/components/ui/button';
 import {
@@ -39,6 +41,7 @@ import {
   type PlaceReviewMediaItem,
   type PlaceReviewSort,
 } from '@/lib/maps/place-reviews';
+import { isLoginRequiredError } from '@/api/client';
 import { showAlert } from '@/lib/alert';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
@@ -82,6 +85,8 @@ type PlaceCommunitySectionProps = {
   mediaFooter?: React.ReactNode;
   // 위 내용에 리뷰 쓰기 버튼이 이미 있으면 "어떠셨나요?" 카드를 숨겨 같은 버튼이 두 번 나오지 않게 한다
   showReviewPrompt?: boolean;
+  // 내 리뷰 수정 (리뷰 쓰기 화면을 수정 모드로 연다)
+  onEditReview: (reviewId: string) => void;
   // 리뷰 영역("리뷰 N")이 시작하는 위치(이 컴포넌트 맨 위 기준, 위 여백 포함). 시트를 그 바로 위 내용까지만 보이게 연다
   onReviewSectionTopChange?: (y: number) => void;
 };
@@ -142,6 +147,7 @@ export default function PlaceCommunitySection({
   mediaEmptyContent,
   mediaFooter,
   showReviewPrompt = true,
+  onEditReview,
   onReviewSectionTopChange,
 }: PlaceCommunitySectionProps) {
   const insets = useSafeAreaInsets();
@@ -197,13 +203,26 @@ export default function PlaceCommunitySection({
         onReviewDeleted?.(deleteTargetReview.id);
         setDeleteTargetReview(null);
       })
-      .catch(() => {
+      .catch((error) => {
+        // 로그인이 풀린 상태면 실패 알림 대신 로그인 안내를 띄운다
+        if (isLoginRequiredError(error)) {
+          setDeleteTargetReview(null);
+          showLoginRequiredModal();
+          return;
+        }
         showAlert('리뷰 삭제 실패', '잠시 후 다시 시도해주세요.');
       })
       .finally(() => {
         setIsDeletingReview(false);
       });
-  }, [deleteTargetReview, isDeletingReview, onReviewDeleted, onReviewsChange, reviews]);
+  }, [
+    deleteTargetReview,
+    isDeletingReview,
+    onReviewDeleted,
+    onReviewsChange,
+    reviews,
+    showLoginRequiredModal,
+  ]);
 
   const handleDeleteDialogOpenChange = React.useCallback(
     (open: boolean) => {
@@ -405,20 +424,25 @@ export default function PlaceCommunitySection({
                 currentUserUuid={user?.uuid}
                 fallbackNickname={user?.nickname}
                 fallbackProfileImageUrl={user?.profileImageUrl}
-                onEditReview={() => showAlert('알림', '리뷰 수정 기능은 준비 중입니다.')}
+                onEditReview={() => onEditReview(review.id)}
                 onDeleteReview={() => openDeleteReviewDialog(review)}
                 onReportReview={() => openReportReviewSheet(review)}
                 onBlockReviewAuthor={() => openBlockReviewAuthorDialog(review)}
                 onOpenMedia={(mediaIndex) => onOpenMedia(review.id, mediaIndex, 'review')}
                 onToggleLike={async () => {
+                  if (!user) {
+                    showLoginRequiredModal();
+                    return;
+                  }
                   try {
                     const nextReview = await togglePlaceReviewLike(review.id);
                     if (!nextReview) return;
                     onReviewsChange(
                       reviews.map((item) => (item.id === nextReview.id ? nextReview : item))
                     );
-                  } catch {
-                    showAlert('좋아요 처리 실패', '잠시 후 다시 시도해주세요.');
+                  } catch (error) {
+                    if (isLoginRequiredError(error)) showLoginRequiredModal();
+                    else showAlert('좋아요 처리 실패', '잠시 후 다시 시도해주세요.');
                   }
                 }}
               />
@@ -447,24 +471,24 @@ export default function PlaceCommunitySection({
               삭제한 리뷰는 복구할 수 없습니다.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="h-[36px] flex-row gap-2">
+          <DialogFooter className="flex-row gap-2">
             <TouchableOpacity
               onPress={() => setDeleteTargetReview(null)}
               disabled={isDeletingReview}
-              className="h-[36px] flex-1 items-center justify-center rounded-[8px] border border-grey-10 bg-white"
+              className="h-11 flex-1 items-center justify-center rounded-xl border border-grey-10 bg-white"
               accessibilityRole="button"
               accessibilityLabel="리뷰 삭제 취소"
             >
-              <Text className="text-grey-40 text-body05">취소</Text>
+              <Text className="text-grey-60 text-body04">취소</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleConfirmDeleteReview}
               disabled={isDeletingReview}
-              className="h-[36px] flex-1 items-center justify-center rounded-[8px] bg-blue-35"
+              className="h-11 flex-1 items-center justify-center rounded-xl bg-error"
               accessibilityRole="button"
               accessibilityLabel="리뷰 삭제 확인"
             >
-              <Text className="text-white text-body05">
+              <Text className="text-white text-body04">
                 {isDeletingReview ? '삭제 중' : '삭제하기'}
               </Text>
             </TouchableOpacity>
@@ -493,7 +517,7 @@ export default function PlaceCommunitySection({
             </View>
             <View className="flex-row gap-2">
               <Button
-                className="h-9 flex-1 py-0"
+                className="h-11 flex-1 rounded-xl py-0"
                 variant="outline"
                 onPress={() => setBlockTargetReview(null)}
                 disabled={isBlockingReviewAuthor}
@@ -501,7 +525,7 @@ export default function PlaceCommunitySection({
                 <Text>취소</Text>
               </Button>
               <Button
-                className="h-9 flex-1 py-0"
+                className="h-11 flex-1 rounded-xl py-0"
                 onPress={handleConfirmBlockReviewAuthor}
                 disabled={isBlockingReviewAuthor}
               >
@@ -710,45 +734,53 @@ function ReviewCard({
         <View>
           <TouchableOpacity
             onPress={() => setIsReviewMenuOpen((prev) => !prev)}
-            className="h-8 w-8 items-center justify-center"
+            hitSlop={8}
+            className="h-9 w-9 items-center justify-center rounded-full active:bg-grey-02"
             accessibilityRole="button"
             accessibilityLabel="리뷰 옵션"
           >
-            <MoreVerticalIcon size={18} className="text-grey-30" />
+            <MoreVerticalIcon size={20} className="text-grey-40" />
           </TouchableOpacity>
         </View>
       </View>
       {isReviewMenuOpen ? (
+        // 손가락으로 누르기 쉽게 한 줄 44px, 아이콘과 함께 둔다. 지우기·차단은 되돌리기 어려워 빨간색으로 구분한다
         <View
-          className="absolute right-0 top-8 w-[84px] bg-white py-[6px]"
+          className="absolute right-0 top-10 w-[152px] overflow-hidden rounded-xl border border-grey-02 bg-white py-1"
           style={{
-            elevation: 6,
+            elevation: 8,
             shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.15,
-            shadowRadius: 6,
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.12,
+            shadowRadius: 12,
             zIndex: 30,
           }}
         >
           {isOwnReview ? (
             <>
               <ReviewDropdownMenuItem
-                label="수정"
+                label="수정하기"
+                icon={PencilLine}
                 onPress={() => handleReviewMenuAction(onEditReview)}
               />
               <ReviewDropdownMenuItem
-                label="삭제"
+                label="삭제하기"
+                icon={Trash2}
+                destructive
                 onPress={() => handleReviewMenuAction(onDeleteReview)}
               />
             </>
           ) : (
             <>
               <ReviewDropdownMenuItem
-                label="신고"
+                label="신고하기"
+                icon={Flag}
                 onPress={() => handleReviewMenuAction(onReportReview)}
               />
               <ReviewDropdownMenuItem
-                label="차단"
+                label="이 사람 차단"
+                icon={Ban}
+                destructive
                 onPress={() => handleReviewMenuAction(onBlockReviewAuthor)}
               />
             </>
@@ -841,22 +873,25 @@ function ReviewCard({
   );
 }
 
-function ReviewDropdownMenuItem({ label, onPress }: { label: string; onPress: () => void }) {
-  const [isPressed, setIsPressed] = React.useState(false);
-
+function ReviewDropdownMenuItem({
+  label,
+  icon,
+  destructive = false,
+  onPress,
+}: {
+  label: string;
+  icon: LucideIcon;
+  destructive?: boolean;
+  onPress: () => void;
+}) {
   return (
     <Pressable
       onPress={onPress}
-      onPressIn={() => setIsPressed(true)}
-      onPressOut={() => setIsPressed(false)}
-      className={cn('h-[26px] w-full justify-center px-2 py-1', isPressed && 'bg-blue-05')}
+      accessibilityRole="button"
+      className="h-11 w-full flex-row items-center gap-2.5 px-3.5 active:bg-grey-02"
     >
-      <Text
-        className={cn(
-          'w-full text-center leading-[18px] text-caption02',
-          isPressed ? 'text-blue-35' : 'text-grey-30'
-        )}
-      >
+      <Icon as={icon} size={16} className={destructive ? 'text-error' : 'text-grey-60'} />
+      <Text className={cn('text-body05', destructive ? 'text-error' : 'text-grey-80')}>
         {label}
       </Text>
     </Pressable>

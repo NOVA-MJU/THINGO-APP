@@ -124,3 +124,10 @@
 ### 딥링크 진입
 
 `placeId`/`expanded` 쿼리 파라미터로 진입한 경우 `pushSheet({ kind: 'place', placeId }, expanded === 'true' ? 2 : 1)`로 바로 push한다. 상세 쿼리가 아직 로딩 중이면 레이어 안에서 스피너를 보여주고(`renderStackScreenContent`), 로드되면 자동으로 콘텐츠가 바뀐다 — 예전처럼 "쿼리 완료를 기다렸다가 모드 전환" 하는 별도 처리가 필요 없다(레이어가 이미 push된 상태라 로딩 중에도 자리 자체는 바로 보이기 때문).
+
+### 리뷰 수정·삭제와 로그인
+
+- 리뷰 옵션(⋯)은 한 줄 44px 메뉴에 아이콘과 함께 둔다. 내 리뷰는 수정하기·삭제하기, 남의 리뷰는 신고하기·이 사람 차단. 삭제·차단은 빨간색(`text-error`)으로 구분한다. 삭제·차단 확인 창 버튼도 44px
+- 수정하기는 리뷰 쓰기 화면(`/maps/reviews/write`)을 `reviewId`로 연다. 서버 `PATCH /reviews/{id}`(작성자만)가 본문·키워드·사진을 통째로 바꾼다(`updatePlaceReview`)
+- 리뷰 쓰기·수정·좋아요·삭제·신고·차단은 로그인하지 않았으면 서버에 보내지 않고 로그인 안내(`showLoginRequiredModal`)를 띄운다. 쓰는 도중 로그인이 풀려 서버가 401/403을 주면(`isLoginRequiredError`) 실패 알림 대신 같은 안내를 띄운다
+

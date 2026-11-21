@@ -105,7 +105,12 @@ export default function PlaceDetailSheet({
   }, [place.id]);
 
   // photoIds: 장소 상세의 내 사진 카드에서 골라 온 사진첩 id. 리뷰 작성 화면이 열리면서 자동으로 올린다
+  // 로그인하지 않았으면 리뷰 화면에 들어가지 않고 로그인 안내를 띄운다 (들어가서 등록할 때 서버 에러가 나지 않게)
   function openWriteReview(photoIds?: string[]) {
+    if (!user) {
+      showLoginRequiredModal();
+      return;
+    }
     router.push({
       pathname: '/maps/reviews/write',
       params: {
@@ -115,6 +120,25 @@ export default function PlaceDetailSheet({
         latitude: String(place.latitude),
         longitude: String(place.longitude),
         ...(photoIds?.length ? { photoIds: photoIds.join(',') } : {}),
+      },
+    });
+  }
+
+  // 내 리뷰 수정: 리뷰 쓰기 화면을 수정 모드(reviewId)로 연다. 돌아오면 아래 useFocusEffect가 리뷰를 다시 불러온다
+  function openEditReview(reviewId: string) {
+    if (!user) {
+      showLoginRequiredModal();
+      return;
+    }
+    router.push({
+      pathname: '/maps/reviews/write',
+      params: {
+        reviewId,
+        placeId: String(place.id),
+        placeName: place.name,
+        categoryCode: place.categoryCode,
+        latitude: String(place.latitude),
+        longitude: String(place.longitude),
       },
     });
   }
@@ -202,6 +226,7 @@ export default function PlaceDetailSheet({
 
           <View onLayout={(event) => setCommunityY(event.nativeEvent.layout.y)}>
             <PlaceCommunitySection
+              onEditReview={openEditReview}
               onReviewSectionTopChange={onReviewSectionTopChange}
               placeName={place.name}
               categoryCode={place.categoryCode}
