@@ -43,16 +43,23 @@ export type PlacePhotosStatus = 'unsupported' | 'loading' | 'undetermined' | 'de
 const REVIEWABLE_CATEGORY_CODE = 'daedong';
 const REVIEWABLE_PLACES_QUERY_KEY = ['category-markers', REVIEWABLE_CATEGORY_CODE] as const;
 
+const reviewablePlacesQuery = {
+  queryKey: REVIEWABLE_PLACES_QUERY_KEY,
+  queryFn: async () => {
+    const markers = await getCategoryMarkers(REVIEWABLE_CATEGORY_CODE);
+    // 건물 안 시설을 건물 하나로 묶은 마커는 가게가 아니라서 뺀다
+    return markers.filter((marker) => marker.type === 'PLACE' && !marker.grouped);
+  },
+  staleTime: Infinity,
+};
+
 export function fetchReviewablePlaces(queryClient: QueryClient) {
-  return queryClient.fetchQuery({
-    queryKey: REVIEWABLE_PLACES_QUERY_KEY,
-    queryFn: async () => {
-      const markers = await getCategoryMarkers(REVIEWABLE_CATEGORY_CODE);
-      // 건물 안 시설을 건물 하나로 묶은 마커는 가게가 아니라서 뺀다
-      return markers.filter((marker) => marker.type === 'PLACE' && !marker.grouped);
-    },
-    staleTime: Infinity,
-  });
+  return queryClient.fetchQuery(reviewablePlacesQuery);
+}
+
+// 같은 목록을 화면에서 쓸 때 (다녀온 곳 시트의 "목록에 없어요" 가게 이름 찾기)
+export function useReviewablePlaces() {
+  return useQuery(reviewablePlacesQuery).data ?? [];
 }
 
 // 사진 권한 상태. 장소 상세·리뷰 작성·지도 핀이 같은 값을 보도록 react-query 캐시에 둔다

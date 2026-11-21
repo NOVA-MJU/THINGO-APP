@@ -41,14 +41,15 @@ export const REVIEW_PIN_BODY_HEIGHT = 28;
 export const REVIEW_PIN_TAIL_HEIGHT = 6;
 const REVIEW_PIN_PADDING_X = 12;
 
-export function reviewPinCountText(photoCount: number) {
-  return `사진 ${photoCount}`;
+// 핀 글자 한 줄 (네이티브 SDK 캡션으로 그린다). 이름이 있으면 "{이름}  사진 N", 없으면 "사진 N장"만.
+// 다녀온 곳 핀은 사진 위치로 가게를 가릴 수 없어서 이름 없이 사진 수만 띄운다
+export function reviewPinText(name: string, photoCount: number) {
+  return name ? `${name}  사진 ${photoCount}` : `사진 ${photoCount}장`;
 }
 
-// 핀 글자는 "{가게 이름}  사진 N" 한 줄 (네이티브 SDK 캡션으로 그린다)
 export function reviewPinWidth(name: string, photoCount: number) {
   return Math.ceil(
-    estimateTextWidth(`${name}  ${reviewPinCountText(photoCount)}`, REVIEW_PIN_FONT_SIZE) +
+    estimateTextWidth(reviewPinText(name, photoCount), REVIEW_PIN_FONT_SIZE) +
       REVIEW_PIN_PADDING_X * 2
   );
 }
