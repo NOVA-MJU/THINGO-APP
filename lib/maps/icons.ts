@@ -113,6 +113,8 @@ const ICON_KEYS_BY_CATEGORY: Record<string, string> = {
   smoking: 'SmokingIcon',
   'study-room': 'StudyRoomIcon',
   study_room: 'StudyRoomIcon',
+  // 학교 밖 스터디카페 (전수조사로 추가). 교내 스터디룸과 같은 아이콘을 쓴다
+  'study-cafe': 'StudyRoomIcon',
   terrace: 'TerraceIcon',
   truck: 'TruckIcon',
 };
@@ -142,6 +144,7 @@ export function getMapIconClassName(categoryCode: string) {
     case 'lounge':
     case 'reading-room':
     case 'study-room':
+    case 'study-cafe':
       return 'text-[#EDAE26]';
     default:
       return 'text-blue-20';
