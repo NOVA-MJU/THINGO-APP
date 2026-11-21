@@ -447,11 +447,12 @@ export default function AllScreen({ onNavigate }: Props) {
               )}
             </TouchableOpacity>
 
-            {/* 학사일정: 누르면 학사일정 탭으로. 디데이와 일정 이름을 한 줄에 두고 학식 카드 높이에 맞춰 고르게 펼친다
-                (두 줄씩 쓰면 학식 메뉴가 짧은 날에도 이 카드 때문에 줄 전체가 높아져 학식 카드 아래가 빈다) */}
+            {/* 학사일정: 누르면 학사일정 탭으로. 디데이와 일정 이름을 한 줄에 두고, 줄 간격은 고정한 채 학식 카드 높이 안에서 위아래 가운데에 둔다
+                (두 줄씩 쓰면 학식 메뉴가 짧은 날에도 이 카드 때문에 줄 전체가 높아져 학식 카드 아래가 빈다.
+                높이에 맞춰 펼치면 메뉴가 많은 날 일정 사이가 크게 벌어져 날마다 모양이 달라진다) */}
             <TouchableOpacity
               onPress={() => onNavigate(4)}
-              className="flex-[3] justify-between gap-2.5 rounded-xl bg-blue-02 px-3.5 py-4"
+              className="flex-[3] justify-center gap-3 rounded-xl bg-blue-02 px-3.5 py-4"
               accessibilityRole="button"
               accessibilityLabel="학사일정 보기"
             >
