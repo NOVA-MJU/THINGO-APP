@@ -42,15 +42,25 @@ export function groupPhotosNearPlace<T extends LocatedPhoto>(
   place: GeoPoint,
   radiusMeters = DEFAULT_PLACE_RADIUS_METERS
 ): PhotoVisit<T>[] {
-  const visits = new Map<string, T[]>();
-  for (const photo of photos) {
-    if (distanceMeters(photo.location, place) > radiusMeters) continue;
+  return groupPhotosByDay(
+    photos.filter((photo) => distanceMeters(photo.location, place) <= radiusMeters)
+  );
+}
+
+// 사진을 찍은 날짜(기기 로컬)로 묶는다. 최근 날짜가 먼저, 같은 날 안에서는 찍은 순서대로
+export function groupPhotosByDay<T extends { takenAt: number }>(
+  photos: T[]
+): { day: string; photos: T[] }[] {
+  const days = photos.reduce((grouped, photo) => {
     const day = localDay(photo.takenAt);
-    visits.set(day, [...(visits.get(day) ?? []), photo]);
-  }
-  return [...visits.entries()]
-    .sort(([a], [b]) => b.localeCompare(a))
-    .map(([day, list]) => ({ day, photos: list.sort((x, y) => x.takenAt - y.takenAt) }));
+    return grouped.set(day, [...(grouped.get(day) ?? []), photo]);
+  }, new Map<string, T[]>());
+  return [...days.entries()]
+    .sort(([first], [second]) => second.localeCompare(first))
+    .map(([day, list]) => ({
+      day,
+      photos: [...list].sort((first, second) => first.takenAt - second.takenAt),
+    }));
 }
 
 // 반경 원을 감싸는 위경도 상자. 사진첩 전체를 훑을 때 네이티브 쪽에서 이 상자 밖 사진을 먼저 걸러낸다

@@ -1,4 +1,5 @@
 import { uploadImage } from '@/api/upload';
+import { formatPhotoDay } from '@/lib/maps/format';
 import { LocationIcon } from '@/components/icons';
 import { Text } from '@/components/ui/text';
 import { showAlert } from '@/lib/alert';
@@ -185,7 +186,7 @@ function PlacePhotoSuggestionsIos({
         >
           {visits?.map((visit) => (
             <View key={visit.day} style={{ gap: 8 }}>
-              <Text className="text-grey-60 text-caption01">{formatVisitDay(visit.day)}</Text>
+              <Text className="text-grey-60 text-caption01">{formatPhotoDay(visit.day)}</Text>
               <View className="flex-row" style={{ gap: 8 }}>
                 {visit.photos.map((photo) => {
                   const mediaId = pickedIds[photo.id];
@@ -287,10 +288,4 @@ async function uploadLibraryPhoto(photo: PlacePhoto) {
     throw new Error('사진 원본을 불러오지 못했어요. iCloud 사진이면 잠시 후 다시 시도해주세요.');
   const compressed = await compressImageToJpeg(uri, { width: photo.width, height: photo.height });
   return uploadImage(compressed.uri, 'REVIEW_MEDIA');
-}
-
-function formatVisitDay(day: string) {
-  const [year, month, date] = day.split('-').map(Number);
-  const prefix = year === new Date().getFullYear() ? '' : `${year}년 `;
-  return `${prefix}${month}월 ${date}일 방문`;
 }

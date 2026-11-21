@@ -1,9 +1,11 @@
 import {
   fetchReviewablePlaces,
+  matchUploadedReviewPhotos,
   PLACE_PHOTOS_QUERY_KEY,
   usePhotoPermission,
 } from '@/hooks/use-place-photos';
 import { dismissPlacePhotos, getDismissedPlacePhotos } from '@/lib/maps/dismissed-place-photos';
+import { getUploadedPhotoIds } from '@/lib/maps/uploaded-review-photos';
 import { showAlert } from '@/lib/alert';
 import { getReviewedPlaceIds } from '@/lib/maps/reviewed-places';
 import { categoryHints, isFoodPhoto, narrowCandidatesByFood } from '@/lib/photo-food';
@@ -23,6 +25,8 @@ const MAX_VISITED_PLACES = 20;
 // 방문 하나에서 음식 사진인지 분류해 볼 최대 장수, 살펴볼 최대 방문 수 (처음 한 번만 분류하고 결과는 기기에 기억한다)
 const MAX_CLASSIFIED_PHOTOS_PER_VISIT = 12;
 const MAX_CHECKED_VISITS = 60;
+// 이 기기에서 리뷰를 쓴 가게 하나에서 예전 리뷰 사진과 비교해 볼 최대 사진 수
+const MAX_MATCHED_PHOTOS_PER_PLACE = 60;
 
 export const VISITED_PLACES_QUERY_KEY = ['visited-places'] as const;
 
@@ -36,17 +40,21 @@ export type VisitedPlaceCandidate = {
   distanceMeters: number;
 };
 
-// 지도 핀 하나. 붙어 있는 가게라 어느 곳인지 사진만으로 정할 수 없으면 후보가 여러 곳이다
+export type VisitedPhoto = { id: string; takenAt: number };
+
+// 지도 핀 하나 (한 자리에서 찍은 아직 리뷰에 안 올린 음식 사진 묶음). 사진 위치는 실내 GPS 오차가 커서
+// 어느 가게인지는 사용자가 사진을 보고 고르게 하고, 가까운 가게를 후보로 둔다
 export type VisitedPlace = {
   key: string;
   // 첫 번째가 핀 위치(사진에서 가장 가까운 가게)
   candidates: VisitedPlaceCandidate[];
-  photoIds: string[];
+  // 최근에 찍은 사진부터
+  photos: VisitedPhoto[];
   lastVisitAt: number;
 };
 
 // 내 사진첩 전체에서 학교 주변 가게 근처에서 찍은 사진을 찾아 "다녀온 곳"을 만든다 (iOS, 사진 권한이 있을 때만)
-// 사진 위치는 기기 안에서만 비교하고, 이미 이 기기에서 리뷰를 쓴 곳은 뺀다
+// 사진 위치는 기기 안에서만 비교하고, 리뷰에 이미 올린 사진은 뺀다 (리뷰를 고쳐 빼거나 지우면 다시 나온다)
 export function useVisitedPlaces() {
   const permission = usePhotoPermission();
   const queryClient = useQueryClient();
@@ -96,6 +104,23 @@ async function findVisitedPlaces(queryClient: QueryClient): Promise<VisitedPlace
     })),
     places
   );
+  const takenAtById = new Map(scanned.map((photo) => [photo.id, photo.takenAt]));
+
+  // 이 기기에서 리뷰를 쓴 가게는 예전에 올린 리뷰 사진을 사진첩과 비교해 찾아 둔다 (한 번 비교한 이미지는 다시 받지 않는다).
+  // 비교하지 못하면(리뷰 조회 실패 등) 그 사진이 핀에 남을 뿐이라 넘어간다
+  await Promise.all(
+    reviewedIds.map((placeId) =>
+      matchUploadedReviewPhotos(
+        placeId,
+        groups
+          .filter((group) => group.candidates.some((candidate) => candidate.placeId === placeId))
+          .flatMap((group) => group.photoIds)
+          // 사진마다 그림 특징값을 계산해서 오래 걸린다. 최근 사진만 비교한다 (장소 상세와 같은 장수)
+          .slice(0, MAX_MATCHED_PHOTOS_PER_PLACE)
+      ).catch(() => undefined)
+    )
+  );
+  const uploadedIds = await getUploadedPhotoIds();
 
   const placeById = new Map(places.map((place) => [place.id, place]));
   const visited: VisitedPlace[] = [];
@@ -106,7 +131,7 @@ async function findVisitedPlaces(queryClient: QueryClient): Promise<VisitedPlace
       (candidate) => dismissedPhotos[String(candidate.placeId)] ?? []
     );
     const recentIds = group.photoIds
-      .filter((id) => !dismissedIds.includes(id))
+      .filter((id) => !dismissedIds.includes(id) && !uploadedIds.includes(id))
       .slice(0, MAX_CLASSIFIED_PHOTOS_PER_VISIT);
     const labels = await getPhotoLabels(recentIds);
     const foodIds = recentIds.filter((id) => isFoodPhoto(labels[id] ?? []));
@@ -114,21 +139,19 @@ async function findVisitedPlaces(queryClient: QueryClient): Promise<VisitedPlace
     // 사진 음식으로 붙어 있는 가게 후보를 좁힌다 (커피 사진이면 카페만)
     const hints = categoryHints(foodIds.map((id) => labels[id]));
 
-    // 이미 리뷰를 쓴 가게는 후보에서 뺀다 (후보가 다 빠지면 핀도 뺀다)
+    // 리뷰를 쓴 가게도 후보로 둔다 (다시 가서 찍은 사진일 수 있다. 이미 올린 사진은 위에서 뺐다)
     const candidates = narrowCandidatesByFood(
-      group.candidates
-        .filter((candidate) => !reviewedIds.includes(candidate.placeId))
-        .map((candidate) => {
-          const place = placeById.get(candidate.placeId)!;
-          return {
-            id: place.id,
-            name: place.title,
-            categoryCode: place.categoryCode,
-            latitude: place.latitude,
-            longitude: place.longitude,
-            distanceMeters: candidate.distanceMeters,
-          };
-        }),
+      group.candidates.map((candidate) => {
+        const place = placeById.get(candidate.placeId)!;
+        return {
+          id: place.id,
+          name: place.title,
+          categoryCode: place.categoryCode,
+          latitude: place.latitude,
+          longitude: place.longitude,
+          distanceMeters: candidate.distanceMeters,
+        };
+      }),
       hints
     );
     if (!candidates.length) continue;
@@ -136,7 +159,9 @@ async function findVisitedPlaces(queryClient: QueryClient): Promise<VisitedPlace
       // 묶음 기준 가게(리뷰해서 후보에서 빠졌어도)로 핀마다 다른 키를 만든다
       key: String(group.candidates[0].placeId),
       candidates,
-      photoIds: foodIds,
+      photos: foodIds
+        .map((id) => ({ id, takenAt: takenAtById.get(id) ?? group.lastVisitAt }))
+        .sort((first, second) => second.takenAt - first.takenAt),
       lastVisitAt: group.lastVisitAt,
     });
     if (visited.length >= MAX_VISITED_PLACES) break;
@@ -150,10 +175,13 @@ export function useDismissPlacePhotos() {
   return useMutation({
     mutationFn: ({ placeIds, photoIds }: { placeIds: number[]; photoIds: string[] }) =>
       dismissPlacePhotos(placeIds, photoIds),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: PLACE_PHOTOS_QUERY_KEY });
-      void queryClient.invalidateQueries({ queryKey: VISITED_PLACES_QUERY_KEY });
-    },
+    onSuccess: () => refreshMyPhotoSuggestions(queryClient),
     onError: () => showAlert('사진을 숨기지 못했어요', '잠시 후 다시 시도해주세요.'),
   });
+}
+
+// 내 사진 제안(장소의 "여기서 찍은 내 사진", 다녀온 곳 핀)을 다시 찾는다. 사진을 숨기거나 리뷰를 쓰고·고치고·지운 뒤 부른다
+export function refreshMyPhotoSuggestions(queryClient: QueryClient) {
+  void queryClient.invalidateQueries({ queryKey: PLACE_PHOTOS_QUERY_KEY });
+  void queryClient.invalidateQueries({ queryKey: VISITED_PLACES_QUERY_KEY });
 }
