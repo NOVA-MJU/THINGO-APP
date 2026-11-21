@@ -9,6 +9,7 @@ import { ZoomableMedia } from '@/components/maps/reviews/zoomable-media';
 import { Text } from '@/components/ui/text';
 import { isLoginRequiredError } from '@/api/client';
 import { refreshMyPhotoSuggestions } from '@/hooks/use-visited-places';
+import { markReviewsViewed } from '@/lib/maps/review-views';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/context/auth-context';
 import { useLoginRequiredModal } from '@/context/login-required-modal-context';
@@ -545,6 +546,10 @@ export default function PlaceReviewMediaScreen() {
 
   // 실제로 두 줄을 넘을 때만 "더보기"를 띄운다 (글자 수로 짐작하면 두 줄에 다 들어가는 글에도 더보기가 붙는다)
   const canOpenReviewContent = Boolean(activeReview) && reviewContentLineCount > 2;
+  // 스토리로 본 리뷰도 조회수를 센다 (앱 실행 동안 리뷰마다 한 번, lib/maps/review-views.ts)
+  React.useEffect(() => {
+    if (activeReview) markReviewsViewed([activeReview.id]);
+  }, [activeReview]);
   const isOwnReview = Boolean(
     activeReview && (activeReview.isMine || (user?.uuid && activeReview.authorUuid === user.uuid))
   );
@@ -666,6 +671,7 @@ export default function PlaceReviewMediaScreen() {
               </View>
               <Text className="mt-5 text-grey-20 text-caption02">
                 {formatReviewDate(activeReview.createdAt)}
+                {activeReview.viewCount > 0 ? ` · 조회 ${activeReview.viewCount}` : ''}
               </Text>
               <ReviewContentPreview
                 content={activeReview.content}

@@ -31,10 +31,21 @@ export type PlaceReview = {
   mediaItems: PlaceReviewMediaItem[];
   keywordIds: string[];
   likeCount: number;
+  // 목록·스토리에서 화면에 보인 횟수 (recordPlaceReviewViews로 올린다)
+  viewCount: number;
   liked: boolean;
   isMine?: boolean;
   canDelete?: boolean;
   createdAt: string;
+};
+
+// 내가 쓴 리뷰와 그 장소 (GET /reviews/me)
+export type MyPlaceReview = {
+  placeId: number;
+  placeName: string;
+  latitude: number;
+  longitude: number;
+  review: PlaceReview;
 };
 
 export type CreatePlaceReviewInput = {
@@ -122,10 +133,19 @@ type BackendReviewSummary = {
   content?: string | null;
   media?: BackendMediaInfo[] | null;
   likeCount?: number | null;
+  viewCount?: number | null;
   isLiked?: boolean | null;
   isMine?: boolean | null;
   canDelete?: boolean | null;
   createdAt?: string | null;
+};
+
+type BackendMyReview = {
+  pinId?: number | null;
+  pinName?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  review?: BackendReviewSummary | null;
 };
 
 type BackendReviewCursorPage = {
@@ -309,6 +329,30 @@ export async function updatePlaceReview(
   return normalizeReview(data.data);
 }
 
+// 내가 쓴 리뷰 전체 (최신순, 로그인 필요). 지도 "내가 리뷰한 곳" 핀과 장소 상세에서 내 리뷰를 맨 위에 보여줄 때 쓴다
+export async function getMyPlaceReviews(): Promise<MyPlaceReview[]> {
+  const { data } = await client.get<ApiSuccess<BackendMyReview[]>>('/reviews/me');
+  return (data.data ?? [])
+    .filter((item) => item.review && item.pinId != null)
+    .map((item) => ({
+      placeId: Number(item.pinId),
+      placeName: String(item.pinName ?? ''),
+      latitude: Number(item.latitude ?? 0),
+      longitude: Number(item.longitude ?? 0),
+      review: {
+        ...normalizeReview(item.review!, Number(item.pinId)),
+        placeName: String(item.pinName ?? ''),
+        isMine: true,
+      },
+    }));
+}
+
+// 화면에 보인 리뷰들의 조회수를 올린다 (로그인 없이 된다, 한 번에 최대 50개)
+export async function recordPlaceReviewViews(reviewIds: string[]): Promise<void> {
+  if (!reviewIds.length) return;
+  await client.post('/reviews/views', { reviewUuids: reviewIds.slice(0, 50) });
+}
+
 // 지운 리뷰에 올렸던 내 사진첩 사진은 다시 "여기서 찍은 내 사진"으로 권한다
 export async function deletePlaceReview(reviewId: string): Promise<void> {
   await client.delete(`/reviews/${encodeURIComponent(reviewId)}`);
@@ -385,6 +429,7 @@ function normalizeReview(review: BackendReviewSummary, fallbackPlaceId = 0): Pla
       .map((keyword) => LOCAL_ID_BY_BACKEND_KEYWORD[String(keyword.code ?? '')])
       .filter(isString),
     likeCount: Number(review.likeCount ?? 0),
+    viewCount: Number(review.viewCount ?? 0),
     liked: Boolean(review.isLiked),
     isMine: Boolean(review.isMine),
     canDelete: Boolean(review.canDelete),
