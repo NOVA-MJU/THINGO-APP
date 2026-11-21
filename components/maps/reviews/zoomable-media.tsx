@@ -10,6 +10,9 @@ import Reanimated, {
 
 const MIN_ZOOM_SCALE = 1;
 const MAX_ZOOM_SCALE = 3;
+// 확대하지 않은 상태에서 이만큼 옆으로 밀거나 빠르게 튕기면 이전·다음 사진으로 넘긴다 (onSwipe를 넘겼을 때만)
+const SWIPE_DISTANCE = 60;
+const SWIPE_VELOCITY = 500;
 
 type ZoomableMediaProps = {
   children: React.ReactNode;
@@ -19,6 +22,8 @@ type ZoomableMediaProps = {
   onZoomedChange: (zoomed: boolean) => void;
   // 두 번 탭해서 확대. 스토리 화면은 탭이 이전/다음 넘기기라 끈다 (두 손가락 확대·축소는 그대로)
   doubleTapToZoom?: boolean;
+  // 확대하지 않은 상태에서 좌우로 밀면 부른다 (왼쪽으로 밀면 next). 미는 동안 사진이 손가락을 따라 움직인다
+  onSwipe?: (direction: 'previous' | 'next') => void;
 };
 
 export function ZoomableMedia({
@@ -28,7 +33,13 @@ export function ZoomableMedia({
   onZoomActiveChange,
   onZoomedChange,
   doubleTapToZoom = true,
+  onSwipe,
 }: ZoomableMediaProps) {
+  const canSwipe = onSwipe != null;
+  const handleSwipe = React.useCallback(
+    (direction: 'previous' | 'next') => onSwipe?.(direction),
+    [onSwipe]
+  );
   const scale = useSharedValue(MIN_ZOOM_SCALE);
   const savedScale = useSharedValue(MIN_ZOOM_SCALE);
   const translateX = useSharedValue(0);
@@ -124,7 +135,10 @@ export function ZoomableMedia({
           }
         })
         .onUpdate((event) => {
-          if (scale.value <= MIN_ZOOM_SCALE + 0.01) return;
+          if (scale.value <= MIN_ZOOM_SCALE + 0.01) {
+            if (canSwipe) translateX.value = event.translationX;
+            return;
+          }
 
           const maxX = Math.max(0, (viewportWidth.value * (scale.value - 1)) / 2);
           const maxY = Math.max(0, (viewportHeight.value * (scale.value - 1)) / 2);
@@ -137,7 +151,17 @@ export function ZoomableMedia({
             maxY
           );
         })
-        .onEnd(() => {
+        .onEnd((event) => {
+          if (canSwipe && scale.value <= MIN_ZOOM_SCALE + 0.01) {
+            translateX.value = withTiming(0);
+            if (
+              Math.abs(event.translationX) > SWIPE_DISTANCE ||
+              Math.abs(event.velocityX) > SWIPE_VELOCITY
+            ) {
+              runOnJS(handleSwipe)(event.translationX < 0 ? 'next' : 'previous');
+            }
+            return;
+          }
           savedTranslateX.value = translateX.value;
           savedTranslateY.value = translateY.value;
         })
@@ -145,6 +169,8 @@ export function ZoomableMedia({
           runOnJS(onZoomActiveChange)(false);
         }),
     [
+      canSwipe,
+      handleSwipe,
       onZoomActiveChange,
       savedTranslateX,
       savedTranslateY,

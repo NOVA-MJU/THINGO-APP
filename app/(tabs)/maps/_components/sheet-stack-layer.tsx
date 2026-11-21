@@ -17,6 +17,8 @@ interface SheetStackLayerProps {
   // 떠 있는 닫기 버튼을 눌렀을 때 (이 레이어만 닫고 이전 화면으로 돌아간다)
   onDismiss?: () => void;
   onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
+  // 스크롤해도 시트 맨 위에 붙어 있는 부분 (다녀온 곳 건물 시트의 사진 줄). 배경을 칠해야 아래 내용이 비치지 않는다
+  stickyHeader?: React.ReactNode;
   children: React.ReactNode;
 }
 
@@ -32,6 +34,7 @@ export default function SheetStackLayer({
   onClose,
   onDismiss,
   onScroll,
+  stickyHeader,
   children,
 }: SheetStackLayerProps) {
   const [isHeaderHidden, setIsHeaderHidden] = React.useState(false);
@@ -52,7 +55,14 @@ export default function SheetStackLayer({
       onChange={onChange}
       onClose={onClose}
     >
-      <BottomSheetScrollView onScroll={handleScroll}>{children}</BottomSheetScrollView>
+      {/* stickyHeaderIndices는 ScrollView의 바로 아래 자식 기준이라 붙일 부분을 첫 자식으로 따로 넘겨받는다 */}
+      <BottomSheetScrollView
+        onScroll={handleScroll}
+        stickyHeaderIndices={stickyHeader ? [0] : undefined}
+      >
+        {stickyHeader}
+        {children}
+      </BottomSheetScrollView>
       {onDismiss && isHeaderHidden && (
         <Pressable
           accessibilityRole="button"
