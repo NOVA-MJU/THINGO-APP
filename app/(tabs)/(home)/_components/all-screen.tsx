@@ -43,7 +43,6 @@ import {
 } from '@/components/icons';
 import { useQuery } from '@tanstack/react-query';
 import Svg, { Defs, LinearGradient as SvgLinearGradient, Rect, Stop } from 'react-native-svg';
-import MealPreviewChips from './meal-preview-chips';
 
 const NOTICE_CATEGORIES: { label: string; value: NoticeCategory }[] = [
   { label: '전체', value: 'all' },
@@ -72,9 +71,6 @@ const CAROUSEL_PEEK = 12;
 const CAROUSEL_GAP = 10;
 const DDAYS_LIMIT = 3;
 const HOT_NOTICES_LIMIT = 5;
-// 홈 학식 카드에 보여줄 메뉴 줄 수. 넘치면 '외 N개'로 줄인다
-// 옆 학사일정 카드와 높이를 맞추면서 아래 콘텐츠가 더 보이도록 두 줄까지만 둔다
-const MEAL_PREVIEW_ROWS = 2;
 // 토(6)·일(0)에서 다음 주 월요일까지 남은 날 수
 const WEEKEND_DAYS_TO_MONDAY: Record<number, number> = { 6: 2, 0: 1 };
 
@@ -415,7 +411,7 @@ export default function AllScreen({ onNavigate }: Props) {
             {/* 학식 */}
             <TouchableOpacity
               onPress={() => onNavigate(1)}
-              className="flex-[4] gap-2 rounded-xl bg-blue-02 px-3 py-3.5"
+              className="flex-[4] gap-2.5 rounded-xl bg-blue-02 px-3.5 py-4"
               accessibilityRole="button"
               accessibilityLabel={`${currentMealLabel} 식단 보기`}
             >
@@ -436,7 +432,16 @@ export default function AllScreen({ onNavigate }: Props) {
                 )}
               </View>
               {mealItems.length > 0 ? (
-                <MealPreviewChips meals={mealItems} maxRows={MEAL_PREVIEW_ROWS} />
+                // 메뉴는 줄이지 않고 모두 보여준다. 카드 높이는 메뉴 길이를 따르고, 옆 학사일정 카드가 그 높이에 맞춰 펼쳐진다
+                <View className="flex-row flex-wrap gap-1.5">
+                  {mealItems.map((meal, index) => (
+                    <View key={index} className="max-w-full rounded-[6px] bg-white px-[7px] py-1">
+                      <Text className="text-[13px] leading-[19.5px] text-black" numberOfLines={1}>
+                        {meal}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
               ) : (
                 <Text className="text-grey-40 text-caption02">식단 정보가 없습니다.</Text>
               )}
@@ -446,7 +451,7 @@ export default function AllScreen({ onNavigate }: Props) {
                 (두 줄씩 쓰면 학식 메뉴가 짧은 날에도 이 카드 때문에 줄 전체가 높아져 학식 카드 아래가 빈다) */}
             <TouchableOpacity
               onPress={() => onNavigate(4)}
-              className="flex-[3] justify-between gap-1.5 rounded-xl bg-blue-02 px-3.5 py-3"
+              className="flex-[3] justify-between gap-2.5 rounded-xl bg-blue-02 px-3.5 py-4"
               accessibilityRole="button"
               accessibilityLabel="학사일정 보기"
             >
