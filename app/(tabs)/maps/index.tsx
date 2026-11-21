@@ -57,6 +57,7 @@ import VisitCandidatesSheet from './_components/sheets/sheet-visit-candidates';
 import UnknownPlaceSheet from './_components/sheets/sheet-unknown-place';
 import VisitGroupSheet from './_components/sheets/sheet-visit-group';
 import VisitAreaSheet from './_components/sheets/sheet-visit-area';
+import VisitPhotosHeader from './_components/sheets/sheet-visit-photos';
 import CATEGORIES from './_constants/category-data';
 import { CampusIcon, CurrentLocationIcon, MoreIcon, StarIcon } from '@/components/icons/map';
 import { useAuth } from '@/context/auth-context';
@@ -71,6 +72,7 @@ import {
 } from '@/lib/maps/campus';
 import { getMapIconKey } from '@/lib/maps/icons';
 import { clusterByGridCell, zoomToSplit } from '@/lib/maps/cluster-visits';
+import { groupPhotosByDay } from '@/lib/photo-location';
 import { findSymbolMatch, type SymbolPoint } from '@/lib/maps/match-symbol';
 import { fetchReviewablePlaces } from '@/hooks/use-place-photos';
 import { cn } from '@/lib/utils';
@@ -105,6 +107,8 @@ const PEEK_BOTTOM_MARGIN = 8;
 const VISIT_GROUP_ID_PREFIX = 'group:';
 // 묶음 핀 id 안에서 건물 키를 나누는 글자 (건물 키는 도로명 주소라 쉼표를 쓰지 않는다)
 const VISIT_KEY_SEPARATOR = '|';
+// 리뷰 한 번에 올릴 수 있는 사진 수 (리뷰 쓰기 화면과 같다)
+const MAX_REVIEW_PHOTO_COUNT = 10;
 // 묶음 핀을 눌러 확대할 때 이 줌보다 크게는 확대하지 않는다 (이때도 안 풀리면 바로 붙은 건물)
 const VISIT_GROUP_MAX_ZOOM = 19;
 // 캠퍼스 건물 이름이 다 보이는 줌 (처음 열 때, 학교로 돌아가기 버튼). 웹(JS SDK)은 같은 줌 값이 앱보다 한 단계 멀리 보여서 1을 더한다
@@ -143,7 +147,8 @@ type SheetScreenInit =
   | { kind: 'bus'; station: BusStopStation }
   // 내 사진첩 "사진 N장" 핀을 눌렀을 때 사진을 날짜별로 보고 가게를 고르는 화면.
   // markerId: 누른 핀(한 구역에 묶인 핀이면 묶음 id), visitKeys: 그 핀에 든 useVisitedPlaces 결과의 key
-  | { kind: 'visit'; markerId: string; visitKeys: string[] }
+  // selectedPhotoIds: 맨 위 사진 줄에서 고른 사진 (사진 줄과 가게 목록이 따로 그려져서 화면 상태로 둔다)
+  | { kind: 'visit'; markerId: string; visitKeys: string[]; selectedPhotoIds: string[] }
   // 여러 건물이 묶인 핀을 눌렀을 때 건물마다 내 사진을 보여주고 건물을 고르게 하는 화면 (visitKeys: 묶인 건물 key)
   | { kind: 'visit-area'; markerId: string; visitKeys: string[] }
   // "다녀온 곳 N" 버튼으로 핀을 켰을 때 뜨는 전체 목록 (지도 가운데에서 가까운 순)
@@ -769,22 +774,60 @@ export default function MapsScreen() {
     hideQuickTooltips();
     clearSearchResult();
     const marker = reviewSuggestionMarkers.find((item) => item.id === markerId) ?? visits[0];
-    const kind = isGroup ? 'visit-area' : 'visit';
     mapRef.current?.animateCameraTo(
       marker.latitude,
       marker.longitude,
       isGroup ? zoomToSplit(visits, mapCamera.zoom, VISIT_GROUP_MAX_ZOOM) : undefined
     );
+    // 건물 시트는 처음에 가장 최근에 간 날 사진을 골라 둔다 (보통 한 가게에서 찍은 사진이다)
+    const nextScreen: SheetScreenInit = isGroup
+      ? { kind: 'visit-area', markerId, visitKeys }
+      : {
+          kind: 'visit',
+          markerId,
+          visitKeys,
+          selectedPhotoIds: (
+            groupPhotosByDay(visits.flatMap((visit) => visit.photos))[0]?.photos ?? []
+          )
+            .slice(0, MAX_REVIEW_PHOTO_COUNT)
+            .map((photo) => photo.id),
+        };
     const top = sheetStack[sheetStack.length - 1] as SheetScreen | undefined;
-    if (top?.kind === kind) {
+    if (top?.kind === nextScreen.kind) {
       setSheetStack((prev) => [
         ...prev.slice(0, -1),
-        { kind, markerId, visitKeys, key: top.key, initialIndex: top.initialIndex },
+        { ...nextScreen, key: top.key, initialIndex: top.initialIndex },
       ]);
       raiseLayer(top.key);
       return;
     }
-    pushSheet({ kind, markerId, visitKeys });
+    pushSheet(nextScreen);
+  }
+
+  // 건물 시트 맨 위 사진 줄에서 고른 사진을 바꾼다
+  function changeVisitSelection(layerKey: string, selectedPhotoIds: string[]) {
+    setSheetStack((prev) =>
+      prev.map((screen) =>
+        screen.key === layerKey && screen.kind === 'visit'
+          ? { ...screen, selectedPhotoIds }
+          : screen
+      )
+    );
+  }
+
+  // 건물 시트에서 스크롤해도 위에 붙어 있는 사진 줄. 다른 화면은 없다
+  function renderStackScreenHeader(screen: SheetScreen) {
+    if (screen.kind !== 'visit') return undefined;
+    const visits = visitedPlaces.places.filter((visit) => screen.visitKeys.includes(visit.key));
+    if (!visits.length) return undefined;
+    return (
+      <VisitPhotosHeader
+        visits={visits}
+        selectedIds={screen.selectedPhotoIds}
+        onChangeSelection={(photoIds) => changeVisitSelection(screen.key, photoIds)}
+        onClose={popSheet}
+      />
+    );
   }
 
   // 네이버 기본 글자(심벌)를 누르면 이름·위치로 우리 건물·가게를 찾아 그 시트를 연다. 없으면 "띵고에 아직 없는 곳" 시트.
@@ -1362,19 +1405,18 @@ export default function MapsScreen() {
       }
       return (
         <VisitCandidatesSheet
-          // 다른 핀으로 바뀌면 고른 사진을 처음(가장 최근 날)으로 되돌린다
-          key={screen.markerId}
           visits={visits}
-          onSelect={writeVisitReview}
-          onClose={popSheet}
-          onDismissPhotos={(photoIds) =>
+          selectedIds={screen.selectedPhotoIds}
+          onSelect={(candidate) => writeVisitReview(candidate, screen.selectedPhotoIds)}
+          onDismissPhotos={(photoIds) => {
             dismissVisitPhotos.mutate({
               placeIds: visits.flatMap((visit) =>
                 visit.candidates.map((candidate) => candidate.id)
               ),
               photoIds,
-            })
-          }
+            });
+            changeVisitSelection(screen.key, []);
+          }}
         />
       );
     }
@@ -1660,8 +1702,10 @@ export default function MapsScreen() {
             topInset={insets.top}
             onChange={(index) => updateLayerIndex(screen.key, index)}
             onClose={() => handleLayerClosed(screen.key, belowKey)}
-            onDismiss={popSheet}
+            // 건물 시트는 닫기 X가 붙어 있는 사진 줄에 늘 보여서 떠 있는 닫기 버튼을 따로 두지 않는다
+            onDismiss={screen.kind === 'visit' ? undefined : popSheet}
             onScroll={screen.kind === 'places' ? onPlacesScroll : undefined}
+            stickyHeader={renderStackScreenHeader(screen)}
           >
             {renderStackScreenContent(screen)}
           </SheetStackLayer>
