@@ -116,8 +116,8 @@ interface Props {
   onReviewSuggestionMarkerPress?: (id: string) => void;
   // 네이버 기본 글자(가게·건물 등 심벌)를 눌렀을 때. 앱 전용이다 (웹 JS SDK는 심벌 터치를 알려주지 않는다)
   onSymbolPress?: (symbol: { caption: string; latitude: number; longitude: number }) => void;
-  // 지도 이동·확대가 끝났을 때 줌. 다녀온 곳 핀 묶음을 다시 계산하는 데 쓴다
-  onZoomChange?: (zoom: number) => void;
+  // 지도 이동·확대가 끝났을 때 화면 가운데와 줌. 다녀온 곳 핀 묶음과 목록 순서를 다시 계산하는 데 쓴다
+  onCameraSettle?: (camera: { latitude: number; longitude: number; zoom: number }) => void;
 }
 
 export interface NaverMapHandle {
@@ -152,7 +152,7 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
     onPlaceMarkerPress,
     onReviewSuggestionMarkerPress,
     onSymbolPress,
-    onZoomChange,
+    onCameraSettle,
   },
   ref
 ) {
@@ -220,7 +220,12 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
           onInteraction?.();
         }
       }}
-      onCameraIdle={onZoomChange ? ({ zoom }) => zoom != null && onZoomChange(zoom) : undefined}
+      onCameraIdle={
+        onCameraSettle
+          ? ({ latitude, longitude, zoom }) =>
+              zoom != null && onCameraSettle({ latitude, longitude, zoom })
+          : undefined
+      }
       onInitialized={onInitialized}
       locationOverlay={{
         isVisible: !!userLocation,

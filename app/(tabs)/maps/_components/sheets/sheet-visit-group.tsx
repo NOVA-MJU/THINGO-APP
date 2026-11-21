@@ -3,30 +3,44 @@ import { RestaurantIcon } from '@/components/icons/map';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import type { VisitedPlace } from '@/hooks/use-visited-places';
-import { formatVisitDate } from '@/lib/maps/format';
+import { formatMapDistance, formatVisitDate } from '@/lib/maps/format';
+import { distanceMeters, type GeoPoint } from '@/lib/photo-location';
 import { ChevronRight } from 'lucide-react-native';
 import * as React from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
 
-// 지도에서 "대표 가게 외 N곳"으로 묶인 다녀온 곳 핀을 눌렀을 때. 묶인 곳을 최근 방문 순으로 보여주고,
-// 고르면 그 곳의 다녀온 곳 화면(가게 상세 또는 "이 사진, 어디서 찍었나요?")으로 간다
+// 다녀온 곳 목록. 두 곳에서 쓴다
+// - 지도에서 "대표 가게 외 N곳"으로 묶인 핀을 눌렀을 때: 묶인 곳을 최근 방문 순으로, 고르면 그 곳 화면으로 간다
+// - "다녀온 곳 N" 버튼으로 핀을 켰을 때: 전체를 지도 가운데에서 가까운 순으로, 고르면 그 핀으로 지도를 옮긴다
 export default function VisitGroupSheet({
   visits,
+  title,
+  description,
+  center,
   onSelect,
   onClose,
 }: {
   visits: VisitedPlace[];
+  title: string;
+  description: string;
+  // 있으면 이 위치(지도 가운데)에서 가까운 순으로 정렬하고 거리를 같이 보여준다
+  center?: GeoPoint;
   onSelect: (visitKey: string) => void;
   onClose: () => void;
 }) {
+  const sortedVisits = center
+    ? [...visits].sort(
+        (first, second) =>
+          distanceMeters(first.candidates[0], center) - distanceMeters(second.candidates[0], center)
+      )
+    : visits;
+
   return (
     <ScrollView>
       <View className="flex-row items-start px-4">
         <View className="flex-1 gap-1">
-          <Text className="text-black text-title03">이 근처 다녀온 곳 {visits.length}곳</Text>
-          <Text className="text-grey-60 text-caption02">
-            내 사진으로 찾았어요. 고르면 그때 사진과 함께 리뷰를 쓸 수 있어요.
-          </Text>
+          <Text className="text-black text-title03">{title}</Text>
+          <Text className="text-grey-60 text-caption02">{description}</Text>
         </View>
         <TouchableOpacity
           accessibilityRole="button"
@@ -43,7 +57,7 @@ export default function VisitGroupSheet({
         <View className="h-1 bg-grey-02" />
       </View>
 
-      {visits.map((visit, index) => {
+      {sortedVisits.map((visit, index) => {
         const [nearest, ...others] = visit.candidates;
         return (
           <React.Fragment key={visit.key}>
@@ -61,7 +75,13 @@ export default function VisitGroupSheet({
                   {others.length ? `${nearest.name} 외 ${others.length}곳` : nearest.name}
                 </Text>
                 <Text className="text-grey-40 text-caption02">
-                  {formatVisitDate(visit.lastVisitAt)} · 사진 {visit.photoIds.length}장
+                  {[
+                    formatVisitDate(visit.lastVisitAt),
+                    `사진 ${visit.photoIds.length}장`,
+                    center && formatMapDistance(distanceMeters(nearest, center)),
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
                 </Text>
               </View>
               <Icon as={ChevronRight} size={18} className="text-grey-30" />
