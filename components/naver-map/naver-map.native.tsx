@@ -17,7 +17,7 @@ import {
   REVIEW_PIN_COLOR,
   REVIEW_PIN_FONT_SIZE,
   REVIEW_PIN_TAIL_HEIGHT,
-  reviewPinCountText,
+  reviewPinText,
   reviewPinWidth,
 } from './building-label';
 
@@ -336,7 +336,7 @@ export const NaverMap = React.forwardRef<NaverMapHandle, Props>(function NaverMa
             isHideCollidedSymbols
             onTap={onTap}
             caption={{
-              text: `${marker.name}  ${reviewPinCountText(marker.photoCount)}`,
+              text: reviewPinText(marker.name, marker.photoCount),
               align: 'Center',
               textSize: REVIEW_PIN_FONT_SIZE,
               color: '#FFFFFF',

@@ -196,3 +196,16 @@ export function boundsAroundAll(points: GeoPoint[], radiusMeters: number) {
     maxLongitude: Math.max(...boxes.map((box) => box.maxLongitude)),
   };
 }
+
+// 가게 도로명 주소에서 건물 키를 만든다. 같은 건물 가게는 좌표가 조금씩 달라도 도로명 주소(번지)가 같다.
+// 뒤에 붙은 층·호수·괄호(동 이름)는 떼어 낸다. 주소가 없으면 가게 하나를 건물 하나로 본다
+// 예: '서울 서대문구 증가로 150 2층' -> '서울 서대문구 증가로 150'
+export function buildingKeyOf(address: string | null | undefined, placeId: number) {
+  const key = (address ?? '')
+    .trim()
+    .replace(/\s*\(.*\)$/, '')
+    .replace(/\s*,.*$/, '')
+    .replace(/\s+(지하|지상)?\s*\d+\s*(층|호).*$/, '')
+    .trim();
+  return key || `place:${placeId}`;
+}
