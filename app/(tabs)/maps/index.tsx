@@ -71,7 +71,12 @@ import {
   getDistanceFromCampusKm,
 } from '@/lib/maps/campus';
 import { getMapIconKey } from '@/lib/maps/icons';
-import { clusterByGridCell, zoomToSplit } from '@/lib/maps/cluster-visits';
+import {
+  clusterByGridCell,
+  latitudeShiftedDown,
+  zoomToFit,
+  zoomToSplit,
+} from '@/lib/maps/cluster-visits';
 import { groupPhotosByDay } from '@/lib/photo-location';
 import { findSymbolMatch, type SymbolPoint } from '@/lib/maps/match-symbol';
 import { fetchReviewablePlaces } from '@/hooks/use-place-photos';
@@ -109,6 +114,11 @@ const VISIT_GROUP_ID_PREFIX = 'group:';
 const VISIT_KEY_SEPARATOR = '|';
 // 리뷰 한 번에 올릴 수 있는 사진 수 (리뷰 쓰기 화면과 같다)
 const MAX_REVIEW_PHOTO_COUNT = 10;
+// 지도 위 검색창·칩 영역 높이, 시트 중간 높이(SNAP_POINTS의 50%), 핀이 화면 가장자리에 붙지 않게 둘 여백
+const MAP_TOP_CONTROLS_HEIGHT = 110;
+const VISIT_SHEET_MIDDLE_RATIO = 0.5;
+const VISIT_FIT_SIDE_PADDING = 56;
+const VISIT_FIT_VERTICAL_PADDING = 24;
 // 묶음 핀을 눌러 확대할 때 이 줌보다 크게는 확대하지 않는다 (이때도 안 풀리면 바로 붙은 건물)
 const VISIT_GROUP_MAX_ZOOM = 19;
 // 캠퍼스 건물 이름이 다 보이는 줌 (처음 열 때, 학교로 돌아가기 버튼). 웹(JS SDK)은 같은 줌 값이 앱보다 한 단계 멀리 보여서 1을 더한다
@@ -145,7 +155,7 @@ type SheetScreenInit =
   | { kind: 'building'; buildingId: number }
   | { kind: 'place'; placeId: number }
   | { kind: 'bus'; station: BusStopStation }
-  // 내 사진첩 "사진 N장" 핀을 눌렀을 때 사진을 날짜별로 보고 가게를 고르는 화면.
+  // 내 사진첩 "내가 찍은 사진 N장" 핀을 눌렀을 때 사진을 날짜별로 보고 가게를 고르는 화면.
   // markerId: 누른 핀(한 구역에 묶인 핀이면 묶음 id), visitKeys: 그 핀에 든 useVisitedPlaces 결과의 key
   // selectedPhotoIds: 맨 위 사진 줄에서 고른 사진 (사진 줄과 가게 목록이 따로 그려져서 화면 상태로 둔다)
   | { kind: 'visit'; markerId: string; visitKeys: string[]; selectedPhotoIds: string[] }
@@ -684,7 +694,7 @@ export default function MapsScreen() {
   const { user } = useAuth();
   const { showLoginRequiredModal } = useLoginRequiredModal();
   const dismissVisitPhotos = useDismissPlacePhotos();
-  const { height: windowHeight } = useWindowDimensions();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   // 장소 시트 레이어별로 잰 "리뷰 N 영역 바로 위까지" 높이 (layerSnapPoints)
   const [placePeekHeights, setPlacePeekHeights] = React.useState<Record<string, number>>({});
   // 다녀온 곳 핀은 기본으로 숨기고, 왼쪽 아래 버튼을 눌렀을 때만 띄운다 (앱을 다시 열면 다시 숨김)
@@ -710,7 +720,7 @@ export default function MapsScreen() {
     )?.key;
   }, [sheetStack, focusedVisitKey, selectedPlaceId, visitedPlaces.places]);
 
-  // 다녀온 곳 핀 = 건물 하나. 사진 위치로 가게를 정확히 가릴 수 없어서 가게 이름 없이 "사진 N장"(아직 리뷰에 안 올린 사진)만 띄우고,
+  // 다녀온 곳 핀 = 건물 하나. 사진 위치로 가게를 정확히 가릴 수 없어서 가게 이름 없이 "내가 찍은 사진 N장"(아직 리뷰에 안 올린 사진)만 띄우고,
   // 누르면 사진을 보고 그 건물 가게를 고르게 한다. 지도를 고정된 구역(격자)으로 나눠 같은 구역에 든 핀을 하나로 묶고(사진 수 합계),
   // 지금 보고 있는 곳은 묶지 않고 따로 띄운다. 구역은 지도 위치가 아니라 줌으로만 정해져서 지도를 조금 옮겨도 핀이 튀지 않는다.
   // 묶음 핀은 구역 안 곳들의 가운데에 두고, 누르면 지도를 확대해 건물별 핀으로 풀어 준다
@@ -719,7 +729,7 @@ export default function MapsScreen() {
       id: visit.key,
       latitude: visit.latitude,
       longitude: visit.longitude,
-      // 이름 없이 사진 수만 ("사진 N장", components/naver-map/building-label.ts reviewPinText)
+      // 이름 없이 사진 수만 ("내가 찍은 사진 N장", components/naver-map/building-label.ts reviewPinText)
       name: '',
       photoCount: visit.photos.length,
     }));
@@ -755,12 +765,15 @@ export default function MapsScreen() {
   }
 
   // 목록에서 고른 가게로 지도를 옮기고 그 다녀온 곳 핀을 강조한다 (핀을 다시 누르면 그 곳 화면이 열린다)
+  // 목록 시트는 가장 낮게 내려 지도를 넓게 보여준다 (아니다 싶으면 사용자가 다시 끌어올려 다른 곳을 찾는다)
   function focusVisitedPlace(visit: VisitedPlace) {
     setFocusedVisitKey(visit.key);
     mapRef.current?.animateCameraTo(visit.latitude, visit.longitude, 18);
+    const top = sheetStack[sheetStack.length - 1] as SheetScreen | undefined;
+    if (top?.kind === 'visit-list') getLayerRef(top.key).current?.snapToIndex(0);
   }
 
-  // "사진 N장" 핀을 누르면.
+  // "내가 찍은 사진 N장" 핀을 누르면.
   // - 건물 하나: 그 건물 사진과 가게를 고르는 시트(visit)를 연다
   // - 여러 건물이 묶인 핀: 묶음이 처음 나뉘는 줌까지만 확대하고(zoomToSplit, 어느 정도 확대된 상태면 한 단계만) 건물마다 사진을
   //   보여주는 시트(visit-area)를 연다. 거기서 건물을 고르거나 지도에서 풀린 건물 핀을 누르면 visit 시트로 간다
@@ -773,11 +786,20 @@ export default function MapsScreen() {
     if (!visits.length) return;
     hideQuickTooltips();
     clearSearchResult();
-    const marker = reviewSuggestionMarkers.find((item) => item.id === markerId) ?? visits[0];
-    mapRef.current?.animateCameraTo(
-      marker.latitude,
-      marker.longitude,
-      isGroup ? zoomToSplit(visits, mapCamera.zoom, VISIT_GROUP_MAX_ZOOM) : undefined
+    // 묶음이면 처음 나뉘는 줌까지 확대하되, 풀린 핀이 다 보이게 시트 위 지도 영역에 들어오는 줌을 넘지 않는다
+    showVisitsAboveSheet(
+      visits,
+      isGroup
+        ? Math.min(
+            zoomToSplit(visits, mapCamera.zoom, VISIT_GROUP_MAX_ZOOM),
+            zoomToFit(
+              visits,
+              windowWidth - VISIT_FIT_SIDE_PADDING * 2,
+              visibleMapHeightAboveSheet() - VISIT_FIT_VERTICAL_PADDING * 2,
+              VISIT_GROUP_MAX_ZOOM
+            )
+          )
+        : mapCamera.zoom
     );
     // 건물 시트는 처음에 가장 최근에 간 날 사진을 골라 둔다 (보통 한 가게에서 찍은 사진이다)
     const nextScreen: SheetScreenInit = isGroup
@@ -802,6 +824,25 @@ export default function MapsScreen() {
       return;
     }
     pushSheet(nextScreen);
+  }
+
+  // 시트가 중간 높이(50%)로 지도 아래쪽을 덮을 때, 검색창 아래부터 시트 위까지 보이는 지도 높이
+  function visibleMapHeightAboveSheet() {
+    return windowHeight * VISIT_SHEET_MIDDLE_RATIO - insets.top - MAP_TOP_CONTROLS_HEIGHT;
+  }
+
+  // 핀들의 가운데를 시트 위로 보이는 지도 영역의 가운데에 오게 카메라를 옮긴다 (그냥 가운데에 두면 시트 경계에 걸려 반쯤 가린다)
+  function showVisitsAboveSheet(points: { latitude: number; longitude: number }[], zoom: number) {
+    const latitudes = points.map((point) => point.latitude);
+    const longitudes = points.map((point) => point.longitude);
+    const centerLatitude = (Math.max(...latitudes) + Math.min(...latitudes)) / 2;
+    const centerLongitude = (Math.max(...longitudes) + Math.min(...longitudes)) / 2;
+    const visibleCenterY = insets.top + MAP_TOP_CONTROLS_HEIGHT + visibleMapHeightAboveSheet() / 2;
+    mapRef.current?.animateCameraTo(
+      latitudeShiftedDown(centerLatitude, zoom, windowHeight / 2 - visibleCenterY),
+      centerLongitude,
+      zoom
+    );
   }
 
   // 건물 시트 맨 위 사진 줄에서 고른 사진을 바꾼다
@@ -887,7 +928,7 @@ export default function MapsScreen() {
       : null;
   }
 
-  // "사진 N장" 핀 시트에서 가게를 고르면 고른 사진이 붙은 리뷰 쓰기 화면으로 바로 간다
+  // "내가 찍은 사진 N장" 핀 시트에서 가게를 고르면 고른 사진이 붙은 리뷰 쓰기 화면으로 바로 간다
   // (sheet-place-detail.tsx의 openWriteReview와 같은 경로·파라미터)
   function writeVisitReview(candidate: VisitedPlaceCandidate, photoIds: string[]) {
     if (!user) {
