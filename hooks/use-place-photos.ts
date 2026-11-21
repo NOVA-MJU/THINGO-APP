@@ -1,5 +1,6 @@
 import { getCategoryMarkers } from '@/api/maps';
 import {
+  assignPhotosToUploadedPlaces,
   boundsAround,
   DEFAULT_PLACE_RADIUS_METERS,
   filterPhotosForPlace,
@@ -11,7 +12,7 @@ import { getDismissedPlacePhotos } from '@/lib/maps/dismissed-place-photos';
 import {
   addMatchedReviewPhotos,
   getCheckedReviewImageUrls,
-  getUploadedPhotoIds,
+  getUploadedPhotoPlaces,
   markReviewImagesChecked,
 } from '@/lib/maps/uploaded-review-photos';
 import { getPlaceReviews } from '@/lib/maps/place-reviews';
@@ -175,21 +176,37 @@ async function findPlacePhotos(placeId: number, place: GeoPoint, queryClient: Qu
   }));
   // 붙어 있는 옆 가게에서 찍은 사진은 뺀다 (가게 목록을 못 받으면 반경만 본다)
   const nearbyPlaces = await fetchReviewablePlaces(queryClient).catch(() => []);
-  const photos = filterPhotosForPlace(located, { id: placeId, ...place }, nearbyPlaces);
-  // 가게 근처에서 찍었어도 음식·음료 사진만 보여준다 (셀카·풍경 같은 관련 없는 사진이 섞이지 않게)
-  // 사용자가 X로 숨긴 사진(다른 가게, 지금은 없어진 예전 가게)도 뺀다
-  // 리뷰에 이미 올린 내 사진도 뺀다 (리뷰를 고쳐 사진을 빼거나 리뷰를 지우면 다시 나온다)
+  const photosByLocation = filterPhotosForPlace(located, { id: placeId, ...place }, nearbyPlaces);
+  // 사용자가 X로 숨긴 사진(다른 가게, 지금은 없어진 예전 가게)은 뺀다
   const dismissedIds = (await getDismissedPlacePhotos())[String(placeId)] ?? [];
-  const candidates = photos
-    .filter((photo) => !dismissedIds.includes(photo.id))
-    .slice(0, MAX_CLASSIFIED_PLACE_PHOTOS);
-  // 비교하지 못하면(리뷰 조회 실패 등) 그대로 보여주고 다음에 다시 비교한다
+  // 예전 리뷰 사진을 사진첩과 비교해 둔다. 비교하지 못하면(리뷰 조회 실패 등) 그대로 보여주고 다음에 다시 비교한다
   await matchUploadedReviewPhotos(
     placeId,
-    candidates.map((photo) => photo.id)
+    photosByLocation
+      .filter((photo) => !dismissedIds.includes(photo.id))
+      .slice(0, MAX_CLASSIFIED_PLACE_PHOTOS)
+      .map((photo) => photo.id)
   ).catch(() => undefined);
-  const uploadedIds = await getUploadedPhotoIds();
-  const recent = candidates.filter((photo) => !uploadedIds.includes(photo.id));
+  // 리뷰에 올린 사진과 같은 방문에 찍은 사진은 그 리뷰의 가게 사진으로 본다. 그래서 이 가게에 올린 사진과 같이 찍었으면
+  // 위치가 옆 가게에 더 가까워도 넣고, 다른 가게에 올린 사진과 같이 찍었으면 위치가 이 가게여도 뺀다
+  const uploadedPlaces = await getUploadedPhotoPlaces();
+  const assignedPlaces = assignPhotosToUploadedPlaces(
+    located,
+    located
+      .filter((photo) => uploadedPlaces.has(photo.id))
+      .map((photo) => ({ ...photo, placeId: uploadedPlaces.get(photo.id)! }))
+  );
+  // 가게 근처에서 찍었어도 음식·음료 사진만 보여준다 (셀카·풍경 같은 관련 없는 사진이 섞이지 않게)
+  // 리뷰에 이미 올린 내 사진도 뺀다 (리뷰를 고쳐 사진을 빼거나 리뷰를 지우면 다시 나온다)
+  const recent = located
+    .filter(
+      (photo) =>
+        (assignedPlaces.get(photo.id) ?? (photosByLocation.includes(photo) ? placeId : null)) ===
+          placeId &&
+        !dismissedIds.includes(photo.id) &&
+        !uploadedPlaces.has(photo.id)
+    )
+    .slice(0, MAX_CLASSIFIED_PLACE_PHOTOS);
   const labels = await getPhotoLabels(recent.map((photo) => photo.id));
   const foodPhotos = recent.filter((photo) => isFoodPhoto(labels[photo.id] ?? []));
   return limitPhotos(groupPhotosNearPlace(foodPhotos, place), MAX_PLACE_PHOTOS);

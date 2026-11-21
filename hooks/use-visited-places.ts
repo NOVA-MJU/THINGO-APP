@@ -5,7 +5,7 @@ import {
   usePhotoPermission,
 } from '@/hooks/use-place-photos';
 import { dismissPlacePhotos, getDismissedPlacePhotos } from '@/lib/maps/dismissed-place-photos';
-import { getUploadedPhotoIds } from '@/lib/maps/uploaded-review-photos';
+import { getUploadedPhotoPlaces } from '@/lib/maps/uploaded-review-photos';
 import { MY_PLACE_REVIEWS_QUERY_KEY } from '@/hooks/use-my-place-reviews';
 import { showAlert } from '@/lib/alert';
 import { getReviewedPlaceIds } from '@/lib/maps/reviewed-places';
@@ -13,8 +13,10 @@ import { categoryHints, isFoodPhoto, narrowCandidatesByFood } from '@/lib/photo-
 import { getPhotoLabels } from '@/lib/photo-labels';
 import {
   boundsAroundAll,
+  assignPhotosToUploadedPlaces,
   buildingKeyOf,
   DEFAULT_PLACE_RADIUS_METERS,
+  distanceMeters,
   groupVisitedPlaces,
 } from '@/lib/photo-location';
 import PhotoLocationScan from '@/modules/photo-location-scan';
@@ -29,6 +31,9 @@ const MAX_VISITED_PLACES = 20;
 // 방문 하나에서 음식 사진인지 분류해 볼 최대 장수, 살펴볼 최대 방문 수 (처음 한 번만 분류하고 결과는 기기에 기억한다)
 const MAX_CLASSIFIED_PHOTOS_PER_VISIT = 12;
 const MAX_CHECKED_VISITS = 60;
+// 핀 건물 말고도 같이 보여줄 주변 가게 범위와 수 (실내 GPS 오차가 수십 m라 옆 건물 가게일 수 있다)
+const NEARBY_PLACE_RADIUS_METERS = 60;
+const MAX_NEARBY_PLACES = 8;
 // 이 기기에서 리뷰를 쓴 가게 하나에서 예전 리뷰 사진과 비교해 볼 최대 사진 수
 const MAX_MATCHED_PHOTOS_PER_PLACE = 60;
 
@@ -40,10 +45,12 @@ export type VisitedPlaceCandidate = {
   categoryCode: string;
   latitude: number;
   longitude: number;
-  // 이 방문 사진 중 가장 가까운 사진과의 거리
+  // 핀(건물 가운데)에서의 거리
   distanceMeters: number;
-  // 핀 건물 안 가게인지 (아니면 GPS 오차로 같이 걸린 옆 건물 가게)
+  // 핀 건물 안 가게인지 (아니면 GPS 오차를 생각해 같이 보여주는 주변 가게)
   inBuilding: boolean;
+  // 같은 방문에 찍은 다른 사진을 이 가게 리뷰에 올린 적이 있는지 (그러면 맨 위)
+  sameVisitUploaded: boolean;
 };
 
 export type VisitedPhoto = { id: string; takenAt: number };
@@ -109,14 +116,12 @@ async function findVisitedPlaces(queryClient: QueryClient): Promise<VisitedPlace
     bounds.minLongitude,
     bounds.maxLongitude
   );
-  const groups = groupVisitedPlaces(
-    scanned.map((photo) => ({
-      id: photo.id,
-      takenAt: photo.takenAt,
-      location: { latitude: photo.latitude, longitude: photo.longitude },
-    })),
-    places
-  );
+  const located = scanned.map((photo) => ({
+    id: photo.id,
+    takenAt: photo.takenAt,
+    location: { latitude: photo.latitude, longitude: photo.longitude },
+  }));
+  const groups = groupVisitedPlaces(located, places);
   const takenAtById = new Map(scanned.map((photo) => [photo.id, photo.takenAt]));
 
   // 이 기기에서 리뷰를 쓴 가게는 예전에 올린 리뷰 사진을 사진첩과 비교해 찾아 둔다 (한 번 비교한 이미지는 다시 받지 않는다).
@@ -133,7 +138,14 @@ async function findVisitedPlaces(queryClient: QueryClient): Promise<VisitedPlace
       ).catch(() => undefined)
     )
   );
-  const uploadedIds = await getUploadedPhotoIds();
+  const uploadedPlaces = await getUploadedPhotoPlaces();
+  // 리뷰에 올린 사진과 같은 방문에 찍은 사진은 그 리뷰의 가게로 정한다 (실내 GPS가 옆 가게를 가리켜도)
+  const assignedPlaces = assignPhotosToUploadedPlaces(
+    located,
+    located
+      .filter((photo) => uploadedPlaces.has(photo.id))
+      .map((photo) => ({ ...photo, placeId: uploadedPlaces.get(photo.id)! }))
+  );
 
   const placeById = new Map(places.map((place) => [place.id, place]));
   const placesByBuilding = places.reduce((grouped, place) => {
@@ -141,10 +153,11 @@ async function findVisitedPlaces(queryClient: QueryClient): Promise<VisitedPlace
     return grouped.set(key, [...(grouped.get(key) ?? []), place]);
   }, new Map<string, ReviewablePlace[]>());
 
-  // 사진 묶음(가장 가까운 가게 기준)을 그 가게가 있는 건물로 모은다. Map은 넣은 순서를 지켜서 최근에 간 건물이 앞이다
+  // 사진 묶음(가장 가까운 가게 기준)을 그 가게가 있는 건물로 모은다. 같은 방문 사진을 리뷰에 올린 적이 있으면 그 가게 건물로 보낸다.
+  // Map은 넣은 순서를 지켜서 최근에 간 건물이 앞이다
   const buildings = new Map<
     string,
-    { photoIds: string[]; labels: string[][]; nearby: Map<number, number>; lastVisitAt: number }
+    { photoIds: string[]; labels: string[][]; assignedPlaceIds: Set<number>; lastVisitAt: number }
   >();
   for (const group of groups.slice(0, MAX_CHECKED_VISITS)) {
     // 가게 근처에서 찍었어도 음식·음료 사진이 없으면 다녀온 곳으로 보지 않는다 (지나가며 찍은 사진, 셀카 등)
@@ -153,62 +166,69 @@ async function findVisitedPlaces(queryClient: QueryClient): Promise<VisitedPlace
       (candidate) => dismissedPhotos[String(candidate.placeId)] ?? []
     );
     const recentIds = group.photoIds
-      .filter((id) => !dismissedIds.includes(id) && !uploadedIds.includes(id))
+      .filter((id) => !dismissedIds.includes(id) && !uploadedPlaces.has(id))
       .slice(0, MAX_CLASSIFIED_PHOTOS_PER_VISIT);
     const labels = await getPhotoLabels(recentIds);
     const foodIds = recentIds.filter((id) => isFoodPhoto(labels[id] ?? []));
-    if (!foodIds.length) continue;
 
     const anchor = placeById.get(group.candidates[0].placeId)!;
-    const key = buildingKeyOf(anchor.location, anchor.id);
-    if (!buildings.has(key) && buildings.size >= MAX_VISITED_PLACES) continue;
-    const building = buildings.get(key) ?? {
-      photoIds: [],
-      labels: [],
-      nearby: new Map<number, number>(),
-      lastVisitAt: 0,
-    };
-    // 리뷰를 쓴 가게도 후보로 둔다 (다시 가서 찍은 사진일 수 있다. 이미 올린 사진은 위에서 뺐다)
-    group.candidates.forEach((candidate) =>
-      building.nearby.set(
-        candidate.placeId,
-        Math.min(building.nearby.get(candidate.placeId) ?? Infinity, candidate.distanceMeters)
-      )
-    );
-    buildings.set(key, {
-      ...building,
-      photoIds: [...building.photoIds, ...foodIds],
-      labels: [...building.labels, ...foodIds.map((id) => labels[id] ?? [])],
-      lastVisitAt: Math.max(building.lastVisitAt, group.lastVisitAt),
+    foodIds.forEach((id) => {
+      const assignedPlace = placeById.get(assignedPlaces.get(id) ?? -1);
+      const buildingPlace = assignedPlace ?? anchor;
+      const key = buildingKeyOf(buildingPlace.location, buildingPlace.id);
+      if (!buildings.has(key) && buildings.size >= MAX_VISITED_PLACES) return;
+      const building = buildings.get(key) ?? {
+        photoIds: [],
+        labels: [],
+        assignedPlaceIds: new Set<number>(),
+        lastVisitAt: 0,
+      };
+      if (assignedPlace) building.assignedPlaceIds.add(assignedPlace.id);
+      buildings.set(key, {
+        ...building,
+        photoIds: [...building.photoIds, id],
+        labels: [...building.labels, labels[id] ?? []],
+        lastVisitAt: Math.max(building.lastVisitAt, takenAtById.get(id) ?? group.lastVisitAt),
+      });
     });
   }
 
   return [...buildings.entries()].map(([key, building]) => {
     const buildingPlaces = placesByBuilding.get(key) ?? [];
+    const center = {
+      latitude: average(buildingPlaces.map((place) => place.latitude)),
+      longitude: average(buildingPlaces.map((place) => place.longitude)),
+    };
     const toCandidate = (place: ReviewablePlace, inBuilding: boolean) => ({
       id: place.id,
       name: place.title,
       categoryCode: place.categoryCode,
       latitude: place.latitude,
       longitude: place.longitude,
-      distanceMeters: building.nearby.get(place.id) ?? 0,
+      distanceMeters: distanceMeters(center, place),
       inBuilding,
+      sameVisitUploaded: building.assignedPlaceIds.has(place.id),
     });
-    // 사진 음식에 맞는 가게를 앞에 둔다 (커피 사진이면 카페 먼저). 나머지도 빼지 않고 뒤에 둔다
+    // 같은 방문 사진을 리뷰에 올린 가게 -> 사진 음식에 맞는 가게(커피 사진이면 카페) -> 나머지 순. 빼지 않고 순서만 바꾼다
     const preferredPlaces = narrowCandidatesByFood(buildingPlaces, categoryHints(building.labels));
     const buildingCandidates = [
+      ...buildingPlaces.filter((place) => building.assignedPlaceIds.has(place.id)),
       ...preferredPlaces,
-      ...buildingPlaces.filter((place) => !preferredPlaces.includes(place)),
-    ].map((place) => toCandidate(place, true));
-    const nearbyCandidates = [...building.nearby.entries()]
-      .filter(([placeId]) => !buildingPlaces.some((place) => place.id === placeId))
-      .sort(([, first], [, second]) => first - second)
-      .map(([placeId]) => toCandidate(placeById.get(placeId)!, false));
+      ...buildingPlaces,
+    ]
+      .filter((place, index, list) => list.indexOf(place) === index)
+      .map((place) => toCandidate(place, true));
+    // 실내 GPS가 옆 건물을 가리키는 일이 많아 주변 가게도 가까운 순으로 같이 둔다 (더 먼 곳은 시트의 "주변 가게 더 보기")
+    const nearbyCandidates = places
+      .filter((place) => !buildingPlaces.includes(place))
+      .map((place) => toCandidate(place, false))
+      .filter((candidate) => candidate.distanceMeters <= NEARBY_PLACE_RADIUS_METERS)
+      .sort((first, second) => first.distanceMeters - second.distanceMeters)
+      .slice(0, MAX_NEARBY_PLACES);
     return {
       key,
       address: buildingPlaces[0]?.location ?? null,
-      latitude: average(buildingPlaces.map((place) => place.latitude)),
-      longitude: average(buildingPlaces.map((place) => place.longitude)),
+      ...center,
       candidates: [...buildingCandidates, ...nearbyCandidates],
       photos: building.photoIds
         .map((id) => ({ id, takenAt: takenAtById.get(id) ?? building.lastVisitAt }))
