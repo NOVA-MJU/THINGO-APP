@@ -82,8 +82,8 @@ type PlaceCommunitySectionProps = {
   mediaFooter?: React.ReactNode;
   // 위 내용에 리뷰 쓰기 버튼이 이미 있으면 "어떠셨나요?" 카드를 숨겨 같은 버튼이 두 번 나오지 않게 한다
   showReviewPrompt?: boolean;
-  // 리뷰 영역 첫 칸("아직 리뷰가 없어요" 상자 또는 첫 리뷰)의 아래 끝 위치(이 컴포넌트 맨 위 기준). 시트를 여기까지 보이게 연다
-  onPeekBottomChange?: (y: number) => void;
+  // 리뷰 영역("리뷰 N")이 시작하는 위치(이 컴포넌트 맨 위 기준, 위 여백 포함). 시트를 그 바로 위 내용까지만 보이게 연다
+  onReviewSectionTopChange?: (y: number) => void;
 };
 
 const COMING_SOON_CATEGORY_CODES = new Set(['club-room', 'smoking']);
@@ -142,25 +142,13 @@ export default function PlaceCommunitySection({
   mediaEmptyContent,
   mediaFooter,
   showReviewPrompt = true,
-  onPeekBottomChange,
+  onReviewSectionTopChange,
 }: PlaceCommunitySectionProps) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { showLoginRequiredModal } = useLoginRequiredModal();
   const reportBottomSheetRef = React.useRef<BottomSheetModal>(null);
   const [reviewSort, setReviewSort] = React.useState<PlaceReviewSort>('latest');
-  // 리뷰 영역의 위치와 그 안 첫 칸의 아래 끝 (onPeekBottomChange로 합쳐서 알린다)
-  const [reviewSectionY, setReviewSectionY] = React.useState<number | null>(null);
-  const [reviewListY, setReviewListY] = React.useState<number | null>(null);
-  const [firstReviewHeight, setFirstReviewHeight] = React.useState<number | null>(null);
-  const [emptyReviewBottom, setEmptyReviewBottom] = React.useState<number | null>(null);
-  const reviewListFirstBottom =
-    reviewListY !== null && firstReviewHeight !== null ? reviewListY + firstReviewHeight : null;
-  const firstReviewBottom = reviews.length > 0 ? reviewListFirstBottom : emptyReviewBottom;
-  React.useEffect(() => {
-    if (reviewSectionY === null || firstReviewBottom === null) return;
-    onPeekBottomChange?.(reviewSectionY + firstReviewBottom);
-  }, [firstReviewBottom, onPeekBottomChange, reviewSectionY]);
   const [deleteTargetReview, setDeleteTargetReview] = React.useState<PlaceReview | null>(null);
   const [reportTargetReview, setReportTargetReview] = React.useState<PlaceReview | null>(null);
   const [blockTargetReview, setBlockTargetReview] = React.useState<PlaceReview | null>(null);
@@ -366,7 +354,7 @@ export default function PlaceCommunitySection({
 
       <View
         className="mt-5 px-4"
-        onLayout={(event) => setReviewSectionY(event.nativeEvent.layout.y)}
+        onLayout={(event) => onReviewSectionTopChange?.(event.nativeEvent.layout.y)}
       >
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center gap-1.5">
@@ -409,52 +397,35 @@ export default function PlaceCommunitySection({
         </View>
 
         {reviews.length > 0 ? (
-          <View
-            className="mt-3 gap-5"
-            onLayout={(event) => setReviewListY(event.nativeEvent.layout.y)}
-          >
-            {sortedReviews.map((review, index) => (
-              <View
+          <View className="mt-3 gap-5">
+            {sortedReviews.map((review) => (
+              <ReviewCard
                 key={review.id}
-                onLayout={
-                  index === 0
-                    ? (event) => setFirstReviewHeight(event.nativeEvent.layout.height)
-                    : undefined
-                }
-              >
-                <ReviewCard
-                  review={review}
-                  currentUserUuid={user?.uuid}
-                  fallbackNickname={user?.nickname}
-                  fallbackProfileImageUrl={user?.profileImageUrl}
-                  onEditReview={() => showAlert('알림', '리뷰 수정 기능은 준비 중입니다.')}
-                  onDeleteReview={() => openDeleteReviewDialog(review)}
-                  onReportReview={() => openReportReviewSheet(review)}
-                  onBlockReviewAuthor={() => openBlockReviewAuthorDialog(review)}
-                  onOpenMedia={(mediaIndex) => onOpenMedia(review.id, mediaIndex, 'review')}
-                  onToggleLike={async () => {
-                    try {
-                      const nextReview = await togglePlaceReviewLike(review.id);
-                      if (!nextReview) return;
-                      onReviewsChange(
-                        reviews.map((item) => (item.id === nextReview.id ? nextReview : item))
-                      );
-                    } catch {
-                      showAlert('좋아요 처리 실패', '잠시 후 다시 시도해주세요.');
-                    }
-                  }}
-                />
-              </View>
+                review={review}
+                currentUserUuid={user?.uuid}
+                fallbackNickname={user?.nickname}
+                fallbackProfileImageUrl={user?.profileImageUrl}
+                onEditReview={() => showAlert('알림', '리뷰 수정 기능은 준비 중입니다.')}
+                onDeleteReview={() => openDeleteReviewDialog(review)}
+                onReportReview={() => openReportReviewSheet(review)}
+                onBlockReviewAuthor={() => openBlockReviewAuthorDialog(review)}
+                onOpenMedia={(mediaIndex) => onOpenMedia(review.id, mediaIndex, 'review')}
+                onToggleLike={async () => {
+                  try {
+                    const nextReview = await togglePlaceReviewLike(review.id);
+                    if (!nextReview) return;
+                    onReviewsChange(
+                      reviews.map((item) => (item.id === nextReview.id ? nextReview : item))
+                    );
+                  } catch {
+                    showAlert('좋아요 처리 실패', '잠시 후 다시 시도해주세요.');
+                  }
+                }}
+              />
             ))}
           </View>
         ) : (
-          <View
-            className="mt-3 items-center justify-center gap-0.5 rounded-xl border border-grey-10 bg-white py-6"
-            onLayout={(event) => {
-              const { y, height } = event.nativeEvent.layout;
-              setEmptyReviewBottom(y + height);
-            }}
-          >
+          <View className="mt-3 items-center justify-center gap-0.5 rounded-xl border border-grey-10 bg-white py-6">
             <Text className="text-grey-60 text-body05">아직 리뷰가 없어요</Text>
             <Text className="text-grey-40 text-caption02">
               다녀왔다면 첫 리뷰의 주인공이 되어주세요

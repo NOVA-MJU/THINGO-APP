@@ -84,9 +84,10 @@ const QUICK_CHIPS = ALL_CHIPS.filter((chip) => QUICK_CHIP_IDS.includes(chip.id))
 );
 
 const SNAP_POINTS = ['10%', '50%', '100%'];
-// 장소 시트는 중간 높이를 내용에 맞춘다: 핸들(sheet-handle.tsx의 py-4 + 막대 4px) + 리뷰 첫 칸까지 + 아래 여백
+// 장소 시트는 중간 높이를 내용에 맞춘다: 핸들(sheet-handle.tsx의 py-4 + 막대 4px) + "리뷰 N" 영역 바로 위까지.
+// 그 위치에 리뷰 영역 위 여백(mt-5)이 포함돼 있어 내 사진 카드 아래가 살짝 남는다
 const SHEET_HANDLE_HEIGHT = 36;
-const PEEK_BOTTOM_MARGIN = 16;
+const PEEK_BOTTOM_MARGIN = 8;
 // 캠퍼스 건물 이름이 다 보이는 줌 (처음 열 때, 학교로 돌아가기 버튼). 웹(JS SDK)은 같은 줌 값이 앱보다 한 단계 멀리 보여서 1을 더한다
 const CAMPUS_ZOOM = Platform.OS === 'web' ? 17 : 16;
 const MAP_CONTROL_SHADOW = {
@@ -639,7 +640,7 @@ export default function MapsScreen() {
   const visitedPlaces = useVisitedPlaces();
   const queryClient = useQueryClient();
   const { height: windowHeight } = useWindowDimensions();
-  // 장소 시트 레이어별로 잰 "리뷰 첫 칸까지" 높이 (layerSnapPoints)
+  // 장소 시트 레이어별로 잰 "리뷰 N 영역 바로 위까지" 높이 (layerSnapPoints)
   const [placePeekHeights, setPlacePeekHeights] = React.useState<Record<string, number>>({});
   // 다녀온 곳 핀은 기본으로 숨기고, 왼쪽 아래 버튼을 눌렀을 때만 띄운다 (앱을 다시 열면 다시 숨김)
   const [visitedPinsShown, setVisitedPinsShown] = React.useState(false);
@@ -1130,7 +1131,7 @@ export default function MapsScreen() {
   }
 
   // 스택 레이어 하나의 콘텐츠 렌더링 (상세 데이터 로딩 중에는 스피너 표시)
-  // 레이어별 시트 높이. 장소 시트는 내용(리뷰 첫 칸까지)을 재서 중간 높이로 쓰고, 화면의 30~85% 안으로 맞춘다
+  // 레이어별 시트 높이. 장소 시트는 내용("리뷰 N" 영역 바로 위까지)을 재서 중간 높이로 쓰고, 화면의 30~85% 안으로 맞춘다
   function layerSnapPoints(screen: SheetScreen) {
     const peek = screen.kind === 'place' ? placePeekHeights[screen.key] : undefined;
     if (!peek) return SNAP_POINTS;

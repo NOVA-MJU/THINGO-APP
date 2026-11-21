@@ -117,7 +117,7 @@
 - **주의**: `close()`는 index가 -1에 도달하면 항상 `onClose`를 발생시키는데(`node_modules/@gorhom/bottom-sheet/src/components/bottomSheet/BottomSheet.tsx`의 `animateToPositionCompleted`), `pushSheet`가 아래 레이어를 가리려고 호출하는 `close()`도 똑같이 `onClose`를 발생시킨다. 이게 실제 pop과 구분 없이 `handleLayerClosed`를 타면 "덮여서 숨겨진 것"이 스택에서 제거돼버리므로, `suppressCloseRef`에 "덮여서 닫힌" 키를 표시해두고 `handleLayerClosed`가 그 키를 보면 무시하도록 한다.
 - `resetStack()`: 스택을 통째로 즉시 언마운트(애니메이션 없음, `close()`도 호출하지 않으므로 `onClose`/`suppressCloseRef`와 무관). bus/칩 재선택처럼 완전히 다른 컨텍스트로 전환할 때 사용.
 - `BuildingDetailSheet`/`PlaceDetailSheet`/`PlaceListSheet`/`DaedongPlaceListSheet`/`CategoryListSheet`의 닫기(X) 버튼은 전부 `onClose={popSheet}`로 연결돼 있다 — "한 단계 뒤로"와 "닫기"가 스택 모델에서는 같은 동작이라 별도 back 버튼이 필요 없다 (places 목록에서 들어온 상세는 popSheet 시 목록으로, 지도에서 바로 들어온 상세는 popSheet 시 base(건물 목록)로 돌아감 — 스택 깊이가 자동으로 그 차이를 반영함).
-- 장소 시트(place)는 중간 높이를 50% 대신 내용에 맞춘다. 리뷰 영역 첫 칸("아직 리뷰가 없어요" 상자 또는 첫 리뷰) 아래 끝까지 재서(`onPeekHeightChange`) 핸들과 아래 여백 16px을 더하고 화면의 30~85% 안으로 맞춘다 (`layerSnapPoints`)
+- 장소 시트(place)는 중간 높이를 50% 대신 내용에 맞춘다. 이름·운영정보·사진·내 사진 카드를 지나 "리뷰 N" 영역이 시작하는 곳까지 재서(`onPeekHeightChange`) 핸들과 여백(리뷰 영역 위 20px + 8px)을 더하고 화면의 30~85% 안으로 맞춘다 (`layerSnapPoints`)
 - 시트를 10%로 내려 둔 채 지도에서 같은 핀이나 다른 핀을 누르면 그 레이어를 절반(index 1)까지 다시 올린다 (`raiseLayer`). 더 올려 둔 경우는 그대로 둔다
 - `selectCategoryPin`(장소/건물 마커 클릭·목록 항목 클릭 공용)은 항상 `pushSheet`만 호출한다 — 이미 상세가 열려 있는 상태에서 다른 핀을 클릭하면 그 위에 새 레이어가 또 쌓인다(뒤로가기 시 이전에 보던 핀으로 돌아감).
 

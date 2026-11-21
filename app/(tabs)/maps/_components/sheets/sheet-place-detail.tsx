@@ -34,7 +34,7 @@ export default function PlaceDetailSheet({
 }: {
   place: MapPlaceDetail;
   onClose?: () => void;
-  // 시트를 처음 열 높이(내용 위에서부터 리뷰 첫 칸 아래 끝까지, px). 지도 화면이 시트 중간 높이로 쓴다
+  // 시트를 처음 열 높이(내용 위에서부터 "리뷰 N" 영역 바로 위까지, px). 지도 화면이 시트 중간 높이로 쓴다
   onPeekHeightChange?: (height: number) => void;
 }) {
   const router = useRouter();
@@ -53,9 +53,9 @@ export default function PlaceDetailSheet({
   const myPhotos = usePlacePhotos(place.id, placePoint);
   // 리뷰 영역(PlaceCommunitySection)이 시트 내용 맨 위에서 떨어진 거리
   const [communityY, setCommunityY] = React.useState<number | null>(null);
-  const onPeekBottomChange = React.useCallback(
-    (bottom: number) => {
-      if (communityY !== null) onPeekHeightChange?.(communityY + bottom);
+  const onReviewSectionTopChange = React.useCallback(
+    (reviewSectionTop: number) => {
+      if (communityY !== null) onPeekHeightChange?.(communityY + reviewSectionTop);
     },
     [communityY, onPeekHeightChange]
   );
@@ -200,7 +200,7 @@ export default function PlaceDetailSheet({
 
           <View onLayout={(event) => setCommunityY(event.nativeEvent.layout.y)}>
             <PlaceCommunitySection
-              onPeekBottomChange={onPeekBottomChange}
+              onReviewSectionTopChange={onReviewSectionTopChange}
               placeName={place.name}
               categoryCode={place.categoryCode}
               reviews={reviews}
