@@ -57,6 +57,10 @@ public class PhotoLocationScanModule: Module {
         do {
           try VNImageRequestHandler(cgImage: cgImage, options: [:]).perform([request])
         } catch {
+#if targetEnvironment(simulator)
+          // 시뮬레이터에서는 Vision 분류가 늘 취소돼서, 화면 확인용으로 음식 사진으로 본다 (실제 아이폰은 그대로 분류한다)
+          labelsById[asset.localIdentifier] = ["food"]
+#endif
           return
         }
         labelsById[asset.localIdentifier] = (request.results ?? [])
