@@ -7,7 +7,13 @@ import {
   groupPhotosNearPlace,
   type LocatedPhoto,
 } from '@/lib/photo-location';
-import { getDismissedPlacePhotos } from '@/lib/maps/dismissed-place-photos';
+import {
+  dismissPlacePhotos,
+  getCheckedReviewImageUrls,
+  getDismissedPlacePhotos,
+  markReviewImagesChecked,
+} from '@/lib/maps/dismissed-place-photos';
+import { getPlaceReviews } from '@/lib/maps/place-reviews';
 import { isFoodPhoto } from '@/lib/photo-food';
 import { getPhotoLabels } from '@/lib/photo-labels';
 import PhotoLocationScan from '@/modules/photo-location-scan';
@@ -165,12 +171,41 @@ async function findPlacePhotos(placeId: number, place: GeoPoint, queryClient: Qu
   // 가게 근처에서 찍었어도 음식·음료 사진만 보여준다 (셀카·풍경 같은 관련 없는 사진이 섞이지 않게)
   // 사용자가 X로 숨긴 사진(다른 가게, 지금은 없어진 예전 가게)도 뺀다
   const dismissedIds = (await getDismissedPlacePhotos())[String(placeId)] ?? [];
-  const recent = photos
+  const candidates = photos
     .filter((photo) => !dismissedIds.includes(photo.id))
     .slice(0, MAX_CLASSIFIED_PLACE_PHOTOS);
+  // 이 장소 리뷰에 이미 올린 내 사진도 뺀다
+  // 비교하지 못하면(리뷰 조회 실패 등) 그대로 보여주고 다음에 다시 비교한다
+  const uploadedIds = await findAlreadyUploadedPhotos(placeId, candidates).catch(
+    (): string[] => []
+  );
+  const recent = candidates.filter((photo) => !uploadedIds.includes(photo.id));
   const labels = await getPhotoLabels(recent.map((photo) => photo.id));
   const foodPhotos = recent.filter((photo) => isFoodPhoto(labels[photo.id] ?? []));
   return limitPhotos(groupPhotosNearPlace(foodPhotos, place), MAX_PLACE_PHOTOS);
+}
+
+// 리뷰를 쓸 때 고른 사진은 쓰기 화면이 바로 기억하지만(app/maps/reviews/write.tsx), 다른 기기에서 썼거나
+// 기억하기 전에 올린 리뷰 사진은 모른다. 그래서 이 장소의 내 리뷰 이미지를 사진첩 사진과 기기 안에서 그림으로 비교해 찾고,
+// 찾은 사진은 숨긴 사진 목록에 넣는다. 비교한 이미지 주소는 기억해 다음부터는 새로 올라온 이미지만 비교한다
+async function findAlreadyUploadedPhotos(placeId: number, photos: PlacePhoto[]) {
+  if (!PhotoLocationScan?.findPhotosMatchingImages || !photos.length) return [];
+  const [reviews, checkedUrls] = await Promise.all([
+    getPlaceReviews(placeId),
+    getCheckedReviewImageUrls(),
+  ]);
+  const imageUrls = reviews
+    .filter((review) => review.isMine)
+    .flatMap((review) => review.imageUrls)
+    .filter((url) => !checkedUrls.includes(url));
+  if (!imageUrls.length) return [];
+  const matchedIds = await PhotoLocationScan.findPhotosMatchingImages(
+    photos.map((photo) => photo.id),
+    imageUrls
+  );
+  await dismissPlacePhotos([placeId], matchedIds);
+  await markReviewImagesChecked(imageUrls);
+  return matchedIds;
 }
 
 // 최근 방문부터 채워서 전체 장수를 limit 안으로 자른다

@@ -14,6 +14,8 @@ export type PlaceReviewMediaItem = {
   url: string;
   type: 'image' | 'video';
   thumbnailUrl?: string | null;
+  // 내 사진첩에서 골라 올린 사진의 사진첩 id. 서버로는 보내지 않고, 리뷰를 올린 뒤 "여기서 찍은 내 사진"에서 빼는 데만 쓴다
+  libraryPhotoId?: string | null;
 };
 
 export type PlaceReview = {
