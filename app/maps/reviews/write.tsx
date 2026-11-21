@@ -372,6 +372,12 @@ export default function PlaceReviewWriteScreen() {
                     타인의 얼굴이 나오거나 장소와 관련없는 사진 등록은 자제해 주세요.
                   </Text>
                 </View>
+                {/* 수정할 때 올렸던 사진 중 일부만 빼고 싶다는 요청이 많아, 빼는 방법을 바로 알려준다 */}
+                {isEditMode && mediaItems.length > 0 && (
+                  <Text className="px-4 text-blue-35 text-caption02">
+                    빼고 싶은 사진의 X를 누른 뒤 아래 '리뷰 수정'을 누르면 그 사진만 지워져요.
+                  </Text>
+                )}
               </View>
 
               <ScrollView
@@ -410,13 +416,17 @@ export default function PlaceReviewWriteScreen() {
                     ) : (
                       <ReviewVideoThumbnail uri={item.url} thumbnailUrl={item.thumbnailUrl} />
                     )}
+                    {/* 손가락으로 누르기 쉽게 28px 버튼 + 주변 8px까지 눌리게 하고, 사진 위에서도 보이게 어둡게 깐다 */}
                     <Pressable
                       onPress={() =>
                         setMediaItems((previous) => previous.filter((_, i) => i !== index))
                       }
-                      className="absolute right-1 top-1 h-5 w-5 items-center justify-center rounded-full bg-grey-30"
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${index + 1}번째 사진 빼기`}
+                      className="absolute right-1 top-1 h-7 w-7 items-center justify-center rounded-full bg-black/60 active:bg-black/80"
                     >
-                      <XIcon size={10} className="text-white" />
+                      <XIcon size={14} className="text-white" />
                     </Pressable>
                   </View>
                 ))}
