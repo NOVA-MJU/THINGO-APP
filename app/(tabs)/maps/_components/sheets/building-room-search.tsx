@@ -1,12 +1,7 @@
 import { MAP_FLOOR_PLANS } from '@/assets/map-floors';
 import { ArrowRightIcon, SearchIcon, XThinIcon } from '@/components/icons';
 import { Text } from '@/components/ui/text';
-import {
-  type BuildingFloorPlans,
-  searchBuildingsFloorPlanTexts,
-  searchFloorPlanTexts,
-  sortFloorLabels,
-} from '@/lib/maps/floor-plan-search';
+import { searchBuildingsFloorPlanTexts, searchFloorPlanTexts } from '@/lib/maps/floor-plan-search';
 import { loadBuildingFloorPlans } from '@/lib/maps/floor-plan-buildings';
 import { formatFloorPlanLabel } from '@/lib/maps/format';
 import { cn } from '@/lib/utils';

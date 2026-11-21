@@ -23,7 +23,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Text } from '@/components/ui/text';
+import { isLoginRequiredError } from '@/api/client';
 import { useAuth } from '@/context/auth-context';
+import { useLoginRequiredModal } from '@/context/login-required-modal-context';
 import { showAlert } from '@/lib/alert';
 import { cn } from '@/lib/utils';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -86,6 +88,7 @@ export default function PlaceReviewWriteScreen() {
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { showLoginRequiredModal } = useLoginRequiredModal();
   const scrollViewRef = React.useRef<ScrollView>(null);
   const reviewInputFocusedRef = React.useRef(false);
   const { placeId, placeName, categoryCode, reviewId, latitude, longitude, photoIds } =
@@ -253,6 +256,11 @@ export default function PlaceReviewWriteScreen() {
 
   async function handleSubmit() {
     if (!canSubmit || !Number.isFinite(numericPlaceId) || !resolvedPlaceName) return;
+    // 로그인이 풀린 채 이 화면에 있을 수 있다 (쓰는 도중 토큰 만료 등). 등록 실패 대신 로그인 안내를 띄운다
+    if (!user) {
+      showLoginRequiredModal();
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -281,8 +289,12 @@ export default function PlaceReviewWriteScreen() {
       }
       router.back();
     } catch (error) {
+      if (isLoginRequiredError(error)) {
+        showLoginRequiredModal();
+        return;
+      }
       const errorMessage = getReviewSubmitErrorMessage(error);
-      if (errorMessage) showAlert('리뷰 등록 실패', errorMessage);
+      if (errorMessage) showAlert(isEditMode ? '리뷰 수정 실패' : '리뷰 등록 실패', errorMessage);
     } finally {
       setIsSubmitting(false);
     }

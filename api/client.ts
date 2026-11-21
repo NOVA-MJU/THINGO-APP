@@ -115,4 +115,11 @@ client.interceptors.response.use(
   }
 );
 
+// 로그인이 필요해서 실패한 요청인지 (토큰이 없거나 만료돼 재발급까지 실패한 경우).
+// 화면은 이때 에러 알림 대신 로그인 안내(useLoginRequiredModal)를 띄운다
+export function isLoginRequiredError(error: unknown) {
+  if (error instanceof AxiosError) return [401, 403].includes(error.response?.status ?? 0);
+  return error instanceof Error && error.message === 'no_refresh_token';
+}
+
 export default client;

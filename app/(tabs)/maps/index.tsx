@@ -58,6 +58,8 @@ import UnknownPlaceSheet from './_components/sheets/sheet-unknown-place';
 import VisitGroupSheet from './_components/sheets/sheet-visit-group';
 import CATEGORIES from './_constants/category-data';
 import { CampusIcon, CurrentLocationIcon, MoreIcon, StarIcon } from '@/components/icons/map';
+import { useAuth } from '@/context/auth-context';
+import { useLoginRequiredModal } from '@/context/login-required-modal-context';
 import { useMapSearchSelection } from '@/context/map-search-selection';
 import { showAlert } from '@/lib/alert';
 import {
@@ -67,8 +69,7 @@ import {
   getDistanceFromCampusKm,
 } from '@/lib/maps/campus';
 import { getMapIconKey } from '@/lib/maps/icons';
-import { clusterOverlappingPoints } from '@/lib/maps/cluster-visits';
-import { distanceMeters } from '@/lib/photo-location';
+import { clusterByGridCell } from '@/lib/maps/cluster-visits';
 import { findSymbolMatch, type SymbolPoint } from '@/lib/maps/match-symbol';
 import { fetchReviewablePlaces } from '@/hooks/use-place-photos';
 import { cn } from '@/lib/utils';
@@ -654,6 +655,8 @@ export default function MapsScreen() {
   // 내 사진첩 기준 "다녀온 곳"(리뷰 남길 곳) 핀. iOS에서 사진 권한이 있을 때만 생긴다
   const visitedPlaces = useVisitedPlaces();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const { showLoginRequiredModal } = useLoginRequiredModal();
   const dismissVisitPhotos = useDismissPlacePhotos();
   const { height: windowHeight } = useWindowDimensions();
   // 장소 시트 레이어별로 잰 "리뷰 N 영역 바로 위까지" 높이 (layerSnapPoints)
@@ -681,9 +684,9 @@ export default function MapsScreen() {
     )?.key;
   }, [sheetStack, focusedVisitKey, selectedPlaceId, visitedPlaces.places]);
 
-  // 다녀온 곳 핀. 화면에서 겹치는 곳끼리 "대표 가게 외 N곳"으로 묶고, 지금 보고 있는 곳은 묶지 않고 따로 띄운다.
-  // 묶음은 지도 가운데에서 가까운 곳부터 잡아서, 지도를 옮기면 지금 보는 곳 주변이 더 잘게 나뉜다.
-  // 묶음 핀 위치는 가운데에서 가장 가까운 곳, 이름은 그중 최근에 간 곳이다
+  // 다녀온 곳 핀. 지도를 고정된 구역(격자)으로 나눠 같은 구역에 든 곳을 "대표 가게 외 N곳" 하나로 묶고, 지금 보고 있는 곳은 묶지 않고 따로 띄운다.
+  // 구역은 지도 위치가 아니라 줌으로만 정해져서 지도를 조금 옮겨도 핀이 옆 가게로 튀지 않고, 다른 구역으로 가면 그 구역의 핀이 보인다.
+  // 묶음 핀은 구역 안 곳들의 가운데에, 이름은 그중 최근에 간 곳이다
   const reviewSuggestionMarkers = React.useMemo(() => {
     const visitMarkers = visitedPlaces.places.map((visit) => {
       const [nearest, ...others] = visit.candidates;
@@ -698,27 +701,22 @@ export default function MapsScreen() {
       };
     });
     const selectedMarkers = visitMarkers.filter((marker) => marker.id === selectedVisitKey);
-    const nearCenterFirst = visitMarkers
-      .filter((marker) => marker.id !== selectedVisitKey)
-      .sort(
-        (first, second) => distanceMeters(first, mapCamera) - distanceMeters(second, mapCamera)
-      );
-    const groupedMarkers = clusterOverlappingPoints(nearCenterFirst, mapCamera.zoom).map(
-      ({ representative, members }) => {
-        if (members.length === 1) return representative;
-        // visitMarkers는 최근에 간 곳부터라, 그 순서로 처음 나오는 묶음 멤버가 가장 최근에 간 곳이다
-        const mostRecent =
-          visitMarkers.find((marker) => members.includes(marker)) ?? representative;
-        return {
-          ...representative,
-          id: VISIT_GROUP_ID_PREFIX + members.map((member) => member.id).join(','),
-          name: `${mostRecent.placeName} 외 ${members.length - 1}곳`,
-          photoCount: members.reduce((sum, member) => sum + member.photoCount, 0),
-        };
-      }
+    const groupedMarkers = clusterByGridCell(
+      visitMarkers.filter((marker) => marker.id !== selectedVisitKey),
+      mapCamera.zoom
+    ).map(({ representative, members, position }) =>
+      members.length === 1
+        ? representative
+        : {
+            ...representative,
+            ...position,
+            id: VISIT_GROUP_ID_PREFIX + members.map((member) => member.id).join(','),
+            name: `${representative.placeName} 외 ${members.length - 1}곳`,
+            photoCount: members.reduce((sum, member) => sum + member.photoCount, 0),
+          }
     );
     return [...selectedMarkers, ...groupedMarkers];
-  }, [visitedPlaces.places, selectedVisitKey, mapCamera]);
+  }, [visitedPlaces.places, selectedVisitKey, mapCamera.zoom]);
 
   // "다녀온 곳 N" 버튼: 켜면 핀과 함께 전체 목록 시트를 띄우고, 끄면 둘 다 내린다
   function showVisitedPins() {
@@ -733,16 +731,10 @@ export default function MapsScreen() {
     if (top?.kind === 'visit-list') popSheet();
   }
 
-  // 목록에서 고른 다녀온 곳 핀으로 지도를 옮기고 그 핀을 강조한다 (핀을 다시 누르면 그 곳 화면이 열린다)
-  function focusVisitedPlace(visitKey: string) {
-    const visit = visitedPlaces.places.find((item) => item.key === visitKey);
-    if (!visit) return;
+  // 목록에서 고른 가게로 지도를 옮기고 그 다녀온 곳 핀을 강조한다 (핀을 다시 누르면 그 곳 화면이 열린다)
+  function focusVisitedPlace(visitKey: string, candidate: VisitedPlaceCandidate) {
     setFocusedVisitKey(visitKey);
-    mapRef.current?.animateCameraTo(
-      visit.candidates[0].latitude,
-      visit.candidates[0].longitude,
-      18
-    );
+    mapRef.current?.animateCameraTo(candidate.latitude, candidate.longitude, 18);
   }
 
   function onVisitedMarkerPress(markerId: string) {
@@ -864,6 +856,10 @@ export default function MapsScreen() {
   // "이 사진, 어디서 찍었나요?"에서 가게를 고르면 고른 사진이 붙은 리뷰 쓰기 화면으로 바로 간다
   // (sheet-place-detail.tsx의 openWriteReview와 같은 경로·파라미터)
   function writeVisitReview(candidate: VisitedPlaceCandidate, photoIds: string[]) {
+    if (!user) {
+      showLoginRequiredModal();
+      return;
+    }
     router.push({
       pathname: '/maps/reviews/write',
       params: {
@@ -1347,7 +1343,7 @@ export default function MapsScreen() {
           visits={visits}
           title={`이 근처 다녀온 곳 ${visits.length}곳`}
           description="내 사진으로 찾았어요. 고르면 그때 사진과 함께 리뷰를 쓸 수 있어요."
-          onSelect={openVisitedPlace}
+          onSelect={(_visitKey, candidate) => openVisitCandidate(candidate)}
           onClose={popSheet}
         />
       );
