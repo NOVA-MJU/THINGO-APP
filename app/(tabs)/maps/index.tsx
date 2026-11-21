@@ -71,12 +71,7 @@ import {
   getDistanceFromCampusKm,
 } from '@/lib/maps/campus';
 import { getMapIconKey } from '@/lib/maps/icons';
-import {
-  clusterByGridCell,
-  latitudeShiftedDown,
-  zoomToFit,
-  zoomToSplit,
-} from '@/lib/maps/cluster-visits';
+import { clusterOverlappingPins, zoomToFit, zoomToSplit } from '@/lib/maps/cluster-visits';
 import { groupPhotosByDay } from '@/lib/photo-location';
 import { findSymbolMatch, type SymbolPoint } from '@/lib/maps/match-symbol';
 import { fetchReviewablePlaces } from '@/hooks/use-place-photos';
@@ -114,8 +109,10 @@ const VISIT_GROUP_ID_PREFIX = 'group:';
 const VISIT_KEY_SEPARATOR = '|';
 // 리뷰 한 번에 올릴 수 있는 사진 수 (리뷰 쓰기 화면과 같다)
 const MAX_REVIEW_PHOTO_COUNT = 10;
-// 지도 위 검색창·칩 영역 높이, 시트 중간 높이(SNAP_POINTS의 50%), 핀이 화면 가장자리에 붙지 않게 둘 여백
+// 지도 위 검색창·칩 영역 높이, 카메라 목표가 오는 높이(naver-map.native.tsx CAMERA_PIVOT과 같다),
+// 시트 중간 높이(SNAP_POINTS의 50%), 핀이 화면 가장자리에 붙지 않게 둘 여백
 const MAP_TOP_CONTROLS_HEIGHT = 110;
+const MAP_CAMERA_PIVOT_Y = 2 / 5;
 const VISIT_SHEET_MIDDLE_RATIO = 0.5;
 const VISIT_FIT_SIDE_PADDING = 56;
 const VISIT_FIT_VERTICAL_PADDING = 24;
@@ -156,7 +153,7 @@ type SheetScreenInit =
   | { kind: 'place'; placeId: number }
   | { kind: 'bus'; station: BusStopStation }
   // 내 사진첩 "내가 찍은 사진 N장" 핀을 눌렀을 때 사진을 날짜별로 보고 가게를 고르는 화면.
-  // markerId: 누른 핀(한 구역에 묶인 핀이면 묶음 id), visitKeys: 그 핀에 든 useVisitedPlaces 결과의 key
+  // markerId: 누른 핀(겹쳐서 묶인 핀이면 묶음 id), visitKeys: 그 핀에 든 useVisitedPlaces 결과의 key
   // selectedPhotoIds: 맨 위 사진 줄에서 고른 사진 (사진 줄과 가게 목록이 따로 그려져서 화면 상태로 둔다)
   | { kind: 'visit'; markerId: string; visitKeys: string[]; selectedPhotoIds: string[] }
   // 여러 건물이 묶인 핀을 눌렀을 때 건물마다 내 사진을 보여주고 건물을 고르게 하는 화면 (visitKeys: 묶인 건물 key)
@@ -721,9 +718,9 @@ export default function MapsScreen() {
   }, [sheetStack, focusedVisitKey, selectedPlaceId, visitedPlaces.places]);
 
   // 다녀온 곳 핀 = 건물 하나. 사진 위치로 가게를 정확히 가릴 수 없어서 가게 이름 없이 "내가 찍은 사진 N장"(아직 리뷰에 안 올린 사진)만 띄우고,
-  // 누르면 사진을 보고 그 건물 가게를 고르게 한다. 지도를 고정된 구역(격자)으로 나눠 같은 구역에 든 핀을 하나로 묶고(사진 수 합계),
-  // 지금 보고 있는 곳은 묶지 않고 따로 띄운다. 구역은 지도 위치가 아니라 줌으로만 정해져서 지도를 조금 옮겨도 핀이 튀지 않는다.
-  // 묶음 핀은 구역 안 곳들의 가운데에 두고, 누르면 지도를 확대해 건물별 핀으로 풀어 준다
+  // 누르면 사진을 보고 그 건물 가게를 고르게 한다. 화면에서 알약끼리 겹치는 핀을 하나로 묶고(사진 수 합계, lib/maps/cluster-visits.ts),
+  // 지금 보고 있는 곳은 묶지 않고 따로 띄운다. 묶음은 줌으로만 정해져서 지도를 조금 옮겨도 핀이 튀지 않는다.
+  // 묶음 핀은 묶인 곳들의 가운데에 두고, 누르면 지도를 확대해 건물별 핀으로 풀어 준다
   const reviewSuggestionMarkers = React.useMemo(() => {
     const visitMarkers = visitedPlaces.places.map((visit) => ({
       id: visit.key,
@@ -734,7 +731,7 @@ export default function MapsScreen() {
       photoCount: visit.photos.length,
     }));
     const selectedMarkers = visitMarkers.filter((marker) => marker.id === selectedVisitKey);
-    const groupedMarkers = clusterByGridCell(
+    const groupedMarkers = clusterOverlappingPins(
       visitMarkers.filter((marker) => marker.id !== selectedVisitKey),
       mapCamera.zoom
     ).map(({ representative, members, position }) =>
@@ -786,20 +783,31 @@ export default function MapsScreen() {
     if (!visits.length) return;
     hideQuickTooltips();
     clearSearchResult();
-    // 묶음이면 처음 나뉘는 줌까지 확대하되, 풀린 핀이 다 보이게 시트 위 지도 영역에 들어오는 줌을 넘지 않는다
-    showVisitsAboveSheet(
-      visits,
+    // 묶음이면 처음 나뉘는 줌까지 확대하되, 풀린 핀이 시트에 가리지 않고 다 보이는 줌을 넘지 않는다. 건물 하나면 줌은 그대로
+    const center = {
+      latitude:
+        (Math.max(...visits.map((visit) => visit.latitude)) +
+          Math.min(...visits.map((visit) => visit.latitude))) /
+        2,
+      longitude:
+        (Math.max(...visits.map((visit) => visit.longitude)) +
+          Math.min(...visits.map((visit) => visit.longitude))) /
+        2,
+    };
+    mapRef.current?.animateCameraTo(
+      center.latitude,
+      center.longitude,
       isGroup
         ? Math.min(
             zoomToSplit(visits, mapCamera.zoom, VISIT_GROUP_MAX_ZOOM),
             zoomToFit(
               visits,
               windowWidth - VISIT_FIT_SIDE_PADDING * 2,
-              visibleMapHeightAboveSheet() - VISIT_FIT_VERTICAL_PADDING * 2,
+              visibleMapHeightAroundPivot() - VISIT_FIT_VERTICAL_PADDING * 2,
               VISIT_GROUP_MAX_ZOOM
             )
           )
-        : mapCamera.zoom
+        : undefined
     );
     // 건물 시트는 처음에 가장 최근에 간 날 사진을 골라 둔다 (보통 한 가게에서 찍은 사진이다)
     const nextScreen: SheetScreenInit = isGroup
@@ -826,22 +834,16 @@ export default function MapsScreen() {
     pushSheet(nextScreen);
   }
 
-  // 시트가 중간 높이(50%)로 지도 아래쪽을 덮을 때, 검색창 아래부터 시트 위까지 보이는 지도 높이
-  function visibleMapHeightAboveSheet() {
-    return windowHeight * VISIT_SHEET_MIDDLE_RATIO - insets.top - MAP_TOP_CONTROLS_HEIGHT;
-  }
-
-  // 핀들의 가운데를 시트 위로 보이는 지도 영역의 가운데에 오게 카메라를 옮긴다 (그냥 가운데에 두면 시트 경계에 걸려 반쯤 가린다)
-  function showVisitsAboveSheet(points: { latitude: number; longitude: number }[], zoom: number) {
-    const latitudes = points.map((point) => point.latitude);
-    const longitudes = points.map((point) => point.longitude);
-    const centerLatitude = (Math.max(...latitudes) + Math.min(...latitudes)) / 2;
-    const centerLongitude = (Math.max(...longitudes) + Math.min(...longitudes)) / 2;
-    const visibleCenterY = insets.top + MAP_TOP_CONTROLS_HEIGHT + visibleMapHeightAboveSheet() / 2;
-    mapRef.current?.animateCameraTo(
-      latitudeShiftedDown(centerLatitude, zoom, windowHeight / 2 - visibleCenterY),
-      centerLongitude,
-      zoom
+  // 묶음 핀을 확대할 때 풀린 핀이 다 보여야 하는 높이. 카메라 목표는 지도 위에서 2/5 지점에 온다(naver-map.native.tsx CAMERA_PIVOT,
+  // 아래를 덮는 시트 때문). 그 지점에서 위로는 검색창·칩 아래까지, 아래로는 중간 높이(50%) 시트 위까지 중 짧은 쪽의 두 배다
+  function visibleMapHeightAroundPivot() {
+    const pivotY = windowHeight * MAP_CAMERA_PIVOT_Y;
+    return (
+      2 *
+      Math.min(
+        pivotY - insets.top - MAP_TOP_CONTROLS_HEIGHT,
+        windowHeight * VISIT_SHEET_MIDDLE_RATIO - pivotY
+      )
     );
   }
 

@@ -1,40 +1,42 @@
-// 지도에서 다녀온 곳 핀을 구역별로 묶는다. 학교 주변이 좁아 가게 이름 알약을 다 띄우면 겹쳐 대부분 숨기 때문에,
-// 지도를 화면 크기 기준의 고정된 격자(구역)로 나누고 같은 구역에 든 곳을 "대표 가게 외 N곳" 알약 하나로 보여준다.
-// 격자는 위경도 0,0을 기준으로 고정돼 있어서 지도를 조금 옮겨도 묶음이 바뀌지 않고(핀이 옆 가게로 튀지 않는다),
-// 확대하면 구역이 잘게 나뉘어 저절로 풀린다. 입력 순서가 우선순위다 (앞쪽이 대표 이름이 된다. 다녀온 곳은 최근에 간 곳부터 온다)
+// 지도에서 다녀온 곳 핀을 묶는다. 학교 주변이 좁아 "내가 찍은 사진 N장" 알약을 다 띄우면 서로 겹치기 때문에,
+// 화면에서 알약끼리 겹칠 만큼 가까운 핀만 하나로 묶는다(사진 수 합계). 대표는 입력 순서(최근에 간 곳) 앞쪽이고,
+// 뒤의 핀은 앞에서 정한 대표와 겹치면 그 묶음에 들어간다. 화면 거리는 줌으로만 정해져서 지도를 옮겨도 묶음이 바뀌지 않고
+// (핀이 옆으로 튀지 않는다), 확대하면 저절로 풀린다. 고정 격자로 나누면 칸 경계 양쪽의 가까운 건물이 안 묶여 알약이 겹쳐서
+// 칸 대신 실제 화면 거리로 본다
 
 // 256px 타일 기준 줌 0에서 적도의 1px이 몇 m인지 (웹 메르카토르)
 const METERS_PER_PIXEL_AT_ZOOM_ZERO = 156543.03392;
 const METERS_PER_DEGREE = 111320;
-// 구역 하나의 화면 크기(pt). 처음 줌(16)에서 약 225m x 150m로, 대동 상권이 몇 구역으로 나뉜다
-const CELL_WIDTH = 120;
-const CELL_HEIGHT = 80;
+// 알약 하나가 차지하는 화면 크기(pt, "내가 찍은 사진 12장" 기준). 대표와 이만큼 안쪽이면 겹친다고 보고 묶는다
+const PIN_OVERLAP_WIDTH = 130;
+const PIN_OVERLAP_HEIGHT = 40;
 
 export type ClusterablePoint = { latitude: number; longitude: number };
-// position: 묶음 핀을 놓을 자리. 한 곳이면 그 곳, 여러 곳이면 구역 안 곳들의 가운데
+// position: 묶음 핀을 놓을 자리. 한 곳이면 그 곳, 여러 곳이면 묶인 곳들의 가운데
 export type PointCluster<T> = { representative: T; members: T[]; position: ClusterablePoint };
 
-export function clusterByGridCell<T extends ClusterablePoint>(
+export function clusterOverlappingPins<T extends ClusterablePoint>(
   points: T[],
   zoom: number
 ): PointCluster<T>[] {
   if (!points.length) return [];
-  // 경도 칸 폭은 위도에 따라 달라서, 지도를 옮겨도 칸이 변하지 않게 점들의 평균 위도 하나로 고정한다
   const averageLatitude = points.reduce((sum, point) => sum + point.latitude, 0) / points.length;
   const cosine = Math.cos((averageLatitude * Math.PI) / 180);
   const metersPerPixel = (METERS_PER_PIXEL_AT_ZOOM_ZERO * cosine) / 2 ** zoom;
-  const cellLatitude = (CELL_HEIGHT * metersPerPixel) / METERS_PER_DEGREE;
-  const cellLongitude = (CELL_WIDTH * metersPerPixel) / (METERS_PER_DEGREE * cosine);
-  const cellKey = (point: T) =>
-    `${Math.floor(point.latitude / cellLatitude)}:${Math.floor(point.longitude / cellLongitude)}`;
+  const overlaps = (first: T, second: T) =>
+    (Math.abs(first.longitude - second.longitude) * METERS_PER_DEGREE * cosine) / metersPerPixel <
+      PIN_OVERLAP_WIDTH &&
+    (Math.abs(first.latitude - second.latitude) * METERS_PER_DEGREE) / metersPerPixel <
+      PIN_OVERLAP_HEIGHT;
 
-  // Map은 처음 넣은 순서를 지키므로, 구역 순서와 구역 안 순서 모두 입력(최근) 순서다
-  const cells = points.reduce((grouped, point) => {
-    const key = cellKey(point);
-    return grouped.set(key, [...(grouped.get(key) ?? []), point]);
-  }, new Map<string, T[]>());
+  const groups = points.reduce<T[][]>((grouped, point) => {
+    const group = grouped.find((members) => overlaps(members[0], point));
+    if (group) group.push(point);
+    else grouped.push([point]);
+    return grouped;
+  }, []);
 
-  return [...cells.values()].map((members) => ({
+  return groups.map((members) => ({
     representative: members[0],
     members,
     position:
@@ -60,7 +62,7 @@ export function zoomToSplit<T extends ClusterablePoint>(
     { length: Math.max(0, Math.ceil((maxZoom - currentZoom) / step)) },
     (_, index) => Math.min(maxZoom, currentZoom + step * (index + 1))
   );
-  return candidateZooms.find((zoom) => clusterByGridCell(points, zoom).length > 1) ?? maxZoom;
+  return candidateZooms.find((zoom) => clusterOverlappingPins(points, zoom).length > 1) ?? maxZoom;
 }
 
 // 점들이 화면의 보이는 영역(visibleWidth x visibleHeight pt) 안에 다 들어오는 가장 큰 줌 (maxZoom을 넘지 않음).
@@ -82,12 +84,4 @@ export function zoomToFit<T extends ClusterablePoint>(
   const metersPerPixel = Math.max(widthMeters / visibleWidth, heightMeters / visibleHeight);
   if (metersPerPixel <= 0) return maxZoom;
   return Math.min(maxZoom, Math.log2((METERS_PER_PIXEL_AT_ZOOM_ZERO * cosine) / metersPerPixel));
-}
-
-// 카메라 가운데 위도를 shiftPixels만큼 아래(남쪽)로 옮긴 값. 그러면 latitude 자리가 화면 가운데보다 shiftPixels 위에 보인다
-// (아래 절반을 시트가 덮을 때 보여줄 곳을 시트 위 지도 가운데로 올리는 데 쓴다)
-export function latitudeShiftedDown(latitude: number, zoom: number, shiftPixels: number) {
-  const cosine = Math.cos((latitude * Math.PI) / 180);
-  const metersPerPixel = (METERS_PER_PIXEL_AT_ZOOM_ZERO * cosine) / 2 ** zoom;
-  return latitude - (shiftPixels * metersPerPixel) / METERS_PER_DEGREE;
 }
