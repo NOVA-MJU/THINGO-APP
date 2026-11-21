@@ -8,6 +8,8 @@ import {
   MAP_CATEGORY_PINS_PAGE_SIZE,
   MAP_THEMES_QUERY_KEY,
   type MapCategoryPin,
+  matchMapSymbol,
+  type MapSymbolMatch,
 } from '@/api/maps';
 import { SearchIcon, ThingoLogoSmall } from '@/components/icons';
 import MapQuickTooltipArrow from '@/assets/images/map-quick-tooltip-arrow.svg';
@@ -695,25 +697,22 @@ export default function MapsScreen() {
     pushSheet({ kind: 'visit', visitKey: key });
   }
 
-  // 네이버 기본 글자(심벌)를 누르면 이름·위치로 우리 건물·가게를 찾아 그 시트를 연다. 없으면 "띵고에 아직 없는 곳" 시트
+  // 네이버 기본 글자(심벌)를 누르면 이름·위치로 우리 건물·가게를 찾아 그 시트를 연다. 없으면 "띵고에 아직 없는 곳" 시트.
+  // 서버(모든 카테고리, 전수조사로 추가한 가게 포함)에 먼저 묻고, 서버에 API가 없거나 실패하면 앱 안 목록으로 대조한다
   async function onSymbolPress(symbol: SymbolPoint) {
-    const building = findSymbolMatch(symbol, buildings);
-    if (building) {
-      onBuildingMarkerPress(String(building.id));
+    const match = await matchMapSymbol(symbol.caption, symbol.latitude, symbol.longitude).catch(
+      () => findSymbolMatchInApp(symbol)
+    );
+    if (match?.type === 'BUILDING') {
+      onBuildingMarkerPress(String(match.id));
       return;
     }
-    // 가게 목록은 다녀온 곳 찾기와 같은 캐시라 보통 이미 받아 둔 상태다. 실패하면 없는 곳으로 보여준다
-    const places = await fetchReviewablePlaces(queryClient).catch(() => []);
-    const place = findSymbolMatch(
-      symbol,
-      places.map((place) => ({ ...place, name: place.title }))
-    );
-    if (place) {
+    if (match) {
       selectCategoryPin({
-        id: place.id,
+        id: match.id,
         type: 'FACILITY',
-        latitude: place.latitude,
-        longitude: place.longitude,
+        latitude: match.latitude,
+        longitude: match.longitude,
       });
       return;
     }
@@ -731,6 +730,28 @@ export default function MapsScreen() {
       return;
     }
     pushSheet({ kind: 'symbol', caption: symbol.caption });
+  }
+
+  // 서버 대조를 못 쓸 때: 캠퍼스 건물 → 대동명지도 가게 순으로 앱이 가진 목록에서 찾는다
+  async function findSymbolMatchInApp(symbol: SymbolPoint): Promise<MapSymbolMatch> {
+    const building = findSymbolMatch(symbol, buildings);
+    if (building) {
+      return {
+        id: building.id,
+        type: 'BUILDING',
+        latitude: building.latitude,
+        longitude: building.longitude,
+      };
+    }
+    // 가게 목록은 다녀온 곳 찾기와 같은 캐시라 보통 이미 받아 둔 상태다. 실패하면 없는 곳으로 보여준다
+    const places = await fetchReviewablePlaces(queryClient).catch(() => []);
+    const place = findSymbolMatch(
+      symbol,
+      places.map((reviewablePlace) => ({ ...reviewablePlace, name: reviewablePlace.title }))
+    );
+    return place
+      ? { id: place.id, type: 'PLACE', latitude: place.latitude, longitude: place.longitude }
+      : null;
   }
 
   function openVisitCandidate(candidate: VisitedPlaceCandidate) {

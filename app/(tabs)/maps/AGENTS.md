@@ -83,7 +83,7 @@
 네이버 지도가 그리는 가게·건물 글자를 누르면 우리 시트를 연다 (`onSymbolPress` in `index.tsx`).
 
 - 라이브러리(`@mj-studio/react-native-naver-map` 2.8.0)가 심벌 터치를 꺼내 주지 않아 `patches/`의 pnpm 패치로 `onTapSymbol`을 추가했다 (iOS `didTapSymbol`, Android `setOnSymbolClickListener`). 터치를 소비해서 이때는 `onTapMap`이 오지 않는다. 네이티브 변경이라 스토어 빌드가 새로 나가야 반영된다
-- 심벌은 이름과 좌표만 준다. 이름이 비슷하고 80m 안이면 같은 곳으로 보고(`lib/maps/match-symbol.ts`, 확인: `node lib/maps/match-symbol.check.mjs`) 건물 → 대동 가게 순으로 찾아 그 시트를 연다. 기준은 전수조사 스크립트(`scripts/audit-places.mjs`)와 같다
+- 심벌은 이름과 좌표만 준다. 서버 `GET /map/symbol-match`(`matchMapSymbol`)가 모든 카테고리 핀에서 이름이 비슷하고 80m 안인 곳을 찾는다. 전수조사로 가게를 서버에 추가하면 앱을 다시 내지 않아도 찾힌다. 서버에 API가 없거나 실패하면 앱 안에서 건물 → 대동 가게 순으로 대조한다(`lib/maps/match-symbol.ts`, 확인: `node lib/maps/match-symbol.check.mjs`). 기준은 서버 `SymbolNameMatcher`, 전수조사 스크립트(`scripts/audit-places.mjs`)와 같다
 - 우리 DB에 없으면 "띵고에 아직 정보가 없는 곳" 시트(`sheet-unknown-place.tsx`)에서 네이버 지도 검색으로 넘긴다. 네이버 장소 정보는 약관상 가져와 보여주지 않는다
 - 웹 JS SDK는 심벌 터치를 알려주지 않아 웹에서는 동작하지 않는다
 
