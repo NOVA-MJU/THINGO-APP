@@ -42,6 +42,8 @@ import {
   type PlaceReviewSort,
 } from '@/lib/maps/place-reviews';
 import { isLoginRequiredError } from '@/api/client';
+import { refreshMyPhotoSuggestions } from '@/hooks/use-visited-places';
+import { useQueryClient } from '@tanstack/react-query';
 import { showAlert } from '@/lib/alert';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
@@ -153,6 +155,7 @@ export default function PlaceCommunitySection({
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { showLoginRequiredModal } = useLoginRequiredModal();
+  const queryClient = useQueryClient();
   const reportBottomSheetRef = React.useRef<BottomSheetModal>(null);
   const [reviewSort, setReviewSort] = React.useState<PlaceReviewSort>('latest');
   const [deleteTargetReview, setDeleteTargetReview] = React.useState<PlaceReview | null>(null);
@@ -201,6 +204,8 @@ export default function PlaceCommunitySection({
       .then(() => {
         onReviewsChange(reviews.filter((item) => item.id !== deleteTargetReview.id));
         onReviewDeleted?.(deleteTargetReview.id);
+        // 지운 리뷰에 올렸던 내 사진을 다시 "여기서 찍은 내 사진"으로 보여준다
+        refreshMyPhotoSuggestions(queryClient);
         setDeleteTargetReview(null);
       })
       .catch((error) => {
@@ -220,6 +225,7 @@ export default function PlaceCommunitySection({
     isDeletingReview,
     onReviewDeleted,
     onReviewsChange,
+    queryClient,
     reviews,
     showLoginRequiredModal,
   ]);

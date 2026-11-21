@@ -70,14 +70,16 @@ public class PhotoLocationScanModule: Module {
     // 올린 사진은 압축·축소돼 파일이 달라서, 그림의 특징값이 가장 가까운 사진을 고른다.
     // 특징값 거리의 크기가 iOS 버전(Vision 리비전)마다 달라 고정 기준 대신, 가장 가까운 사진이 두 번째보다
     // 확실히 가까울 때만 같은 사진으로 본다 (비슷한 연속 사진뿐이면 고르지 않는다)
-    AsyncFunction("findPhotosMatchingImages") { (ids: [String], imageUrls: [String]) -> [String] in
-      let uploadedPrints = imageUrls.compactMap { urlString -> VNFeaturePrintObservation? in
+    // 돌려주는 값: 이미지 주소 -> 같은 사진첩 사진 id (찾은 것만). 리뷰마다 어느 사진을 올렸는지 기억하려고 주소별로 준다
+    AsyncFunction("findPhotosMatchingImages") { (ids: [String], imageUrls: [String]) -> [String: String] in
+      let uploadedPrints = imageUrls.compactMap { urlString -> (url: String, print: VNFeaturePrintObservation)? in
         guard let url = URL(string: urlString), let data = try? Data(contentsOf: url),
-              let cgImage = UIImage(data: data)?.cgImage
+              let cgImage = UIImage(data: data)?.cgImage,
+              let print = PhotoLocationScanModule.featurePrint(of: cgImage)
         else { return nil }
-        return PhotoLocationScanModule.featurePrint(of: cgImage)
+        return (urlString, print)
       }
-      if uploadedPrints.isEmpty { return [] }
+      if uploadedPrints.isEmpty { return [:] }
 
       let assets = PHAsset.fetchAssets(withLocalIdentifiers: ids, options: nil)
       let options = PHImageRequestOptions()
@@ -99,19 +101,19 @@ public class PhotoLocationScanModule: Module {
         libraryPrints.append((asset.localIdentifier, print))
       }
 
-      let matchedIds = uploadedPrints.compactMap { uploaded -> String? in
+      let matches = uploadedPrints.compactMap { uploaded -> (String, String)? in
         let ranked = libraryPrints
           .compactMap { library -> (id: String, distance: Float)? in
             var distance: Float = 0
-            guard (try? uploaded.computeDistance(&distance, to: library.print)) != nil else { return nil }
+            guard (try? uploaded.print.computeDistance(&distance, to: library.print)) != nil else { return nil }
             return (library.id, distance)
           }
           .sorted { $0.distance < $1.distance }
         guard let nearest = ranked.first else { return nil }
-        guard ranked.count > 1 else { return nearest.id }
-        return nearest.distance <= ranked[1].distance * 0.5 ? nearest.id : nil
+        guard ranked.count > 1 else { return (uploaded.url, nearest.id) }
+        return nearest.distance <= ranked[1].distance * 0.5 ? (uploaded.url, nearest.id) : nil
       }
-      return Array(Set(matchedIds))
+      return Dictionary(matches, uniquingKeysWith: { first, _ in first })
     }
   }
 

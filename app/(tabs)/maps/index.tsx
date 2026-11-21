@@ -134,10 +134,9 @@ type SheetScreenInit =
   | { kind: 'building'; buildingId: number }
   | { kind: 'place'; placeId: number }
   | { kind: 'bus'; station: BusStopStation }
-  // 내 사진첩 "다녀온 곳" 핀의 후보 가게 고르기 (useVisitedPlaces 결과의 key)
-  | { kind: 'visit'; visitKey: string }
-  // 지도에서 "대표 가게 외 N곳"으로 묶인 다녀온 곳 핀 (useVisitedPlaces 결과의 key 목록, 최근 순)
-  | { kind: 'visit-group'; visitKeys: string[] }
+  // 내 사진첩 "사진 N장" 핀을 눌렀을 때 사진을 날짜별로 보고 가게를 고르는 화면.
+  // markerId: 누른 핀(한 구역에 묶인 핀이면 묶음 id), visitKeys: 그 핀에 든 useVisitedPlaces 결과의 key
+  | { kind: 'visit'; markerId: string; visitKeys: string[] }
   // "다녀온 곳 N" 버튼으로 핀을 켰을 때 뜨는 전체 목록 (지도 가운데에서 가까운 순)
   | { kind: 'visit-list' }
   // 네이버 기본 글자를 눌렀는데 우리 DB에 없는 곳
@@ -676,7 +675,7 @@ export default function MapsScreen() {
     const visitScreen = sheetStack.find(
       (s): s is Extract<SheetScreen, { kind: 'visit' }> => s.kind === 'visit'
     );
-    if (visitScreen) return visitScreen.visitKey;
+    if (visitScreen) return visitScreen.markerId;
     if (focusedVisitKey) return focusedVisitKey;
     if (selectedPlaceId === null) return undefined;
     return visitedPlaces.places.find((visit) =>
@@ -684,20 +683,20 @@ export default function MapsScreen() {
     )?.key;
   }, [sheetStack, focusedVisitKey, selectedPlaceId, visitedPlaces.places]);
 
-  // 다녀온 곳 핀. 지도를 고정된 구역(격자)으로 나눠 같은 구역에 든 곳을 "대표 가게 외 N곳" 하나로 묶고, 지금 보고 있는 곳은 묶지 않고 따로 띄운다.
-  // 구역은 지도 위치가 아니라 줌으로만 정해져서 지도를 조금 옮겨도 핀이 옆 가게로 튀지 않고, 다른 구역으로 가면 그 구역의 핀이 보인다.
-  // 묶음 핀은 구역 안 곳들의 가운데에, 이름은 그중 최근에 간 곳이다
+  // 다녀온 곳 핀. 사진 위치로 가게를 정확히 가릴 수 없어서 가게 이름 대신 "사진 N장"(아직 리뷰에 안 올린 사진)으로 띄우고,
+  // 누르면 사진을 보고 가게를 고르게 한다. 지도를 고정된 구역(격자)으로 나눠 같은 구역에 든 핀을 하나로 묶고(사진 수 합계),
+  // 지금 보고 있는 곳은 묶지 않고 따로 띄운다. 구역은 지도 위치가 아니라 줌으로만 정해져서 지도를 조금 옮겨도 핀이 튀지 않는다.
+  // 묶음 핀은 구역 안 곳들의 가운데에 둔다
   const reviewSuggestionMarkers = React.useMemo(() => {
     const visitMarkers = visitedPlaces.places.map((visit) => {
-      const [nearest, ...others] = visit.candidates;
+      const [nearest] = visit.candidates;
       return {
         id: visit.key,
         latitude: nearest.latitude,
         longitude: nearest.longitude,
         placeName: nearest.name,
-        // 붙어 있는 가게라 어느 곳인지 모르면 "OO 외 N곳"으로 띄우고, 누르면 고르게 한다
-        name: others.length ? `${nearest.name} 외 ${others.length}곳` : nearest.name,
-        photoCount: visit.photoIds.length,
+        name: `사진 ${visit.photos.length}장`,
+        photoCount: visit.photos.length,
       };
     });
     const selectedMarkers = visitMarkers.filter((marker) => marker.id === selectedVisitKey);
@@ -711,7 +710,7 @@ export default function MapsScreen() {
             ...representative,
             ...position,
             id: VISIT_GROUP_ID_PREFIX + members.map((member) => member.id).join(','),
-            name: `${representative.placeName} 외 ${members.length - 1}곳`,
+            name: `사진 ${members.reduce((sum, member) => sum + member.photoCount, 0)}장`,
             photoCount: members.reduce((sum, member) => sum + member.photoCount, 0),
           }
     );
@@ -737,54 +736,29 @@ export default function MapsScreen() {
     mapRef.current?.animateCameraTo(candidate.latitude, candidate.longitude, 18);
   }
 
+  // "사진 N장" 핀(묶음 핀 포함)을 누르면 그 핀의 사진을 날짜별로 보여주고 가게를 고르게 한다
   function onVisitedMarkerPress(markerId: string) {
-    if (!markerId.startsWith(VISIT_GROUP_ID_PREFIX)) {
-      openVisitedPlace(markerId);
-      return;
-    }
-    const visitKeys = markerId.slice(VISIT_GROUP_ID_PREFIX.length).split(',');
+    const visitKeys = markerId.startsWith(VISIT_GROUP_ID_PREFIX)
+      ? markerId.slice(VISIT_GROUP_ID_PREFIX.length).split(',')
+      : [markerId];
     const [representative] = visitedPlaces.places.filter((visit) => visitKeys.includes(visit.key));
+    if (!representative) return;
     hideQuickTooltips();
     clearSearchResult();
-    if (representative) {
-      mapRef.current?.animateCameraTo(
-        representative.candidates[0].latitude,
-        representative.candidates[0].longitude
-      );
-    }
-    const top = sheetStack[sheetStack.length - 1] as SheetScreen | undefined;
-    if (top?.kind === 'visit-group') {
-      setSheetStack((prev) => [
-        ...prev.slice(0, -1),
-        { kind: 'visit-group', visitKeys, key: top.key, initialIndex: top.initialIndex },
-      ]);
-      raiseLayer(top.key);
-      return;
-    }
-    pushSheet({ kind: 'visit-group', visitKeys });
-  }
-
-  function openVisitedPlace(key: string) {
-    const visit = visitedPlaces.places.find((item) => item.key === key);
-    if (!visit) return;
-    const [nearest] = visit.candidates;
-    if (visit.candidates.length === 1) {
-      openVisitCandidate(nearest);
-      return;
-    }
-    hideQuickTooltips();
-    clearSearchResult();
-    mapRef.current?.animateCameraTo(nearest.latitude, nearest.longitude);
+    mapRef.current?.animateCameraTo(
+      representative.candidates[0].latitude,
+      representative.candidates[0].longitude
+    );
     const top = sheetStack[sheetStack.length - 1] as SheetScreen | undefined;
     if (top?.kind === 'visit') {
       setSheetStack((prev) => [
         ...prev.slice(0, -1),
-        { kind: 'visit', visitKey: key, key: top.key, initialIndex: top.initialIndex },
+        { kind: 'visit', markerId, visitKeys, key: top.key, initialIndex: top.initialIndex },
       ]);
       raiseLayer(top.key);
       return;
     }
-    pushSheet({ kind: 'visit', visitKey: key });
+    pushSheet({ kind: 'visit', markerId, visitKeys });
   }
 
   // 네이버 기본 글자(심벌)를 누르면 이름·위치로 우리 건물·가게를 찾아 그 시트를 연다. 없으면 "띵고에 아직 없는 곳" 시트.
@@ -844,16 +818,7 @@ export default function MapsScreen() {
       : null;
   }
 
-  function openVisitCandidate(candidate: VisitedPlaceCandidate) {
-    selectCategoryPin({
-      id: candidate.id,
-      type: 'FACILITY',
-      latitude: candidate.latitude,
-      longitude: candidate.longitude,
-    });
-  }
-
-  // "이 사진, 어디서 찍었나요?"에서 가게를 고르면 고른 사진이 붙은 리뷰 쓰기 화면으로 바로 간다
+  // "사진 N장" 핀 시트에서 가게를 고르면 고른 사진이 붙은 리뷰 쓰기 화면으로 바로 간다
   // (sheet-place-detail.tsx의 openWriteReview와 같은 경로·파라미터)
   function writeVisitReview(candidate: VisitedPlaceCandidate, photoIds: string[]) {
     if (!user) {
@@ -1336,19 +1301,6 @@ export default function MapsScreen() {
       return <UnknownPlaceSheet caption={screen.caption} onClose={popSheet} />;
     }
 
-    if (screen.kind === 'visit-group') {
-      const visits = visitedPlaces.places.filter((visit) => screen.visitKeys.includes(visit.key));
-      return (
-        <VisitGroupSheet
-          visits={visits}
-          title={`이 근처 다녀온 곳 ${visits.length}곳`}
-          description="내 사진으로 찾았어요. 고르면 그때 사진과 함께 리뷰를 쓸 수 있어요."
-          onSelect={(_visitKey, candidate) => openVisitCandidate(candidate)}
-          onClose={popSheet}
-        />
-      );
-    }
-
     if (screen.kind === 'visit-list') {
       return (
         <VisitGroupSheet
@@ -1363,28 +1315,29 @@ export default function MapsScreen() {
     }
 
     if (screen.kind === 'visit') {
-      const visit = visitedPlaces.places.find((item) => item.key === screen.visitKey);
-      if (!visit) {
+      const visits = visitedPlaces.places.filter((visit) => screen.visitKeys.includes(visit.key));
+      if (!visits.length) {
         return (
           <View className="items-center py-8">
-            <Text className="text-grey-40 text-body05">이미 리뷰를 남긴 곳이에요</Text>
+            <Text className="text-grey-40 text-body05">이 주변 사진은 모두 리뷰에 올렸어요</Text>
           </View>
         );
       }
       return (
         <VisitCandidatesSheet
-          // 다른 다녀온 곳으로 바뀌면 고른 사진을 처음(모두 선택)으로 되돌린다
-          key={visit.key}
-          visit={visit}
+          // 다른 핀으로 바뀌면 고른 사진을 처음(가장 최근 날)으로 되돌린다
+          key={screen.markerId}
+          visits={visits}
           onSelect={writeVisitReview}
           onClose={popSheet}
-          onDismissPhotos={() => {
+          onDismissPhotos={(photoIds) =>
             dismissVisitPhotos.mutate({
-              placeIds: visit.candidates.map((candidate) => candidate.id),
-              photoIds: visit.photoIds,
-            });
-            popSheet();
-          }}
+              placeIds: visits.flatMap((visit) =>
+                visit.candidates.map((candidate) => candidate.id)
+              ),
+              photoIds,
+            })
+          }
         />
       );
     }

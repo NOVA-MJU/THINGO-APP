@@ -1,4 +1,5 @@
 import { client } from '@/api/client';
+import { forgetReviewPhotos } from '@/lib/maps/uploaded-review-photos';
 
 export type PlaceReviewKeywordGroup = 'food' | 'mood' | 'etc';
 
@@ -14,7 +15,7 @@ export type PlaceReviewMediaItem = {
   url: string;
   type: 'image' | 'video';
   thumbnailUrl?: string | null;
-  // 내 사진첩에서 골라 올린 사진의 사진첩 id. 서버로는 보내지 않고, 리뷰를 올린 뒤 "여기서 찍은 내 사진"에서 빼는 데만 쓴다
+  // 내 사진첩에서 골라 올린 사진의 사진첩 id. 서버로는 보내지 않고, 리뷰를 올린 뒤 "여기서 찍은 내 사진"에서 빼는 데만 쓴다 (lib/maps/uploaded-review-photos.ts)
   libraryPhotoId?: string | null;
 };
 
@@ -308,8 +309,11 @@ export async function updatePlaceReview(
   return normalizeReview(data.data);
 }
 
+// 지운 리뷰에 올렸던 내 사진첩 사진은 다시 "여기서 찍은 내 사진"으로 권한다
 export async function deletePlaceReview(reviewId: string): Promise<void> {
   await client.delete(`/reviews/${encodeURIComponent(reviewId)}`);
+  // 기억을 못 지워도 리뷰는 이미 지워졌으니 실패로 보지 않는다 (사진만 다시 안 보일 뿐이다)
+  await forgetReviewPhotos(reviewId).catch(() => undefined);
 }
 
 export async function togglePlaceReviewLike(reviewId: string): Promise<PlaceReview | null> {

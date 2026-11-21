@@ -2,6 +2,7 @@ import { LocationIcon, XThinIcon } from '@/components/icons';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { type PlacePhoto, useLibraryPhotoUri } from '@/hooks/use-place-photos';
+import { formatPhotoDay } from '@/lib/maps/format';
 import type { PhotoVisit } from '@/lib/photo-location';
 import { cn } from '@/lib/utils';
 import { Check, ChevronRight, ImagePlus, Lock, PencilLine, Plus } from 'lucide-react-native';
@@ -82,15 +83,26 @@ export function MyPlacePhotosCard({
           nestedScrollEnabled
           directionalLockEnabled
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}
+          contentContainerStyle={{ paddingHorizontal: 16 }}
         >
-          {photos.map((photo) => (
-            <MyPhotoTile
-              key={photo.id}
-              id={photo.id}
-              selected={selectedIds.includes(photo.id)}
-              onPress={() => togglePhoto(photo.id)}
-            />
+          {/* 찍은 날마다 작은 날짜 글씨와 옅은 세로선으로 나눠 어느 날 사진인지 헷갈리지 않게 한다 */}
+          {visits.map((visit, visitIndex) => (
+            <View key={visit.day} className="flex-row">
+              {visitIndex > 0 && <View className="mx-3 mt-6 w-px self-stretch bg-grey-20" />}
+              <View style={{ gap: 6 }}>
+                <Text className="text-grey-60 text-caption02">{formatPhotoDay(visit.day)}</Text>
+                <View className="flex-row" style={{ gap: 8 }}>
+                  {visit.photos.map((photo) => (
+                    <MyPhotoTile
+                      key={photo.id}
+                      id={photo.id}
+                      selected={selectedIds.includes(photo.id)}
+                      onPress={() => togglePhoto(photo.id)}
+                    />
+                  ))}
+                </View>
+              </View>
+            </View>
           ))}
         </ScrollView>
       </NativeViewGestureHandler>
