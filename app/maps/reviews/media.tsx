@@ -1,4 +1,4 @@
-import { HeartIcon, XIcon } from '@/components/icons';
+import { HeartIcon, MoreVerticalIcon, XIcon } from '@/components/icons';
 import { ReviewContentBottomSheet } from '@/components/maps/reviews/review-content-bottom-sheet';
 import { ReviewMediaStoryIndicator } from '@/components/maps/reviews/review-media-story-indicator';
 import {
@@ -10,8 +10,10 @@ import { Text } from '@/components/ui/text';
 import { isLoginRequiredError } from '@/api/client';
 import { useAuth } from '@/context/auth-context';
 import { useLoginRequiredModal } from '@/context/login-required-modal-context';
-import { showAlert } from '@/lib/alert';
+import OwnReviewActionsDialog from './_components/own-review-actions-dialog';
+import { showAlert, showConfirm } from '@/lib/alert';
 import {
+  deletePlaceReview,
   getPlaceReview,
   getPlaceReviewMediaItems,
   getPlaceReviewMediaStrip,
@@ -101,6 +103,8 @@ export default function PlaceReviewMediaScreen() {
   const storyChromeOpacity = React.useRef(new Animated.Value(1)).current;
   // 첫 사진에서 왼쪽을 누르면 처음부터 다시 재생하려고 자동 넘김 타이머를 새로 시작시키는 값
   const [storyRestartCount, setStoryRestartCount] = React.useState(0);
+  // 내 리뷰 ⋯ 수정·삭제 창 (열려 있는 동안 스토리를 멈춘다)
+  const [isOwnReviewMenuOpen, setIsOwnReviewMenuOpen] = React.useState(false);
   const storyProgressAnimation = React.useRef(new Animated.Value(0)).current;
   const closeSheetTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const closeViewerTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -173,7 +177,7 @@ export default function PlaceReviewMediaScreen() {
     !contentSheetVisible &&
     shouldRenderReviewGradient(activeMediaItem, mediaOrientation)
   );
-  const isStoryPlaybackPaused = isStoryPaused || isZooming || isMediaZoomed;
+  const isStoryPlaybackPaused = isStoryPaused || isZooming || isMediaZoomed || isOwnReviewMenuOpen;
   const canAdvanceMedia = activeIndex < mediaItems.length - 1;
   const reviewNickname = resolveReviewNickname(activeReview?.nickname, user?.nickname);
   const reviewProfileImageUrl = resolveReviewProfileImageUrl(
@@ -483,6 +487,41 @@ export default function PlaceReviewMediaScreen() {
     }
   }
 
+  // 내 리뷰 수정: 리뷰 쓰기 화면을 수정 모드로 연다 (장소 상세의 수정하기와 같은 경로).
+  // 스토리를 쓰기 화면으로 바꿔 끼워서, 저장 후 돌아가면 고친 리뷰를 다시 불러오는 장소 상세로 간다
+  function handleEditOwnReview() {
+    if (!activeReview) return;
+    setIsOwnReviewMenuOpen(false);
+    router.replace({
+      pathname: '/maps/reviews/write',
+      params: {
+        reviewId: activeReview.id,
+        placeId: String(activeReview.placeId),
+        placeName: activeReview.placeName,
+      },
+    });
+  }
+
+  // 내 리뷰 삭제: 한 번 더 묻고 지운 뒤 스토리를 닫는다 (돌아간 장소 화면이 리뷰를 다시 불러온다)
+  function handleDeleteOwnReview() {
+    if (!activeReview) return;
+    setIsOwnReviewMenuOpen(false);
+    showConfirm(
+      '리뷰를 삭제할까요?',
+      '삭제한 리뷰와 사진은 되돌릴 수 없어요.',
+      () => {
+        deletePlaceReview(activeReview.id)
+          .then(() => router.back())
+          .catch((error) => {
+            if (isLoginRequiredError(error)) showLoginRequiredModal();
+            else showAlert('리뷰 삭제 실패', '잠시 후 다시 시도해주세요.');
+          });
+      },
+      undefined,
+      { confirmText: '삭제하기' }
+    );
+  }
+
   function handleOpenReviewContent() {
     if (!activeReview) return;
     if (closeSheetTimerRef.current) clearTimeout(closeSheetTimerRef.current);
@@ -497,9 +536,11 @@ export default function PlaceReviewMediaScreen() {
     }, 240);
   }
 
-  const canOpenReviewContent =
-    Boolean(activeReview) &&
-    (reviewContentLineCount > 2 || (activeReview?.content.length ?? 0) > 45);
+  // 실제로 두 줄을 넘을 때만 "더보기"를 띄운다 (글자 수로 짐작하면 두 줄에 다 들어가는 글에도 더보기가 붙는다)
+  const canOpenReviewContent = Boolean(activeReview) && reviewContentLineCount > 2;
+  const isOwnReview = Boolean(
+    activeReview && (activeReview.isMine || (user?.uuid && activeReview.authorUuid === user.uuid))
+  );
 
   return (
     <View className="flex-1 bg-black" {...panResponder.panHandlers}>
@@ -597,12 +638,24 @@ export default function PlaceReviewMediaScreen() {
             className="absolute left-5 right-5 z-20"
             style={{ bottom: reviewBottomOffset }}
           >
-            <View className="min-w-0 pr-14">
-              <View className="flex-row items-center gap-2">
+            <View className="min-w-0">
+              {/* 오른쪽 하트 버튼이 이 줄 높이에 있어서 이름 줄만 오른쪽을 비운다. 아래 글은 오른쪽 끝까지 쓴다 */}
+              <View className="flex-row items-center gap-2 pr-14">
                 <ReviewAvatar profileImageUrl={reviewProfileImageUrl} />
-                <Text className="text-white text-body04" numberOfLines={1}>
+                <Text className="shrink text-white text-body04" numberOfLines={1}>
                   {reviewNickname}
                 </Text>
+                {isOwnReview && (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="내 리뷰 수정·삭제"
+                    hitSlop={10}
+                    onPress={() => setIsOwnReviewMenuOpen(true)}
+                    className="h-8 w-8 items-center justify-center rounded-full active:bg-white/20"
+                  >
+                    <MoreVerticalIcon size={20} className="text-white" />
+                  </Pressable>
+                )}
               </View>
               <Text className="mt-5 text-grey-20 text-caption02">
                 {formatReviewDate(activeReview.createdAt)}
@@ -644,6 +697,13 @@ export default function PlaceReviewMediaScreen() {
         ) : null}
       </Animated.View>
 
+      <OwnReviewActionsDialog
+        open={isOwnReviewMenuOpen}
+        onOpenChange={setIsOwnReviewMenuOpen}
+        onEdit={handleEditOwnReview}
+        onDelete={handleDeleteOwnReview}
+      />
+
       {activeReview ? (
         <ReviewContentBottomSheet
           review={activeReview}
@@ -672,7 +732,7 @@ function ReviewContentPreview({
   onLineCountChange: (lineCount: number) => void;
 }) {
   const [measuredLines, setMeasuredLines] = React.useState<string[]>([]);
-  const shouldShowMore = canOpen || measuredLines.length > 2;
+  const shouldShowMore = canOpen && measuredLines.length > 2;
   const firstLine = measuredLines[0]?.trimEnd() ?? content;
   const secondLine = createSecondLinePreview(measuredLines[1] ?? '');
 
