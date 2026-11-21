@@ -135,6 +135,8 @@ const config: ExpoConfig = {
         locationAlwaysPermission: '사용자 주변의 학교 시설을 안내하기 위해 위치 정보가 필요합니다.',
       },
     ],
+    // iOS 27 SDK(Xcode 27)로 빌드해도 iOS 27에서 꺼지지 않게 UIScene 생명주기로 실행한다
+    './plugins/with-ios-scene-lifecycle.js',
   ],
   experiments: {
     typedRoutes: true,
