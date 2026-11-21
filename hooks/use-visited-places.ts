@@ -1,4 +1,10 @@
-import { fetchReviewablePlaces, usePhotoPermission } from '@/hooks/use-place-photos';
+import {
+  fetchReviewablePlaces,
+  PLACE_PHOTOS_QUERY_KEY,
+  usePhotoPermission,
+} from '@/hooks/use-place-photos';
+import { dismissPlacePhotos, getDismissedPlacePhotos } from '@/lib/maps/dismissed-place-photos';
+import { showAlert } from '@/lib/alert';
 import { getReviewedPlaceIds } from '@/lib/maps/reviewed-places';
 import { categoryHints, isFoodPhoto, narrowCandidatesByFood } from '@/lib/photo-food';
 import { getPhotoLabels } from '@/lib/photo-labels';
@@ -8,7 +14,7 @@ import {
   groupVisitedPlaces,
 } from '@/lib/photo-location';
 import PhotoLocationScan from '@/modules/photo-location-scan';
-import { type QueryClient, useQuery, useQueryClient } from '@tanstack/react-query';
+import { type QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as MediaLibrary from 'expo-media-library';
 import * as React from 'react';
 
@@ -68,9 +74,10 @@ export function useVisitedPlaces() {
 }
 
 async function findVisitedPlaces(queryClient: QueryClient): Promise<VisitedPlace[]> {
-  const [places, reviewedIds] = await Promise.all([
+  const [places, reviewedIds, dismissedPhotos] = await Promise.all([
     fetchReviewablePlaces(queryClient),
     getReviewedPlaceIds(),
+    getDismissedPlacePhotos(),
   ]);
   if (!places.length) return [];
 
@@ -94,7 +101,13 @@ async function findVisitedPlaces(queryClient: QueryClient): Promise<VisitedPlace
   const visited: VisitedPlace[] = [];
   for (const group of groups.slice(0, MAX_CHECKED_VISITS)) {
     // 가게 근처에서 찍었어도 음식·음료 사진이 없으면 다녀온 곳으로 보지 않는다 (지나가며 찍은 사진, 셀카 등)
-    const recentIds = group.photoIds.slice(0, MAX_CLASSIFIED_PHOTOS_PER_VISIT);
+    // 후보 가게 중 한 곳에서라도 X로 숨긴 사진은 뺀다 (지금은 없어진 예전 가게 사진이 새 가게에 붙지 않게)
+    const dismissedIds = group.candidates.flatMap(
+      (candidate) => dismissedPhotos[String(candidate.placeId)] ?? []
+    );
+    const recentIds = group.photoIds
+      .filter((id) => !dismissedIds.includes(id))
+      .slice(0, MAX_CLASSIFIED_PHOTOS_PER_VISIT);
     const labels = await getPhotoLabels(recentIds);
     const foodIds = recentIds.filter((id) => isFoodPhoto(labels[id] ?? []));
     if (!foodIds.length) continue;
@@ -129,4 +142,18 @@ async function findVisitedPlaces(queryClient: QueryClient): Promise<VisitedPlace
     if (visited.length >= MAX_VISITED_PLACES) break;
   }
   return visited;
+}
+
+// "여기서 찍은 내 사진" 제안의 X: 그 장소(들)에서 이 사진들을 숨기고, 장소 사진과 다녀온 곳 핀을 다시 찾는다
+export function useDismissPlacePhotos() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ placeIds, photoIds }: { placeIds: number[]; photoIds: string[] }) =>
+      dismissPlacePhotos(placeIds, photoIds),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: PLACE_PHOTOS_QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: VISITED_PLACES_QUERY_KEY });
+    },
+    onError: () => showAlert('사진을 숨기지 못했어요', '잠시 후 다시 시도해주세요.'),
+  });
 }

@@ -23,6 +23,7 @@ import PlaceCommunitySection from './place-community-section';
 import { EmptyPlaceMedia, MyPlacePhotosCard, MyPlacePhotosNudge } from './place-my-photos';
 import PlacePhotoGallery from './place-photo-gallery';
 import { usePlacePhotos } from '@/hooks/use-place-photos';
+import { useDismissPlacePhotos } from '@/hooks/use-visited-places';
 
 // 명지도 장소(비건물) 상세보기 시트 - 건물 상세와 달리 강의실 코드는 없고 위치·추가정보(infoText)를 제공
 // operatingStatus: 서버가 아직 실제 운영 상태 문자열("운영중"/"운영 종료" 등)을 내려주지 않는 중이라
@@ -51,6 +52,7 @@ export default function PlaceDetailSheet({
     [place.latitude, place.longitude]
   );
   const myPhotos = usePlacePhotos(place.id, placePoint);
+  const dismissPhotos = useDismissPlacePhotos();
   // 리뷰 영역(PlaceCommunitySection)이 시트 내용 맨 위에서 떨어진 거리
   const [communityY, setCommunityY] = React.useState<number | null>(null);
   const onReviewSectionTopChange = React.useCallback(
@@ -220,6 +222,9 @@ export default function PlaceDetailSheet({
                     visits={myVisits}
                     photoCount={myPhotos.photoCount}
                     onWriteReview={openWriteReview}
+                    onDismissPhotos={(photoIds) =>
+                      dismissPhotos.mutate({ placeIds: [place.id], photoIds })
+                    }
                   />
                 ) : (
                   <EmptyPlaceMedia

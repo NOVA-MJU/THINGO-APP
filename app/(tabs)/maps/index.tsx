@@ -71,7 +71,11 @@ import { clusterOverlappingPoints } from '@/lib/maps/cluster-visits';
 import { findSymbolMatch, type SymbolPoint } from '@/lib/maps/match-symbol';
 import { fetchReviewablePlaces } from '@/hooks/use-place-photos';
 import { cn } from '@/lib/utils';
-import { useVisitedPlaces, type VisitedPlaceCandidate } from '@/hooks/use-visited-places';
+import {
+  useDismissPlacePhotos,
+  useVisitedPlaces,
+  type VisitedPlaceCandidate,
+} from '@/hooks/use-visited-places';
 
 const QUICK_CHIP_IDS = ['bus', 'daedong', 'printer', 'lounge', 'bank'];
 const QUICK_TOOLTIP_VISIBLE_MS = 4000;
@@ -647,6 +651,7 @@ export default function MapsScreen() {
   // 내 사진첩 기준 "다녀온 곳"(리뷰 남길 곳) 핀. iOS에서 사진 권한이 있을 때만 생긴다
   const visitedPlaces = useVisitedPlaces();
   const queryClient = useQueryClient();
+  const dismissVisitPhotos = useDismissPlacePhotos();
   const { height: windowHeight } = useWindowDimensions();
   // 장소 시트 레이어별로 잰 "리뷰 N 영역 바로 위까지" 높이 (layerSnapPoints)
   const [placePeekHeights, setPlacePeekHeights] = React.useState<Record<string, number>>({});
@@ -1291,7 +1296,18 @@ export default function MapsScreen() {
         );
       }
       return (
-        <VisitCandidatesSheet visit={visit} onSelect={openVisitCandidate} onClose={popSheet} />
+        <VisitCandidatesSheet
+          visit={visit}
+          onSelect={openVisitCandidate}
+          onClose={popSheet}
+          onDismissPhotos={() => {
+            dismissVisitPhotos.mutate({
+              placeIds: visit.candidates.map((candidate) => candidate.id),
+              photoIds: visit.photoIds,
+            });
+            popSheet();
+          }}
+        />
       );
     }
 

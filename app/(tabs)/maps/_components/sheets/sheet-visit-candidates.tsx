@@ -9,6 +9,7 @@ import { ChevronRight, Lock } from 'lucide-react-native';
 import * as React from 'react';
 import { Image, ScrollView, TouchableOpacity, View } from 'react-native';
 import { NativeViewGestureHandler } from 'react-native-gesture-handler';
+import DismissPhotosDialog from './dismiss-photos-dialog';
 import LibraryPhotoViewer from './library-photo-viewer';
 
 // 지도에 보여줄 사진 최대 장수 (썸네일마다 원본 파일을 연다)
@@ -20,11 +21,15 @@ export default function VisitCandidatesSheet({
   visit,
   onSelect,
   onClose,
+  onDismissPhotos,
 }: {
   visit: VisitedPlace;
   onSelect: (candidate: VisitedPlaceCandidate) => void;
   onClose: () => void;
+  // 이 사진들을 숨긴다 (다른 가게 사진, 지금은 없어진 예전 가게 사진)
+  onDismissPhotos: () => void;
 }) {
+  const [isDismissDialogOpen, setIsDismissDialogOpen] = React.useState(false);
   // 크게 보고 있는 사진 순번 (사진을 누르면 연다)
   const [viewerIndex, setViewerIndex] = React.useState<number | null>(null);
   const photoIds = visit.photoIds.slice(0, MAX_THUMBNAILS);
@@ -101,7 +106,22 @@ export default function VisitCandidatesSheet({
           </TouchableOpacity>
         </React.Fragment>
       ))}
+      <TouchableOpacity
+        accessibilityRole="button"
+        onPress={() => setIsDismissDialogOpen(true)}
+        className="mt-5 items-center py-2"
+      >
+        <Text className="text-grey-40 underline text-caption02">여기 가게 사진이 아니에요</Text>
+      </TouchableOpacity>
       <View className="h-6" />
+      <DismissPhotosDialog
+        open={isDismissDialogOpen}
+        onOpenChange={setIsDismissDialogOpen}
+        onDismiss={() => {
+          setIsDismissDialogOpen(false);
+          onDismissPhotos();
+        }}
+      />
       <LibraryPhotoViewer
         photoIds={photoIds}
         index={viewerIndex}
