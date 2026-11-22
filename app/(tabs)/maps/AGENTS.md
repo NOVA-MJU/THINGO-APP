@@ -84,7 +84,7 @@
 
 - 라이브러리(`@mj-studio/react-native-naver-map` 2.8.0)가 심벌 터치를 꺼내 주지 않아 `patches/`의 pnpm 패치로 `onTapSymbol`을 추가했다 (iOS `didTapSymbol`, Android `setOnSymbolClickListener`). 터치를 소비해서 이때는 `onTapMap`이 오지 않는다. 네이티브 변경이라 스토어 빌드가 새로 나가야 반영된다
 - 심벌은 이름과 좌표만 준다. 서버 `GET /map/symbol-match`(`matchMapSymbol`)가 모든 카테고리 핀에서 이름이 비슷하고 80m 안인 곳을 찾는다. 전수조사로 가게를 서버에 추가하면 앱을 다시 내지 않아도 찾힌다. 서버에 API가 없거나 실패하면 앱 안에서 건물 → 대동 가게 순으로 대조한다(`lib/maps/match-symbol.ts`, 확인: `node lib/maps/match-symbol.check.mjs`). 기준은 서버 `SymbolNameMatcher`, 전수조사 스크립트(`scripts/audit-places.mjs`)와 같다
-- 우리 DB에 없으면 "띵고에 아직 정보가 없는 곳" 시트(`sheet-unknown-place.tsx`)에서 네이버 지도 검색으로 넘긴다. 네이버 장소 정보는 약관상 가져와 보여주지 않는다
+- 우리 DB에 없어도 다른 가게처럼 바로 리뷰를 쓴다(`sheet-unknown-place.tsx`). 가게 종류(대동명지도 하위 8종)를 이름으로 미리 고르고(`lib/maps/guess-place-category.ts`, 확인: `node lib/maps/guess-place-category.check.mjs`), 리뷰 쓰기를 누르면 서버 `POST /map/symbol-places`(로그인 필요)가 근처의 비슷한 핀을 돌려주거나 그 이름·좌표로 장소를 만든다. 그 뒤 시트는 그 장소 상세로 바뀐다. 지도를 누르기만 해서는 장소가 생기지 않는다. 네이버 장소 정보(사진·영업시간 등)는 약관상 가져오지 않고 글자의 이름·좌표만 쓰며, 네이버 지도 검색 버튼은 남긴다
 - 웹 JS SDK는 심벌 터치를 알려주지 않아 웹에서는 동작하지 않는다
 
 ### 건물 이름 라벨 겹침
