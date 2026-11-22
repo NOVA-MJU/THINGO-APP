@@ -328,3 +328,17 @@ export async function matchMapSymbol(
     ? { id: match.id, type: match.type, latitude: match.latitude, longitude: match.longitude }
     : null;
 }
+
+// 띵고에 없는 가게(네이버 글자)에서 리뷰를 쓰려 할 때. 서버가 근처의 비슷한 핀을 돌려주거나 고른 대동명지도 종류로 장소를 만든다 (로그인 필요)
+export async function createSymbolPlace(params: {
+  name: string;
+  latitude: number;
+  longitude: number;
+  categoryCode: string;
+}) {
+  const { data } = await client.post<ApiResponse<NonNullable<MapSymbolMatchResponse>>>(
+    '/map/symbol-places',
+    params
+  );
+  return { id: data.data.id, name: data.data.name };
+}

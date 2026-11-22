@@ -161,7 +161,7 @@ type SheetScreenInit =
   // "다녀온 곳 N" 버튼으로 핀을 켰을 때 뜨는 전체 목록 (지도 가운데에서 가까운 순)
   | { kind: 'visit-list' }
   // 네이버 기본 글자를 눌렀는데 우리 DB에 없는 곳
-  | { kind: 'symbol'; caption: string }
+  | { kind: 'symbol'; caption: string; latitude: number; longitude: number }
   | { kind: 'category' };
 type SheetScreen = SheetScreenInit & { key: string; initialIndex: number };
 
@@ -873,7 +873,7 @@ export default function MapsScreen() {
     );
   }
 
-  // 네이버 기본 글자(심벌)를 누르면 이름·위치로 우리 건물·가게를 찾아 그 시트를 연다. 없으면 "띵고에 아직 없는 곳" 시트.
+  // 네이버 기본 글자(심벌)를 누르면 이름·위치로 우리 건물·가게를 찾아 그 시트를 연다. 없으면 가게 종류를 골라 바로 리뷰를 쓰는 시트.
   // 서버(모든 카테고리, 전수조사로 추가한 가게 포함)에 먼저 묻고, 서버에 API가 없거나 실패하면 앱 안 목록으로 대조한다
   async function onSymbolPress(symbol: SymbolPoint) {
     const match = await matchMapSymbol(symbol.caption, symbol.latitude, symbol.longitude).catch(
@@ -900,12 +900,35 @@ export default function MapsScreen() {
     if (top?.kind === 'symbol') {
       setSheetStack((prev) => [
         ...prev.slice(0, -1),
-        { kind: 'symbol', caption: symbol.caption, key: top.key, initialIndex: top.initialIndex },
+        {
+          kind: 'symbol',
+          caption: symbol.caption,
+          latitude: symbol.latitude,
+          longitude: symbol.longitude,
+          key: top.key,
+          initialIndex: top.initialIndex,
+        },
       ]);
       raiseLayer(top.key);
       return;
     }
-    pushSheet({ kind: 'symbol', caption: symbol.caption });
+    pushSheet({
+      kind: 'symbol',
+      caption: symbol.caption,
+      latitude: symbol.latitude,
+      longitude: symbol.longitude,
+    });
+  }
+
+  // 네이버 글자 시트에서 리뷰 쓰기로 띵고 장소가 생기면 같은 레이어를 그 장소 상세로 바꾼다
+  function replaceSymbolWithPlace(layerKey: string, placeId: number) {
+    setSheetStack((prev) =>
+      prev.map((screen) =>
+        screen.key === layerKey
+          ? { kind: 'place', placeId, key: screen.key, initialIndex: screen.initialIndex }
+          : screen
+      )
+    );
   }
 
   // 서버 대조를 못 쓸 때: 캠퍼스 건물 → 대동명지도 가게 순으로 앱이 가진 목록에서 찾는다
@@ -1410,7 +1433,15 @@ export default function MapsScreen() {
     }
 
     if (screen.kind === 'symbol') {
-      return <UnknownPlaceSheet caption={screen.caption} onClose={popSheet} />;
+      return (
+        <UnknownPlaceSheet
+          caption={screen.caption}
+          latitude={screen.latitude}
+          longitude={screen.longitude}
+          onClose={popSheet}
+          onPlaceCreated={(placeId) => replaceSymbolWithPlace(screen.key, placeId)}
+        />
+      );
     }
 
     if (screen.kind === 'visit-list') {
