@@ -375,8 +375,8 @@ export default function AllScreen({ onNavigate }: Props) {
                               </Text>
                             </View>
                           </View>
-                          {/* 배너 그림이 오른쪽 위에 오므로 n/N은 비어 있는 오른쪽 아래 구석에 둔다. 배경 없이 글자와 옅은 그림자만 둔다 */}
-                          <View className="absolute bottom-4 right-4 z-20 px-2 py-0.5">
+                          {/* n/N은 배경 없이 글자와 옅은 그림자만 오른쪽 위에 둔다. 배너 이미지는 이 자리를 비워 두고 그린다 */}
+                          <View className="absolute right-4 top-4 z-20 px-2 py-0.5">
                             <Text
                               className="text-white text-caption02"
                               style={{

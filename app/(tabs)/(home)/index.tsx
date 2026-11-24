@@ -3,7 +3,7 @@ import Sidebar from '@/components/sidebar';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Text } from '@/components/ui/text';
 import { useAlarmAccess } from '@/hooks/useAlarmAccess';
-import { setTabBarMinimized } from '@/hooks/useTabBarScroll';
+import { setTabBarHidden } from '@/hooks/useTabBarScroll';
 import { Link, router, useLocalSearchParams } from 'expo-router';
 import Head from 'expo-router/head';
 import * as React from 'react';
@@ -72,9 +72,9 @@ export default function Screen() {
     scrollRef.current?.scrollTo({ x: width * tabIndex, animated: false });
   }, [targetTab]);
 
-  // 홈 안에서 다른 탭(학식, 공지사항 등)으로 넘기면 그 화면은 맨 위에서 시작하니 접힌 탭바를 다시 펼친다
+  // 홈 안에서 다른 탭(학식, 공지사항 등)으로 넘기면 그 화면은 맨 위에서 시작하니 숨은 탭바를 다시 보여준다
   React.useEffect(() => {
-    setTabBarMinimized(false);
+    setTabBarHidden(false);
   }, [currentTab]);
 
   // 하단 네비게이션의 홈 탭을 다시 눌렀을 때 신호로 쓰는 값(매번 새 타임스탬프이므로
