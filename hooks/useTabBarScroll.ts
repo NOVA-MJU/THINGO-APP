@@ -1,5 +1,9 @@
 import * as React from 'react';
-import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
+import {
+  useWindowDimensions,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from 'react-native';
 import { makeMutable, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -26,6 +30,15 @@ export const TAB_BAR = {
   sideMargin: 28,
   maxWidth: 360,
 };
+
+// 이 폭 이상(PC 웹, 태블릿)에서는 접히는 유리 캡슐 대신 화면 폭 전체의 기존 하단 탭바를 쓴다.
+// 접히는 캡슐은 한 손으로 쓰는 폰 화면에서 내용을 넓게 보려고 만든 것이라서
+const WIDE_SCREEN_MIN_WIDTH = 768;
+
+export function useIsWideScreen() {
+  const { width } = useWindowDimensions();
+  return width >= WIDE_SCREEN_MIN_WIDTH;
+}
 
 // 홈 인디케이터 바로 위에 띄운다. 인디케이터가 없는 기기·웹은 12만큼 띄운다
 export function tabBarBottomGap(insetBottom: number) {
@@ -76,6 +89,8 @@ export function useTabBarScroll() {
     if (delta < -MIN_DELTA) setTabBarMinimized(false);
   }, []);
 
-  const bottomSpace = TAB_BAR.pillHeight + tabBarBottomGap(insets.bottom) + 12;
+  // 큰 화면의 기존 탭바는 화면 위에 뜨지 않고 자리를 차지해서 여백이 필요 없다
+  const isWideScreen = useIsWideScreen();
+  const bottomSpace = isWideScreen ? 0 : TAB_BAR.pillHeight + tabBarBottomGap(insets.bottom) + 12;
   return { onScroll, bottomSpace };
 }
