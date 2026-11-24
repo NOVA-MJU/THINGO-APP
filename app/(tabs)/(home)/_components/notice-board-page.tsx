@@ -9,6 +9,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { ClipboardPen } from 'lucide-react-native';
 import * as React from 'react';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
+import { useTabBarScroll } from '@/hooks/useTabBarScroll';
 
 type BoardCategoryTab = 'info' | 'free';
 
@@ -141,6 +142,7 @@ function NoticeBoardScreen() {
   const currentPage = Number(page ?? '1');
 
   const scrollRef = React.useRef<ScrollView>(null);
+  const onTabBarScroll = useTabBarScroll();
   const [boards, setBoards] = React.useState<Board[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
@@ -242,6 +244,8 @@ function NoticeBoardScreen() {
 
       <ScrollView
         ref={scrollRef}
+        onScroll={onTabBarScroll}
+        scrollEventThrottle={16}
         className="flex-1 bg-white"
         nestedScrollEnabled
         showsVerticalScrollIndicator={false}

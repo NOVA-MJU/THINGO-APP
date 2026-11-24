@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
 import { ActivityIndicator, Image, ScrollView, TouchableOpacity, View } from 'react-native';
+import { useTabBarScroll } from '@/hooks/useTabBarScroll';
 
 const CATEGORIES: { label: string; value: NewsCategory }[] = [
   { label: '전체', value: null },
@@ -24,6 +25,7 @@ export default function NewspaperScreen() {
   const currentPage = Number(page ?? '1');
 
   const scrollRef = React.useRef<ScrollView>(null);
+  const onTabBarScroll = useTabBarScroll();
   const [articles, setArticles] = React.useState<NewsItem[]>([]);
   const [totalPages, setTotalPages] = React.useState(1);
   const [loading, setLoading] = React.useState(false);
@@ -56,6 +58,8 @@ export default function NewspaperScreen() {
   return (
     <ScrollView
       ref={scrollRef}
+      onScroll={onTabBarScroll}
+      scrollEventThrottle={16}
       className="native:w-screen flex-1 bg-grey-02 web:w-full"
       contentContainerClassName="flex-grow"
     >
