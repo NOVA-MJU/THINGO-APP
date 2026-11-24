@@ -3,6 +3,7 @@ import {
   TAB_BAR,
   tabBarBottomGap,
   tabBarMinimizeProgress,
+  useIsWideScreen,
   useTabBarMinimized,
 } from '@/hooks/useTabBarScroll';
 import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
@@ -116,7 +117,7 @@ function TabButton({
   return (
     <Pressable
       accessibilityState={{ selected: isActive }}
-      className="h-full flex-1 items-center justify-center"
+      className="flex-1 items-center justify-center"
       onPressIn={() => {
         scale.value = withSpring(0.86, PRESS_SPRING);
       }}
@@ -147,6 +148,7 @@ export default function BottomNavigation() {
   const ActiveIcon = TABS[activeIndex].Icon;
   const isFloating = FLOATING_PATHS.includes(pathname);
   const minimized = useTabBarMinimized();
+  const isWideScreen = useIsWideScreen();
 
   const bottomGap = tabBarBottomGap(insets.bottom);
   const slotHeight = TAB_BAR.pillHeight + bottomGap + 12;
@@ -207,6 +209,26 @@ export default function BottomNavigation() {
     } else {
       router.navigate(href);
     }
+  }
+
+  // 큰 화면은 화면 폭 전체의 기존 하단 탭바. 화면 아래에 자리를 차지하고 스크롤해도 접히지 않는다
+  if (isWideScreen) {
+    return (
+      <View
+        className="w-full flex-row border-t border-grey-02 bg-white pt-[14px]"
+        style={{ paddingBottom: insets.bottom || 20 }}
+      >
+        {TABS.map(({ key, label, Icon, href }) => (
+          <TabButton
+            key={key}
+            label={label}
+            Icon={Icon}
+            isActive={activeKey === key}
+            onPress={() => navigateTo(key, href, activeKey === key)}
+          />
+        ))}
+      </View>
+    );
   }
 
   return (
