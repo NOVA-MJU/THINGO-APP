@@ -16,7 +16,7 @@ import { cleanMeals } from '@/lib/meal';
 import { useTabBarScroll } from '@/hooks/useTabBarScroll';
 
 export default function MealScreen() {
-  const onTabBarScroll = useTabBarScroll();
+  const { onScroll: onTabBarScroll, bottomSpace: tabBarSpace } = useTabBarScroll();
   const [selectedDate, setSelectedDate] = React.useState<string | null>(null);
   const [menus, setMenus] = React.useState<DailyMenu[]>([]);
 
@@ -225,6 +225,8 @@ export default function MealScreen() {
         </View>
       </View>
       <Footer />
+      {/* 화면 위에 떠 있는 탭바에 마지막 내용이 가리지 않게 둔 여백 */}
+      <View style={{ height: tabBarSpace }} />
     </ScrollView>
   );
 }

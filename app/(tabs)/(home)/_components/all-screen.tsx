@@ -88,7 +88,7 @@ function formatDdayValue(value: number): string {
 }
 
 export default function AllScreen({ onNavigate }: Props) {
-  const onTabBarScroll = useTabBarScroll();
+  const { onScroll: onTabBarScroll, bottomSpace: tabBarSpace } = useTabBarScroll();
   const { width: screenWidth } = useWindowDimensions();
   const [containerWidth, setContainerWidth] = React.useState(screenWidth);
   // 배너 이미지는 폰 카드 폭에서 오른쪽 위에 그림이 오도록 만든다. 웹처럼 화면이 넓을 때 카드를 그대로 넓히면
@@ -732,6 +732,8 @@ export default function AllScreen({ onNavigate }: Props) {
         </View>
       </View>
       <Footer />
+      {/* 화면 위에 떠 있는 탭바에 마지막 내용이 가리지 않게 둔 여백 */}
+      <View style={{ height: tabBarSpace }} />
     </ScrollView>
   );
 }

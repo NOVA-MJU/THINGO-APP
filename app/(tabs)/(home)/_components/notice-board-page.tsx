@@ -142,7 +142,7 @@ function NoticeBoardScreen() {
   const currentPage = Number(page ?? '1');
 
   const scrollRef = React.useRef<ScrollView>(null);
-  const onTabBarScroll = useTabBarScroll();
+  const { onScroll: onTabBarScroll, bottomSpace: tabBarSpace } = useTabBarScroll();
   const [boards, setBoards] = React.useState<Board[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
@@ -294,6 +294,8 @@ function NoticeBoardScreen() {
 
           <Footer />
         </View>
+        {/* 화면 위에 떠 있는 탭바에 마지막 내용이 가리지 않게 둔 여백 */}
+        <View style={{ height: tabBarSpace }} />
       </ScrollView>
 
       <WriteButton bottomOffset={20} onPress={() => router.push('/posts/write')} />

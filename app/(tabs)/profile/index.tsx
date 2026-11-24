@@ -21,7 +21,7 @@ const LOCATION_PRIVACY_URL =
 const PRIVACY_URL = 'https://verbena-ixia-597.notion.site/Thingo-33e22ef5d21e807d9738dc14def5de24';
 
 export default function ProfileScreen() {
-  const onTabBarScroll = useTabBarScroll();
+  const { onScroll: onTabBarScroll, bottomSpace: tabBarSpace } = useTabBarScroll();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, isInitializing, logout } = useAuth();
@@ -212,6 +212,8 @@ export default function ProfileScreen() {
           )}
         </View>
       </View>
+      {/* 화면 위에 떠 있는 탭바에 마지막 내용이 가리지 않게 둔 여백 */}
+      <View style={{ height: tabBarSpace }} />
     </ScrollView>
   );
 }
