@@ -359,8 +359,16 @@ export default function AllScreen({ onNavigate }: Props) {
                           {/* 배너 이미지는 흰 글자가 읽히는 단색 배경으로 만든다. 위에 어두운 막을 덮으면 그림 속 흰 카드·아이콘이 회색으로 눌려 흐려 보여서 덮지 않는다 */}
 
                           <View className="absolute bottom-0 left-0 right-0 top-0 z-20 justify-between p-4">
-                            <View className="self-end rounded-full bg-bg px-2 py-0.5">
-                              <Text className="text-white text-caption02">
+                            {/* 검은 배경 칩 대신 글자만 둔다. 배너 그림이 오른쪽 위까지 오므로 밝은 그림 위에서도 읽히게 옅은 그림자를 준다 */}
+                            <View className="self-end px-2 py-0.5">
+                              <Text
+                                className="text-white text-caption02"
+                                style={{
+                                  textShadowColor: 'rgba(0, 0, 0, 0.35)',
+                                  textShadowOffset: { width: 0, height: 1 },
+                                  textShadowRadius: 3,
+                                }}
+                              >
                                 {index + 1}/{banners.length}
                               </Text>
                             </View>
