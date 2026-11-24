@@ -1,23 +1,16 @@
 import {
-  setTabBarMinimized,
+  setTabBarHidden,
   TAB_BAR,
   tabBarBottomGap,
-  tabBarMinimizeProgress,
+  tabBarHiddenProgress,
   useIsWideScreen,
-  useTabBarMinimized,
 } from '@/hooks/useTabBarScroll';
 import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
 import * as Haptics from 'expo-haptics';
 import { usePathname, useRouter } from 'expo-router';
 import * as React from 'react';
 import { Platform, Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
-import Animated, {
-  Extrapolation,
-  interpolate,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ExploreIcon, HomeIcon, MapIcon, ProfileIcon } from './icons/navigation';
 import { Text } from './ui/text';
@@ -33,8 +26,10 @@ type TabKey = (typeof TABS)[number]['key'];
 
 const AUTH_PATHS = ['/login', '/signup', '/forgot-password'];
 
-// 탭바를 화면 위에 띄워 뒤 내용이 비치게 하는 화면. 이 화면들은 스크롤하면 탭바가 접히고(useTabBarScroll)
-// 스크롤 끝에 탭바만큼 여백을 둔다. 지도처럼 화면 아래쪽에 버튼·시트를 붙이는 화면은 탭바 자리를 비워 둔다
+// 폰에서 탭바를 유리 캡슐로 화면 위에 띄워 뒤 내용이 비치게 하는 화면. 이 화면들은 스크롤하면 탭바가 아래로
+// 내려가 숨고(useTabBarScroll) 스크롤 끝에 탭바만큼 여백을 둔다. 그 밖의 화면(명지도처럼 화면 아래에 시트·버튼을
+// 붙이는 화면, 탭 안쪽 화면)과 큰 화면은 화면 폭 전체의 기존 하단 탭바를 쓴다. 명지도의 흰 바텀시트가
+// 흰 탭바로 바로 이어져 한 면처럼 보인다
 const FLOATING_PATHS = [
   '/',
   '/meal',
@@ -145,9 +140,7 @@ export default function BottomNavigation() {
   const insets = useSafeAreaInsets();
   const activeKey = getActiveKey(pathname);
   const activeIndex = TABS.findIndex((tab) => tab.key === activeKey);
-  const ActiveIcon = TABS[activeIndex].Icon;
   const isFloating = FLOATING_PATHS.includes(pathname);
-  const minimized = useTabBarMinimized();
   const isWideScreen = useIsWideScreen();
 
   const bottomGap = tabBarBottomGap(insets.bottom);
@@ -156,9 +149,9 @@ export default function BottomNavigation() {
   const pillWidth = Math.max(0, Math.min(barWidth - TAB_BAR.sideMargin * 2, TAB_BAR.maxWidth));
   const tabWidth = pillWidth / TABS.length;
 
-  // 다른 탭으로 가면 그 화면은 맨 위에서 시작하니 탭바를 다시 펼친다
+  // 다른 탭으로 가면 그 화면은 맨 위에서 시작하니 탭바를 다시 보여준다
   React.useEffect(() => {
-    setTabBarMinimized(false);
+    setTabBarHidden(false);
   }, [pathname]);
 
   const selection = useSharedValue(activeIndex);
@@ -166,21 +159,9 @@ export default function BottomNavigation() {
     selection.value = withSpring(activeIndex, SELECT_SPRING);
   }, [activeIndex, selection]);
 
-  // 아래로 스크롤하면 iOS 탭바처럼 왼쪽 아래의 작은 캡슐(지금 탭 아이콘)로 접힌다.
-  // 크기만 탭바 안에서 바뀌어 화면 레이아웃은 다시 계산하지 않는다
-  const pillStyle = useAnimatedStyle(() => {
-    const progress = tabBarMinimizeProgress.value;
-    return {
-      left: interpolate(progress, [0, 1], [(barWidth - pillWidth) / 2, TAB_BAR.sideMargin]),
-      width: interpolate(progress, [0, 1], [pillWidth, TAB_BAR.miniSize]),
-      height: interpolate(progress, [0, 1], [TAB_BAR.pillHeight, TAB_BAR.miniSize]),
-    };
-  });
-  const rowStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(tabBarMinimizeProgress.value, [0, 0.45], [1, 0], Extrapolation.CLAMP),
-  }));
-  const miniStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(tabBarMinimizeProgress.value, [0.55, 1], [0, 1], Extrapolation.CLAMP),
+  // 아래로 스크롤하면 캡슐이 화면 아래로 내려가 숨는다. 위치만 바뀌어 화면 레이아웃은 다시 계산하지 않는다
+  const pillStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: tabBarHiddenProgress.value * (slotHeight + 16) }],
   }));
   const selectionStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: selection.value * tabWidth }],
@@ -211,8 +192,8 @@ export default function BottomNavigation() {
     }
   }
 
-  // 큰 화면은 화면 폭 전체의 기존 하단 탭바. 화면 아래에 자리를 차지하고 스크롤해도 접히지 않는다
-  if (isWideScreen) {
+  // 기존 하단 탭바: 화면 아래에 자리를 차지하고 스크롤해도 숨지 않는다
+  if (isWideScreen || !isFloating) {
     return (
       <View
         className="w-full flex-row border-t border-grey-02 bg-white pt-[14px]"
@@ -235,16 +216,20 @@ export default function BottomNavigation() {
     <View
       pointerEvents="box-none"
       onLayout={(event) => setBarWidth(event.nativeEvent.layout.width)}
-      style={[
-        { height: slotHeight, width: '100%' },
-        // 떠 있는 화면에서는 탭바가 자리를 차지하지 않아 뒤 내용이 그대로 비친다
-        isFloating && { position: 'absolute', left: 0, right: 0, bottom: 0 },
-      ]}
+      // 탭바가 자리를 차지하지 않아 뒤 내용이 그대로 비친다
+      style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: slotHeight }}
     >
       {barWidth > 0 && (
         <Animated.View
           style={[
-            { position: 'absolute', bottom: bottomGap, borderRadius: TAB_BAR.pillHeight },
+            {
+              position: 'absolute',
+              bottom: bottomGap,
+              left: (barWidth - pillWidth) / 2,
+              width: pillWidth,
+              height: TAB_BAR.pillHeight,
+              borderRadius: TAB_BAR.pillHeight,
+            },
             PILL_SHADOW,
             pillStyle,
           ]}
@@ -260,62 +245,31 @@ export default function BottomNavigation() {
             {USE_LIQUID_GLASS && (
               <GlassView style={StyleSheet.absoluteFill} glassEffectStyle="regular" isInteractive />
             )}
-
-            {/* 펼친 탭바. 접히는 동안 폭은 그대로 두고 흐려지기만 해서 글자가 찌그러지지 않는다 */}
             <Animated.View
-              pointerEvents={minimized ? 'none' : 'auto'}
               style={[
                 {
                   position: 'absolute',
-                  left: 0,
-                  top: 0,
-                  width: pillWidth,
-                  height: TAB_BAR.pillHeight,
+                  left: 4,
+                  top: 5,
+                  width: tabWidth - 8,
+                  height: TAB_BAR.pillHeight - 10,
+                  borderRadius: TAB_BAR.pillHeight,
+                  backgroundColor: 'rgba(23, 120, 255, 0.1)',
                 },
-                rowStyle,
+                selectionStyle,
               ]}
-            >
-              <Animated.View
-                style={[
-                  {
-                    position: 'absolute',
-                    left: 4,
-                    top: 5,
-                    width: tabWidth - 8,
-                    height: TAB_BAR.pillHeight - 10,
-                    borderRadius: TAB_BAR.pillHeight,
-                    backgroundColor: 'rgba(23, 120, 255, 0.1)',
-                  },
-                  selectionStyle,
-                ]}
-              />
-              <View className="h-full flex-row">
-                {TABS.map(({ key, label, Icon, href }) => (
-                  <TabButton
-                    key={key}
-                    label={label}
-                    Icon={Icon}
-                    isActive={activeKey === key}
-                    onPress={() => navigateTo(key, href, activeKey === key)}
-                  />
-                ))}
-              </View>
-            </Animated.View>
-
-            {/* 접힌 캡슐. 누르면 다시 펼친다 */}
-            <Animated.View
-              pointerEvents={minimized ? 'auto' : 'none'}
-              style={[StyleSheet.absoluteFill, miniStyle]}
-            >
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="탭바 펼치기"
-                className="flex-1 items-center justify-center"
-                onPress={() => setTabBarMinimized(false)}
-              >
-                <ActiveIcon filled className="text-blue-35" />
-              </Pressable>
-            </Animated.View>
+            />
+            <View className="h-full flex-row">
+              {TABS.map(({ key, label, Icon, href }) => (
+                <TabButton
+                  key={key}
+                  label={label}
+                  Icon={Icon}
+                  isActive={activeKey === key}
+                  onPress={() => navigateTo(key, href, activeKey === key)}
+                />
+              ))}
+            </View>
           </View>
         </Animated.View>
       )}
