@@ -4,11 +4,13 @@ import { useRouter } from 'expo-router';
 import Head from 'expo-router/head';
 import { Platform, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTabBarScroll } from '@/hooks/useTabBarScroll';
 
 const PAGE_TITLE = '전체 카테고리 | 띵고 Thingo';
 const PAGE_DESCRIPTION = '띵고의 모든 기능을 한눈에. 필요한 정보로 바로 이동해보세요!';
 
 export default function CategoryScreen() {
+  const onTabBarScroll = useTabBarScroll();
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
@@ -32,7 +34,11 @@ export default function CategoryScreen() {
           <meta property="og:description" content={PAGE_DESCRIPTION} />
         </Head>
       )}
-      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom, paddingTop: insets.top }}>
+      <ScrollView
+        onScroll={onTabBarScroll}
+        scrollEventThrottle={16}
+        contentContainerStyle={{ paddingBottom: insets.bottom, paddingTop: insets.top }}
+      >
         <Text className="px-4 pb-2 pt-5 text-black text-title01">카테고리</Text>
         <Text className="px-5 py-2.5 text-blue-35 text-body02">Information</Text>
         <View>

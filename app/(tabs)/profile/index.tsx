@@ -13,6 +13,7 @@ import { useCallback, useState } from 'react';
 import { Image, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import GuestProfileCard from './_components/guest-profile-card';
+import { useTabBarScroll } from '@/hooks/useTabBarScroll';
 
 const TERMS_URL = 'https://verbena-ixia-597.notion.site/Thingo-33e22ef5d21e80b08328edd8519b0b4e';
 const LOCATION_PRIVACY_URL =
@@ -20,6 +21,7 @@ const LOCATION_PRIVACY_URL =
 const PRIVACY_URL = 'https://verbena-ixia-597.notion.site/Thingo-33e22ef5d21e807d9738dc14def5de24';
 
 export default function ProfileScreen() {
+  const onTabBarScroll = useTabBarScroll();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, isInitializing, logout } = useAuth();
@@ -61,6 +63,8 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView
+      onScroll={onTabBarScroll}
+      scrollEventThrottle={16}
       className="bg-grey-02"
       contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top }}
     >

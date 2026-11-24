@@ -13,8 +13,10 @@ import * as React from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
 import MealRating from './meal-rating';
 import { cleanMeals } from '@/lib/meal';
+import { useTabBarScroll } from '@/hooks/useTabBarScroll';
 
 export default function MealScreen() {
+  const onTabBarScroll = useTabBarScroll();
   const [selectedDate, setSelectedDate] = React.useState<string | null>(null);
   const [menus, setMenus] = React.useState<DailyMenu[]>([]);
 
@@ -91,7 +93,12 @@ export default function MealScreen() {
   const dinner = getMeals('DINNER');
 
   return (
-    <ScrollView className="native:w-screen web:w-full" contentContainerClassName="flex-grow">
+    <ScrollView
+      onScroll={onTabBarScroll}
+      scrollEventThrottle={16}
+      className="native:w-screen web:w-full"
+      contentContainerClassName="flex-grow"
+    >
       <View className="gap-4 border-b border-grey-10 bg-white pb-3 pt-4">
         <View className="flex-row items-center gap-2 px-6">
           <Text className="text-black text-body02">

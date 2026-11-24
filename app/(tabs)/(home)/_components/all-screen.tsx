@@ -43,6 +43,7 @@ import {
   StarIcon as RatingStarIcon,
 } from '@/components/icons';
 import { useQuery } from '@tanstack/react-query';
+import { useTabBarScroll } from '@/hooks/useTabBarScroll';
 
 const NOTICE_CATEGORIES: { label: string; value: NoticeCategory }[] = [
   { label: '전체', value: 'all' },
@@ -69,6 +70,8 @@ const BOARD_CATEGORY_LABELS: Record<string, string> = {
 
 const CAROUSEL_PEEK = 12;
 const CAROUSEL_GAP = 10;
+// 큰 폰(iPhone Pro Max) 배너 카드 폭
+const BANNER_MAX_CARD_WIDTH = 400;
 const DDAYS_LIMIT = 3;
 const HOT_NOTICES_LIMIT = 5;
 // 토(6)·일(0)에서 다음 주 월요일까지 남은 날 수
@@ -85,9 +88,15 @@ function formatDdayValue(value: number): string {
 }
 
 export default function AllScreen({ onNavigate }: Props) {
+  const onTabBarScroll = useTabBarScroll();
   const { width: screenWidth } = useWindowDimensions();
   const [containerWidth, setContainerWidth] = React.useState(screenWidth);
-  const cardSlot = containerWidth - (CAROUSEL_PEEK + CAROUSEL_GAP / 2) * 2;
+  // 배너 이미지는 폰 카드 폭에서 오른쪽 위에 그림이 오도록 만든다. 웹처럼 화면이 넓을 때 카드를 그대로 넓히면
+  // 이미지가 커지면서 위아래가 잘리고 그림이 가운데로 몰려 보여서, 카드는 큰 폰 폭까지만 넓히고 양옆에 다음 배너를 더 보여준다
+  const cardSlot = Math.min(
+    containerWidth - (CAROUSEL_PEEK + CAROUSEL_GAP / 2) * 2,
+    BANNER_MAX_CARD_WIDTH + CAROUSEL_GAP
+  );
   const carouselOffset = (containerWidth - cardSlot) / 2;
 
   const [banners, setBanners] = React.useState<Banner[]>([]);
@@ -293,7 +302,11 @@ export default function AllScreen({ onNavigate }: Props) {
   }
 
   return (
-    <ScrollView className="native:w-screen flex-1 web:w-full">
+    <ScrollView
+      onScroll={onTabBarScroll}
+      scrollEventThrottle={16}
+      className="native:w-screen flex-1 web:w-full"
+    >
       <View className="min-h-screen bg-grey-02">
         <View className="bg-white py-5">
           {(bannersLoading || banners.length > 0) && (

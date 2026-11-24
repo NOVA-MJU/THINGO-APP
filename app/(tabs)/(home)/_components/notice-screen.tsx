@@ -9,6 +9,7 @@ import * as React from 'react';
 import { ActivityIndicator, ScrollView, TouchableOpacity, View } from 'react-native';
 import { Footer } from '@/components/footer';
 import { getNotices, type Notice, type NoticeCategory } from '@/api/notices';
+import { useTabBarScroll } from '@/hooks/useTabBarScroll';
 
 const CATEGORIES: { label: string; value: NoticeCategory }[] = [
   { label: '전체', value: 'all' },
@@ -29,6 +30,7 @@ export default function NoticeScreen() {
   const selectedCategory = CATEGORIES.find((c) => c.value === categoryValue)?.label ?? '전체';
 
   const scrollRef = React.useRef<ScrollView>(null);
+  const onTabBarScroll = useTabBarScroll();
   const [notices, setNotices] = React.useState<Notice[]>([]);
   const [totalPages, setTotalPages] = React.useState(1);
   const [loading, setLoading] = React.useState(false);
@@ -66,6 +68,8 @@ export default function NoticeScreen() {
   return (
     <ScrollView
       ref={scrollRef}
+      onScroll={onTabBarScroll}
+      scrollEventThrottle={16}
       className="native:w-screen flex-1 web:w-full"
       contentContainerStyle={{ flexGrow: 1 }}
     >
