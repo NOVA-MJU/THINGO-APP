@@ -42,7 +42,6 @@ import {
   StarIcon as RatingStarIcon,
 } from '@/components/icons';
 import { useQuery } from '@tanstack/react-query';
-import Svg, { Defs, LinearGradient as SvgLinearGradient, Rect, Stop } from 'react-native-svg';
 
 const NOTICE_CATEGORIES: { label: string; value: NoticeCategory }[] = [
   { label: '전체', value: 'all' },
@@ -343,27 +342,7 @@ export default function AllScreen({ onNavigate }: Props) {
                             className="absolute bottom-0 left-0 right-0 top-0 z-0"
                             resizeMode="cover"
                           />
-
-                          <View
-                            style={{
-                              position: 'absolute',
-                              top: 0,
-                              left: 0,
-                              right: 0,
-                              bottom: 0,
-                              zIndex: 10,
-                            }}
-                          >
-                            <Svg width="100%" height="100%">
-                              <Defs>
-                                <SvgLinearGradient id="hotGrad" x1="0" y1="0" x2="0" y2="1">
-                                  <Stop offset="0" stopColor="#000000" stopOpacity="0" />
-                                  <Stop offset="1" stopColor="#000000" stopOpacity="0.5" />
-                                </SvgLinearGradient>
-                              </Defs>
-                              <Rect width="100%" height="100%" fill="url(#hotGrad)" />
-                            </Svg>
-                          </View>
+                          {/* 배너 이미지는 흰 글자가 읽히는 단색 배경으로 만든다. 위에 어두운 막을 덮으면 그림 속 흰 카드·아이콘이 회색으로 눌려 흐려 보여서 덮지 않는다 */}
 
                           <View className="absolute bottom-0 left-0 right-0 top-0 z-20 justify-between p-4">
                             <View className="self-end rounded-full bg-bg px-2 py-0.5">
