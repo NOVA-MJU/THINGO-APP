@@ -3,6 +3,7 @@ import Sidebar from '@/components/sidebar';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Text } from '@/components/ui/text';
 import { useAlarmAccess } from '@/hooks/useAlarmAccess';
+import { setTabBarHidden } from '@/hooks/useTabBarScroll';
 import { Link, router, useLocalSearchParams } from 'expo-router';
 import Head from 'expo-router/head';
 import * as React from 'react';
@@ -70,6 +71,11 @@ export default function Screen() {
     setCurrentTab(TABS[tabIndex]);
     scrollRef.current?.scrollTo({ x: width * tabIndex, animated: false });
   }, [targetTab]);
+
+  // 홈 안에서 다른 탭(학식, 공지사항 등)으로 넘기면 그 화면은 맨 위에서 시작하니 숨긴 탭바를 다시 띄운다
+  React.useEffect(() => {
+    setTabBarHidden(false);
+  }, [currentTab]);
 
   // 하단 네비게이션의 홈 탭을 다시 눌렀을 때 신호로 쓰는 값(매번 새 타임스탬프이므로
   // 이미 ALL 화면에 있어도 재클릭할 때마다 effect가 다시 실행된다)

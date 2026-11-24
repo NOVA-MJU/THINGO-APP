@@ -16,6 +16,7 @@ import { format } from 'date-fns';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
 import { ActivityIndicator, Pressable, ScrollView, TouchableOpacity, View } from 'react-native';
+import { useTabBarScroll } from '@/hooks/useTabBarScroll';
 
 const CATEGORY_LABEL: Record<string, string> = {
   general: '일반',
@@ -153,6 +154,7 @@ export default function AcademicCalendarScreen() {
   const currentPage = Number(params.page ?? '1');
 
   const scrollRef = React.useRef<ScrollView>(null);
+  const onTabBarScroll = useTabBarScroll();
   const todayDayIndex = today.getDay();
   const [calendarData, setCalendarData] = React.useState<CalendarData | null>(null);
   const [calendarLoading, setCalendarLoading] = React.useState(false);
@@ -230,6 +232,8 @@ export default function AcademicCalendarScreen() {
   return (
     <ScrollView
       ref={scrollRef}
+      onScroll={onTabBarScroll}
+      scrollEventThrottle={16}
       className="native:w-screen web:w-full"
       contentContainerClassName="flex-grow"
     >

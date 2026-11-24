@@ -9,6 +9,7 @@ import { formatTimeAgo } from '@/lib/utils';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
 import { ActivityIndicator, ScrollView, TouchableOpacity, View } from 'react-native';
+import { useTabBarScroll } from '@/hooks/useTabBarScroll';
 
 const BROADCAST_SOURCE_MAP: Record<string, BroadcastSource> = {
   전체: 'ALL',
@@ -23,6 +24,7 @@ export default function NewsScreen() {
   const currentPage = Number(page ?? '1');
 
   const scrollRef = React.useRef<ScrollView>(null);
+  const onTabBarScroll = useTabBarScroll();
   const [broadcasts, setBroadcasts] = React.useState<BroadcastItem[]>([]);
   const [totalPages, setTotalPages] = React.useState(1);
   const [loading, setLoading] = React.useState(false);
@@ -58,6 +60,8 @@ export default function NewsScreen() {
   return (
     <ScrollView
       ref={scrollRef}
+      onScroll={onTabBarScroll}
+      scrollEventThrottle={16}
       className="native:w-screen flex-1 bg-grey-02 web:w-full"
       contentContainerClassName="flex-grow"
     >
