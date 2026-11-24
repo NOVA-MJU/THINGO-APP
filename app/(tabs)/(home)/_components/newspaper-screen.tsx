@@ -25,7 +25,7 @@ export default function NewspaperScreen() {
   const currentPage = Number(page ?? '1');
 
   const scrollRef = React.useRef<ScrollView>(null);
-  const onTabBarScroll = useTabBarScroll();
+  const { onScroll: onTabBarScroll, bottomSpace: tabBarSpace } = useTabBarScroll();
   const [articles, setArticles] = React.useState<NewsItem[]>([]);
   const [totalPages, setTotalPages] = React.useState(1);
   const [loading, setLoading] = React.useState(false);
@@ -118,6 +118,8 @@ export default function NewspaperScreen() {
         />
       </View>
       <Footer />
+      {/* 화면 위에 떠 있는 탭바에 마지막 내용이 가리지 않게 둔 여백 */}
+      <View style={{ height: tabBarSpace }} />
     </ScrollView>
   );
 }

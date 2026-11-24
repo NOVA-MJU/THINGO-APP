@@ -30,7 +30,7 @@ export default function NoticeScreen() {
   const selectedCategory = CATEGORIES.find((c) => c.value === categoryValue)?.label ?? '전체';
 
   const scrollRef = React.useRef<ScrollView>(null);
-  const onTabBarScroll = useTabBarScroll();
+  const { onScroll: onTabBarScroll, bottomSpace: tabBarSpace } = useTabBarScroll();
   const [notices, setNotices] = React.useState<Notice[]>([]);
   const [totalPages, setTotalPages] = React.useState(1);
   const [loading, setLoading] = React.useState(false);
@@ -110,6 +110,8 @@ export default function NoticeScreen() {
         className="mb-9 mt-6"
       />
       <Footer />
+      {/* 화면 위에 떠 있는 탭바에 마지막 내용이 가리지 않게 둔 여백 */}
+      <View style={{ height: tabBarSpace }} />
     </ScrollView>
   );
 }

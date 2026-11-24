@@ -10,7 +10,7 @@ const PAGE_TITLE = '전체 카테고리 | 띵고 Thingo';
 const PAGE_DESCRIPTION = '띵고의 모든 기능을 한눈에. 필요한 정보로 바로 이동해보세요!';
 
 export default function CategoryScreen() {
-  const onTabBarScroll = useTabBarScroll();
+  const { onScroll: onTabBarScroll, bottomSpace: tabBarSpace } = useTabBarScroll();
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
@@ -103,6 +103,8 @@ export default function CategoryScreen() {
             <ArrowRightIcon className="text-grey-20" size={20} />
           </TouchableOpacity>
         </View>
+        {/* 화면 위에 떠 있는 탭바에 마지막 내용이 가리지 않게 둔 여백 */}
+        <View style={{ height: tabBarSpace }} />
       </ScrollView>
     </>
   );
