@@ -27,7 +27,7 @@ import { getBanners, type Banner } from '@/api/banners';
 import { getMealRatings, getMenus, type DailyMenu } from '@/api/menus';
 import { useAuth } from '@/context/auth-context';
 import { cleanMeals } from '@/lib/meal';
-import { stripNoticeTitleTags } from '@/lib/notice-title';
+import { moveNoticeTitleTagsToEnd } from '@/lib/notice-title';
 import {
   getCalendar,
   getCalendarDdays,
@@ -487,7 +487,7 @@ export default function AllScreen({ onNavigate }: Props) {
                         item.category}
                     </Text>
                     <Text className="flex-1 text-black text-body05" numberOfLines={1}>
-                      {stripNoticeTitleTags(item.title)}
+                      {moveNoticeTitleTagsToEnd(item.title)}
                     </Text>
                     <Text className="text-grey-30 text-caption04">{dateLabel}</Text>
                   </TouchableOpacity>
@@ -528,7 +528,7 @@ export default function AllScreen({ onNavigate }: Props) {
                   {NOTICE_CATEGORIES.find((c) => c.value === item.category)?.label ?? item.category}
                 </Text>
                 <Text className="flex-1 text-black text-body05" numberOfLines={1}>
-                  {stripNoticeTitleTags(item.title)}
+                  {moveNoticeTitleTagsToEnd(item.title)}
                 </Text>
                 <Text className="text-grey-30 text-caption04" numberOfLines={1}>
                   {formatTimeAgo(item.date)}
