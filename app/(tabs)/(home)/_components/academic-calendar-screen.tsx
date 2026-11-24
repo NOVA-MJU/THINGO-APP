@@ -154,7 +154,7 @@ export default function AcademicCalendarScreen() {
   const currentPage = Number(params.page ?? '1');
 
   const scrollRef = React.useRef<ScrollView>(null);
-  const onTabBarScroll = useTabBarScroll();
+  const { onScroll: onTabBarScroll, bottomSpace: tabBarSpace } = useTabBarScroll();
   const todayDayIndex = today.getDay();
   const [calendarData, setCalendarData] = React.useState<CalendarData | null>(null);
   const [calendarLoading, setCalendarLoading] = React.useState(false);
@@ -457,6 +457,8 @@ export default function AcademicCalendarScreen() {
       )}
 
       <Footer />
+      {/* 화면 위에 떠 있는 탭바에 마지막 내용이 가리지 않게 둔 여백 */}
+      <View style={{ height: tabBarSpace }} />
     </ScrollView>
   );
 }
