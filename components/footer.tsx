@@ -14,8 +14,8 @@ const LOCATION_PRIVACY_URL =
   'https://verbena-ixia-597.notion.site/Thingo-39722ef5d21e802ebf0edfe83047fa8f';
 const PRIVACY_URL = 'https://verbena-ixia-597.notion.site/Thingo-33e22ef5d21e807d9738dc14def5de24';
 
-// 푸터 아래 기본 여백
-const FOOTER_BOTTOM_PADDING = 40;
+// 푸터 아래 여백
+const FOOTER_BOTTOM_PADDING = 24;
 
 export function Footer({
   className,
@@ -24,8 +24,8 @@ export function Footer({
 }: {
   className?: string;
   withBottomInset?: boolean;
-  // 화면 위에 떠 있는 탭바만큼 스크롤 끝에 둘 여백(useTabBarScroll의 bottomSpace).
-  // 푸터 밑에 빈 View로 따로 두면 맨 아래까지 내렸을 때 회색 푸터 아래에 흰 띠가 생겨서 푸터 안쪽 여백으로 넣는다
+  // 화면 위에 떠 있는 탭바만큼 스크롤 끝에 둘 여백(useTabBarScroll의 bottomSpace). 앱에서만 쓴다.
+  // 웹은 맨 아래까지 내리면 탭바가 내려가 숨어 있어서 푸터에 탭바 자리를 비워 두지 않는다
   bottomSpace?: number;
 }) {
   const insets = useSafeAreaInsets();
@@ -37,9 +37,9 @@ export function Footer({
   return (
     <View
       style={{
-        paddingBottom: FOOTER_BOTTOM_PADDING + (withBottomInset ? insets.bottom : 0) + bottomSpace,
+        paddingBottom: FOOTER_BOTTOM_PADDING + (withBottomInset ? insets.bottom : 0),
       }}
-      className={cn('w-full gap-3 border-t border-grey-10 bg-grey-02 px-5 pt-8', className)}
+      className={cn('w-full gap-2 border-t border-grey-10 bg-grey-02 px-5 pt-6', className)}
     >
       {/* 아이콘 링크. 페이지 바탕과 같은 회색 톤으로 두어 본문보다 튀지 않게 한다 */}
       <View className="flex-row gap-2">
