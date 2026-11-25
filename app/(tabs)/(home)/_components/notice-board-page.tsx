@@ -292,10 +292,9 @@ function NoticeBoardScreen() {
             )}
           </View>
 
-          <Footer />
+          {/* 화면 위에 떠 있는 탭바에 마지막 내용이 가리지 않게 푸터가 그만큼 여백을 둔다 */}
+          <Footer bottomSpace={tabBarSpace} />
         </View>
-        {/* 화면 위에 떠 있는 탭바에 마지막 내용이 가리지 않게 둔 여백 */}
-        <View style={{ height: tabBarSpace }} />
       </ScrollView>
 
       <WriteButton bottomOffset={20} onPress={() => router.push('/posts/write')} />

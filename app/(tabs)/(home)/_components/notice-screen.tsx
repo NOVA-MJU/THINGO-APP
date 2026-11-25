@@ -109,9 +109,8 @@ export default function NoticeScreen() {
         onPageChange={handlePageChange}
         className="mb-9 mt-6"
       />
-      <Footer />
-      {/* 화면 위에 떠 있는 탭바에 마지막 내용이 가리지 않게 둔 여백 */}
-      <View style={{ height: tabBarSpace }} />
+      {/* 화면 위에 떠 있는 탭바에 마지막 내용이 가리지 않게 푸터가 그만큼 여백을 둔다 */}
+      <Footer bottomSpace={tabBarSpace} />
     </ScrollView>
   );
 }
